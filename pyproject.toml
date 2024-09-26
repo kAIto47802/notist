@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "notifyme"
+description = "A simple package to send notifications to yourself."
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Kaito Baba" }]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+]
+dependencies = [
+    "python-dotenv>=1.0.1",
+    "slack_sdk>=3.33.1"
+]
+requires-python = ">=3.9"
+dynamic = ["version"]
+
+[project.optional-dependencies]
+check = ["ruff", "mypy", "types-setuptools"]
+
+[tool.setuptools.dynamic]
+version = { attr = "notifyme.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["notifyme*"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+exclude = ["^build/"]
