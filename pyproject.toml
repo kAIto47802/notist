@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "NotifyState"
+description = "A simple package to send notifications of script execution status."
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Kaito Baba" }]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+]
+dependencies = [
+    "slack_sdk>=3.33.1",
+    "requests>=2.28.1",
+]
+requires-python = ">=3.9"
+dynamic = ["version"]
+
+[project.optional-dependencies]
+check = ["ruff", "mypy", "types-setuptools", "types-requests", "typing-extensions"]
+test = ["pytest"]
+docs = [
+    "sphinx",
+    "sphinx-autodoc-typehints",
+    "sphinx-rtd-theme",
+    "sphinx-copybutton",
+]
+
+[tool.setuptools.dynamic]
+version = { attr = "notifystate.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["notifystate*"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+disallow_untyped_defs = true
+exclude = ["^build/"]
