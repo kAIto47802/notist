@@ -8,7 +8,7 @@ from datetime import datetime
 from types import TracebackType
 from typing import Any, Self, Type
 
-from notifyme._log import error, log
+import notifyme._log as _log
 from notifyme._utils import format_timedelta
 
 
@@ -20,14 +20,14 @@ class _BaseNotifier(ABC):
 
     def send(self, data: Any, **kwargs: Any) -> None:
         if self._verbose:
-            log(f"Send message: {data}")
+            _log.info(f"Send message: {data}")
         self._send(data, **kwargs)
 
     def _send(self, data: Any, **kwargs: Any) -> None:
         try:
             self._do_send(data, **kwargs)
         except Exception as e:
-            log(f"Error sending to {self.platform}: {e}")
+            _log.info(f"Error sending to {self.platform}: {e}")
 
     @abstractmethod
     def _do_send(self, data: Any) -> None:
@@ -71,12 +71,12 @@ class _Watch(ContextDecorator):
             tb_str = "".join(traceback.format_exception(exc_type, exc_val, exc_tb))
             error_msg = f"Error while watching{self._details}: {exc_val}\n{et_msg}"
             if self._verbose:
-                error(error_msg)
+                _log.error(error_msg)
             self._send(f"{error_msg}\n{'-' * 40}\n{tb_str}")
         else:
             msg = f"Stop watching{self._details}.\n{et_msg}."
             if self._verbose:
-                log(msg)
+                _log.info(msg)
             self._send(msg)
 
     @property

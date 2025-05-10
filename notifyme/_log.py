@@ -17,7 +17,7 @@ class _LogColor(Enum):
 _PREFIX = "[notifyme] "
 
 
-def log(message: str, with_timestamp: bool = True) -> None:
+def info(message: str, with_timestamp: bool = True) -> None:
     _print_with_prefix(
         message,
         prefix_color=_LogColor.CYAN,
