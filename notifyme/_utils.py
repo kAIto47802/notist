@@ -11,4 +11,4 @@ def format_timedelta(td: timedelta) -> str:
         minutes and f"{minutes}m",
         seconds and f"{seconds}s",
     ]
-    return " ".join(filter(None, parts)) or "0s"
+    return " ".join([p for p in parts if p]) or "0s"
