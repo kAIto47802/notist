@@ -17,7 +17,6 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
 ]
 dependencies = [
-    "python-dotenv>=1.0.1",
     "slack_sdk>=3.33.1"
 ]
 requires-python = ">=3.9"
