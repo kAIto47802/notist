@@ -7,7 +7,7 @@ from typing import Any
 from slack_sdk import WebClient
 
 import notifyme._log as _log
-from notifyme._base import _BaseNotifier, _LevelType, _Watch
+from notifyme._base import _LEVEL_ORDER, _BaseNotifier, _LevelStr, _Watch
 
 
 class SlackNotifier(_BaseNotifier):
@@ -16,10 +16,12 @@ class SlackNotifier(_BaseNotifier):
     def __init__(
         self,
         verbose: bool = True,
+        mention_to: str | None = None,
+        mention_level: _LevelStr = "error",
         channel: str | None = None,
         slack_token: str | None = None,
     ) -> None:
-        super().__init__(verbose=verbose)
+        super().__init__(verbose, mention_to, mention_level)
         self._default_channel = channel
         self._client = WebClient(token=slack_token or os.getenv("SLACK_BOT_TOKEN"))
         if channel:
@@ -31,7 +33,7 @@ class SlackNotifier(_BaseNotifier):
         self,
         data: Any,
         tb: str | None = None,
-        level: _LevelType = "info",
+        level: _LevelStr = "info",
         *,
         channel: str | None = None,
     ) -> None:
@@ -41,8 +43,14 @@ class SlackNotifier(_BaseNotifier):
                 "No Slack channel specified.\nSkipping sending message to Slack."
             )
             return
+        text = (
+            f"<{self._mention_to}>\n{data}"
+            if self._mention_to
+            and _LEVEL_ORDER[level] >= _LEVEL_ORDER[self._mention_level]
+            else str(data)
+        )
         self._client.chat_postMessage(
-            text=str(data),
+            text=text,
             channel=channel,
             attachments=tb
             and [

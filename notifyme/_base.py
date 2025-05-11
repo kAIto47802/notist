@@ -11,14 +11,26 @@ from typing import Any, Literal, Self, Type
 import notifyme._log as _log
 from notifyme._utils import format_timedelta
 
-_LevelType = Literal["info", "warning", "error"]
+_LevelStr = Literal["info", "warning", "error"]
+_LEVEL_ORDER: dict[_LevelStr, int] = {
+    "info": 0,
+    "warning": 1,
+    "error": 2,
+}
 
 
 class _BaseNotifier(ABC):
     platform: str
 
-    def __init__(self, verbose: bool = True) -> None:
+    def __init__(
+        self,
+        verbose: bool = True,
+        mention_to: str | None = None,
+        mention_level: _LevelStr = "error",
+    ) -> None:
         self._verbose = verbose
+        self._mention_to = mention_to
+        self._mention_level = mention_level
 
     def send(self, data: Any, **kwargs: Any) -> None:
         self._send(data, **kwargs)
@@ -29,7 +41,7 @@ class _BaseNotifier(ABC):
         self,
         data: Any,
         tb: str | None = None,
-        level: _LevelType = "info",
+        level: _LevelStr = "info",
         **kwargs: Any,
     ) -> None:
         try:
@@ -39,7 +51,7 @@ class _BaseNotifier(ABC):
 
     @abstractmethod
     def _do_send(
-        self, data: Any, tb: str | None = None, level: _LevelType = "info"
+        self, data: Any, tb: str | None = None, level: _LevelStr = "info"
     ) -> None:
         raise NotImplementedError
 

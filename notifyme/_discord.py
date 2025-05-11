@@ -5,7 +5,7 @@ from typing import Any
 import requests
 
 import notifyme._log as _log
-from notifyme._base import _BaseNotifier, _LevelType, _Watch
+from notifyme._base import _LEVEL_ORDER, _BaseNotifier, _LevelStr, _Watch
 
 
 class DiscordNotifier(_BaseNotifier):
@@ -14,10 +14,12 @@ class DiscordNotifier(_BaseNotifier):
     def __init__(
         self,
         verbose: bool = True,
+        mention_to: str | None = None,
+        mention_level: _LevelStr = "error",
         channel_id: str | None = None,
         discord_token: str | None = None,
     ) -> None:
-        super().__init__(verbose=verbose)
+        super().__init__(verbose, mention_to, mention_level)
         self._default_channel_id = channel_id
         self._token = discord_token or os.getenv("DISCORD_BOT_TOKEN")
         if channel_id:
@@ -31,7 +33,7 @@ class DiscordNotifier(_BaseNotifier):
         self,
         data: Any,
         tb: str | None = None,
-        level: _LevelType = "info",
+        level: _LevelStr = "info",
         *,
         channel_id: str | None = None,
     ) -> None:
@@ -45,7 +47,16 @@ class DiscordNotifier(_BaseNotifier):
             "Authorization": f"Bot {self._token}",
             "Content-Type": "application/json",
         }
-        payload: dict[str, Any] = {"content": str(data)}
+        text = (
+            f"<{self._mention_to}>\n{data}"
+            if self._mention_to
+            and _LEVEL_ORDER[level] >= _LEVEL_ORDER[self._mention_level]
+            else str(data)
+        )
+        payload: dict[str, Any] = {
+            "content": text,
+            "allowed_mentions": {"parse": ["users", "roles", "everyone"]},
+        }
         if tb:
             payload["embeds"] = [{"description": tb, "color": 0xFF3D33}]
 
