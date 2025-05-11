@@ -20,8 +20,19 @@ _PREFIX = "[notifyme] "
 def info(message: str, with_timestamp: bool = True) -> None:
     _print_with_prefix(
         message,
+        level_str="[INFO] ",
         prefix_color=_LogColor.CYAN,
         time_color=_LogColor.BLUE,
+        with_timestamp=with_timestamp,
+    )
+
+
+def warn(message: str, with_timestamp: bool = True) -> None:
+    _print_with_prefix(
+        message,
+        level_str="[WARN] ",
+        prefix_color=_LogColor.YELLOW,
+        time_color=_LogColor.YELLOW,
         with_timestamp=with_timestamp,
     )
 
@@ -29,6 +40,7 @@ def info(message: str, with_timestamp: bool = True) -> None:
 def error(message: str, with_timestamp: bool = True) -> None:
     _print_with_prefix(
         message,
+        level_str="[ERROR] ",
         prefix_color=_LogColor.RED,
         time_color=_LogColor.MAGENTA,
         with_timestamp=with_timestamp,
@@ -37,11 +49,12 @@ def error(message: str, with_timestamp: bool = True) -> None:
 
 def _print_with_prefix(
     message: str,
+    level_str: str,
     prefix_color: _LogColor,
     time_color: _LogColor,
     with_timestamp: bool = True,
 ) -> None:
-    prefix = f"{prefix_color.value}{_PREFIX}{_LogColor.RESET.value}"
+    prefix = f"{prefix_color.value}{_PREFIX}{level_str}{_LogColor.RESET.value}"
     prefix = (
         f"{prefix}{time_color.value}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {_LogColor.RESET.value}"
         if with_timestamp

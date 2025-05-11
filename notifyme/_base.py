@@ -21,9 +21,9 @@ class _BaseNotifier(ABC):
         self._verbose = verbose
 
     def send(self, data: Any, **kwargs: Any) -> None:
+        self._send(data, **kwargs)
         if self._verbose:
             _log.info(f"Send message: {data}")
-        self._send(data, **kwargs)
 
     def _send(
         self,
@@ -63,9 +63,9 @@ class _Watch(ContextDecorator):
     def __enter__(self) -> Self:
         self._start = datetime.now()
         message = f"Start watching{self._details}..."
+        self._send(message)
         if self._verbose:
             _log.info(message)
-        self._send(message)
         return self
 
     def __exit__(
@@ -80,14 +80,14 @@ class _Watch(ContextDecorator):
         if exc_type:
             tb = "".join(traceback.format_exception(exc_type, exc_val, exc_tb))
             error_msg = f"Error while watching{self._details}: {exc_val}\n{et_msg}"
+            self._send(error_msg, tb=tb, level="error")
             if self._verbose:
                 _log.error(error_msg)
-            self._send(error_msg, tb=tb, level="error")
         else:
             msg = f"Stop watching{self._details}.\n{et_msg}."
+            self._send(msg)
             if self._verbose:
                 _log.info(msg)
-            self._send(msg)
 
     @property
     def _details(self) -> str:
