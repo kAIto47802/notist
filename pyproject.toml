@@ -17,7 +17,8 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
 ]
 dependencies = [
-    "slack_sdk>=3.33.1"
+    "slack_sdk>=3.33.1",
+    "requests>=2.28.1",
 ]
 requires-python = ">=3.9"
 dynamic = ["version"]
