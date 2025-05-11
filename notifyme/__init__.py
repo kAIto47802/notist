@@ -1,4 +1,4 @@
-from notifyme.slack import SlackNotifier
+from notifyme._slack import SlackNotifier
 
 __all__ = ["SlackNotifier"]
 

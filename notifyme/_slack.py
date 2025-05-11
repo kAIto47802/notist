@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Callable
 from functools import partial
 from typing import Any
 
@@ -17,18 +16,16 @@ class SlackNotifier(_BaseNotifier):
     def __init__(
         self,
         verbose: bool = True,
-        default_channel: str | None = None,
+        channel: str | None = None,
         slack_token: str | None = None,
     ) -> None:
         super().__init__(verbose=verbose)
-        self._default_channel = default_channel
+        self._default_channel = channel
         self._client = WebClient(token=slack_token or os.getenv("SLACK_BOT_TOKEN"))
-        if default_channel:
-            _log.info(
-                f"SlackNotifier initialized with default channel: {default_channel}"
-            )
+        if channel:
+            _log.info(f"SlackNotifier initialized with default channel: {channel}")
         else:
-            _log.warn("No default channel set. Need to specify channel each time.")
+            _log.warn("No Slack channel configured. Need to specify channel each time.")
 
     def _do_send(
         self,
@@ -41,8 +38,7 @@ class SlackNotifier(_BaseNotifier):
         channel = channel or self._default_channel
         if channel is None:
             _log.error(
-                "Either channel or default_channel must be set.\n"
-                "Skipping sending following message to Slack."
+                "No Slack channel specified.\nSkipping sending message to Slack."
             )
             return
         self._client.chat_postMessage(
@@ -65,20 +61,9 @@ class SlackNotifier(_BaseNotifier):
             ],
         )
 
-    def watch(
-        self, label: str | None = None, *, channel: str | None = None
-    ) -> _SlackWatch:
-        return _SlackWatch(self._send, self._verbose, label, channel)
-
-
-class _SlackWatch(_Watch):
-    def __init__(
-        self,
-        send_fn: Callable[..., None],
-        verbose: bool = True,
-        label: str | None = None,
-        channel: str | None = None,
-    ) -> None:
-        super().__init__(send_fn, verbose, label)
-        self._channel = channel
-        self._send = partial(send_fn, channel=channel)
+    def watch(self, label: str | None = None, *, channel: str | None = None) -> _Watch:
+        return _Watch(
+            partial(self._send, channel=channel),
+            self._verbose,
+            label,
+        )
