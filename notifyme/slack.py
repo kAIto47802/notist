@@ -3,11 +3,12 @@ from __future__ import annotations
 import os
 import warnings
 from collections.abc import Callable
+from functools import partial
 from typing import Any
 
 from slack_sdk import WebClient
 
-from notifyme._base import _BaseNotifier, _Watch
+from notifyme._base import _BaseNotifier, _LevelType, _Watch
 
 
 class SlackNotifier(_BaseNotifier):
@@ -28,6 +29,8 @@ class SlackNotifier(_BaseNotifier):
     def _do_send(
         self,
         data: Any,
+        tb: str | None = None,
+        level: _LevelType = "info",
         *,
         channel: str | None = None,
     ) -> None:
@@ -35,8 +38,23 @@ class SlackNotifier(_BaseNotifier):
         if channel is None:
             raise ValueError("Either channel or default_channel must be set")
         self._client.chat_postMessage(
-            channel=channel,
             text=str(data),
+            channel=channel,
+            attachments=tb
+            and [
+                {
+                    "blocks": [
+                        {
+                            "type": "section",
+                            "text": {
+                                "type": "plain_text",
+                                "text": tb,
+                            },
+                        }
+                    ],
+                    "color": "#ff3d33",
+                }
+            ],
         )
 
     def watch(
@@ -55,4 +73,4 @@ class _SlackWatch(_Watch):
     ) -> None:
         super().__init__(send_fn, verbose, label)
         self._channel = channel
-        self._send = lambda d: send_fn(d, channel=self._channel)
+        self._send = partial(send_fn, channel=channel)
