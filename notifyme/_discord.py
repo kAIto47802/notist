@@ -1,11 +1,9 @@
-import os
-from functools import partial
 from typing import Any
 
 import requests
 
 import notifyme._log as _log
-from notifyme._base import _LEVEL_ORDER, _BaseNotifier, _LevelStr, _Watch
+from notifyme._base import _LEVEL_ORDER, _BaseNotifier, _LevelStr, _SendConfig
 
 
 class DiscordNotifier(_BaseNotifier):
@@ -13,19 +11,14 @@ class DiscordNotifier(_BaseNotifier):
 
     def __init__(
         self,
-        verbose: bool = True,
-        mention_to: str | None = None,
-        mention_level: _LevelStr = "error",
-        channel_id: str | None = None,
-        discord_token: str | None = None,
-        disable: bool = False,
+        **kwargs: Any,
     ) -> None:
-        super().__init__(verbose, mention_to, mention_level, disable)
-        self._default_channel_id = channel_id
-        self._token = discord_token or os.getenv("DISCORD_BOT_TOKEN")
+        super().__init__(**kwargs)
         if not self._disable:
-            if channel_id:
-                _log.info(f"DiscordNotifier initialized with channel ID: {channel_id}")
+            if self._default_channel:
+                _log.info(
+                    f"DiscordNotifier initialized with channel ID: {self._default_channel}"
+                )
             else:
                 _log.warn(
                     "No Discord channel ID configured. Need to specify channel each time."
@@ -34,12 +27,11 @@ class DiscordNotifier(_BaseNotifier):
     def _do_send(
         self,
         data: Any,
+        send_config: _SendConfig,
         tb: str | None = None,
         level: _LevelStr = "info",
-        *,
-        channel_id: str | None = None,
     ) -> None:
-        channel_id = channel_id or self._default_channel_id
+        channel_id = send_config.channel or self._default_channel
         if not channel_id:
             _log.error(
                 "No Discord channel ID specified.\nSkipping sending message to Discord."
@@ -49,10 +41,11 @@ class DiscordNotifier(_BaseNotifier):
             "Authorization": f"Bot {self._token}",
             "Content-Type": "application/json",
         }
+        mention_to = send_config.mention_to or self._mention_to
+        mention_level = send_config.mention_level or self._mention_level
         text = (
-            f"<{self._mention_to}>\n{data}"
-            if self._mention_to
-            and _LEVEL_ORDER[level] >= _LEVEL_ORDER[self._mention_level]
+            f"<{mention_to}>\n{data}"
+            if mention_to and _LEVEL_ORDER[level] >= _LEVEL_ORDER[mention_level]
             else str(data)
         )
         payload: dict[str, Any] = {
@@ -68,15 +61,3 @@ class DiscordNotifier(_BaseNotifier):
             json=payload,
         )
         resp.raise_for_status()
-
-    def watch(
-        self,
-        label: str | None = None,
-        *,
-        channel_id: str | None = None,
-    ) -> _Watch:
-        return _Watch(
-            partial(self._send, channel_id=channel_id),
-            self._verbose,
-            label,
-        )

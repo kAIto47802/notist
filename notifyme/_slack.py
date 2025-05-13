@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import os
-from functools import partial
 from typing import Any
 
 from slack_sdk import WebClient
 
 import notifyme._log as _log
-from notifyme._base import _LEVEL_ORDER, _BaseNotifier, _LevelStr, _Watch
+from notifyme._base import _LEVEL_ORDER, _BaseNotifier, _LevelStr, _SendConfig
 
 
 class SlackNotifier(_BaseNotifier):
@@ -15,19 +13,15 @@ class SlackNotifier(_BaseNotifier):
 
     def __init__(
         self,
-        verbose: bool = True,
-        mention_to: str | None = None,
-        mention_level: _LevelStr = "error",
-        channel: str | None = None,
-        slack_token: str | None = None,
-        disable: bool = False,
+        **kwargs: Any,
     ) -> None:
-        super().__init__(verbose, mention_to, mention_level, disable)
-        self._default_channel = channel
-        self._client = WebClient(token=slack_token or os.getenv("SLACK_BOT_TOKEN"))
+        super().__init__(**kwargs)
+        self._client = WebClient(token=self._token)
         if not self._disable:
-            if channel:
-                _log.info(f"SlackNotifier initialized with default channel: {channel}")
+            if self._default_channel:
+                _log.info(
+                    f"SlackNotifier initialized with default channel: {self._default_channel}"
+                )
             else:
                 _log.warn(
                     "No Slack channel configured. Need to specify channel each time."
@@ -36,21 +30,21 @@ class SlackNotifier(_BaseNotifier):
     def _do_send(
         self,
         data: Any,
+        send_config: _SendConfig,
         tb: str | None = None,
         level: _LevelStr = "info",
-        *,
-        channel: str | None = None,
     ) -> None:
-        channel = channel or self._default_channel
+        channel = send_config.channel or self._default_channel
         if channel is None:
             _log.error(
                 "No Slack channel specified.\nSkipping sending message to Slack."
             )
             return
+        mention_to = send_config.mention_to or self._mention_to
+        mention_level = send_config.mention_level or self._mention_level
         text = (
-            f"<{self._mention_to}>\n{data}"
-            if self._mention_to
-            and _LEVEL_ORDER[level] >= _LEVEL_ORDER[self._mention_level]
+            f"<{mention_to}>\n{data}"
+            if mention_to and _LEVEL_ORDER[level] >= _LEVEL_ORDER[mention_level]
             else str(data)
         )
         self._client.chat_postMessage(
@@ -71,11 +65,4 @@ class SlackNotifier(_BaseNotifier):
                     "color": "#ff3d33",
                 }
             ],
-        )
-
-    def watch(self, label: str | None = None, *, channel: str | None = None) -> _Watch:
-        return _Watch(
-            partial(self._send, channel=channel),
-            self._verbose,
-            label,
         )
