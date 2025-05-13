@@ -20,14 +20,18 @@ class SlackNotifier(_BaseNotifier):
         mention_level: _LevelStr = "error",
         channel: str | None = None,
         slack_token: str | None = None,
+        disable: bool = False,
     ) -> None:
-        super().__init__(verbose, mention_to, mention_level)
+        super().__init__(verbose, mention_to, mention_level, disable)
         self._default_channel = channel
         self._client = WebClient(token=slack_token or os.getenv("SLACK_BOT_TOKEN"))
-        if channel:
-            _log.info(f"SlackNotifier initialized with default channel: {channel}")
-        else:
-            _log.warn("No Slack channel configured. Need to specify channel each time.")
+        if not self._disable:
+            if channel:
+                _log.info(f"SlackNotifier initialized with default channel: {channel}")
+            else:
+                _log.warn(
+                    "No Slack channel configured. Need to specify channel each time."
+                )
 
     def _do_send(
         self,

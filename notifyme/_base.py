@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import traceback
 from abc import ABC, abstractmethod
 from collections.abc import Callable
@@ -27,10 +28,16 @@ class _BaseNotifier(ABC):
         verbose: bool = True,
         mention_to: str | None = None,
         mention_level: _LevelStr = "error",
+        disable: bool = False,
     ) -> None:
         self._verbose = verbose
-        self._mention_to = mention_to
+        self._mention_to = mention_to or os.getenv(
+            f"{self.platform.upper()}_MENTION_TO"
+        )
         self._mention_level = mention_level
+        self._disable = disable
+        if disable:
+            _log.info(f"{self.platform}Notifier is disabled. No messages will be sent.")
 
     def send(self, data: Any, **kwargs: Any) -> None:
         self._send(data, **kwargs)
@@ -44,6 +51,8 @@ class _BaseNotifier(ABC):
         level: _LevelStr = "info",
         **kwargs: Any,
     ) -> None:
+        if self._disable:
+            return
         try:
             self._do_send(data, tb, level, **kwargs)
         except Exception as e:
