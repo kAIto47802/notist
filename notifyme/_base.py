@@ -14,6 +14,11 @@ from typing import Any, Literal, Self, Type
 import notifyme._log as _log
 from notifyme._utils import format_timedelta
 
+# NOTE: Python 3.12+ (PEP 695) supports type statement.
+# After dropping Python 3.11 support, update this to use that instead.
+# See:
+#   - https://peps.python.org/pep-0695/
+#   - https://docs.python.org/3/library/typing.html#type-aliases
 _LevelStr = Literal["info", "warning", "error"]
 _LEVEL_ORDER: dict[_LevelStr, int] = {
     "info": 0,
