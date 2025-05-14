@@ -1,9 +1,11 @@
 from collections.abc import Callable
+from contextlib import ContextDecorator
 from functools import wraps
-from typing import Any, Iterable, Literal, ParamSpec, Type, TypeVar
+from types import TracebackType
+from typing import Any, Iterable, Literal, ParamSpec, Self, Type, cast, overload
 
 import notifyme._log as _log
-from notifyme._base import _BaseNotifier, _LevelStr, _Watch
+from notifyme._base import _BaseNotifier, _LevelStr
 from notifyme._discord import DiscordNotifier
 from notifyme._slack import SlackNotifier
 
@@ -22,7 +24,15 @@ _DESTINATIONS_MAP: dict[_DESTINATIONS, Type[_BaseNotifier]] = {
 #   - https://peps.python.org/pep-0695/
 #   - https://docs.python.org/3/reference/compound_stmts.html#type-params
 P = ParamSpec("P")
-R = TypeVar("R")
+R = ContextDecorator | None
+
+
+@overload
+def allow_multi_dist(
+    fn: Callable[P, ContextDecorator],
+) -> Callable[P, ContextDecorator]: ...
+@overload
+def allow_multi_dist(fn: Callable[P, None]) -> Callable[P, None]: ...
 
 
 def allow_multi_dist(fn: Callable[P, R]) -> Callable[P, R]:
@@ -31,17 +41,44 @@ def allow_multi_dist(fn: Callable[P, R]) -> Callable[P, R]:
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> R:
-        if isinstance(kwargs["send_to"], Iterable) and not isinstance(send_to, str):
-            for dest in kwargs["send_to"]:
+        send_to = kwargs.get("send_to")
+        if isinstance(send_to, Iterable) and not isinstance(send_to, str):
+            res = []
+            for dest in send_to:
                 new_kwargs = kwargs.copy()
                 new_kwargs["send_to"] = dest
-                return fn(*args, **new_kwargs)  # type: ignore
+                res.append(fn(*args, **new_kwargs))  # type: ignore
+            if all(isinstance(r, ContextDecorator) for r in res):
+                return _combine_contexts(cast(list[ContextDecorator], res))
+            elif all(r is None for r in res):
+                return None
             else:
-                raise ValueError("the length of `send_to` must be greater than 0")
+                raise ValueError(
+                    "Cannot mix context decorators and non-context decorators."
+                )
         else:
             return fn(*args, **kwargs)
 
     return wrapper
+
+
+def _combine_contexts(contexts: list[ContextDecorator]) -> ContextDecorator:
+    class _Combined(ContextDecorator):
+        def __enter__(self) -> Self:
+            for ctx in contexts:
+                ctx.__enter__()  # type: ignore
+            return self
+
+        def __exit__(
+            self,
+            exc_type: Type[BaseException] | None,
+            exc_value: BaseException | None,
+            traceback: TracebackType | None,
+        ) -> None:
+            for ctx in reversed(contexts):
+                ctx.__exit__(exc_type, exc_value, traceback)  # type: ignore
+
+    return _Combined()
 
 
 @allow_multi_dist
@@ -127,7 +164,7 @@ def watch(
     mention_if_ends: bool = True,
     verbose: bool = True,
     disable: bool = False,
-) -> _Watch:
+) -> ContextDecorator:
     """
     Decorator to watch a function and send notifications on errors.
 
@@ -170,4 +207,4 @@ def _init_if_needed(
         verbose=verbose,
         disable=disable,
     )
-    init(send_to, **{k: v for k, v in kwargs.items() if v is not None})  # type: ignore
+    init(send_to=send_to, **{k: v for k, v in kwargs.items() if v is not None})  # type: ignore
