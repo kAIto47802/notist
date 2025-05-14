@@ -83,7 +83,8 @@ def _combine_contexts(contexts: list[ContextDecorator]) -> ContextDecorator:
 
 @allow_multi_dest
 def init(
-    send_to: _DESTINATIONS | list[_DESTINATIONS] = "slack",
+    *,
+    send_to: _DESTINATIONS | list[_DESTINATIONS],
     channel: str | None = None,
     mention_to: str | None = None,
     mention_level: _LevelStr = "error",
@@ -125,7 +126,8 @@ def init(
 @allow_multi_dest
 def send(
     data: Any,
-    send_to: _DESTINATIONS | list[_DESTINATIONS] = "slack",
+    *,
+    send_to: _DESTINATIONS | list[_DESTINATIONS] | None = None,
     channel: str | None = None,
     mention_to: str | None = None,
     mention_level: _LevelStr | None = None,
@@ -157,13 +159,14 @@ def send(
 @allow_multi_dest
 def watch(
     label: str | None = None,
-    send_to: _DESTINATIONS | list[_DESTINATIONS] = "slack",
+    *,
+    send_to: _DESTINATIONS | list[_DESTINATIONS] | None = None,
     channel: str | None = None,
     mention_to: str | None = None,
-    mention_level: _LevelStr = "error",
-    mention_if_ends: bool = True,
-    verbose: bool = True,
-    disable: bool = False,
+    mention_level: _LevelStr | None = None,
+    mention_if_ends: bool | None = None,
+    verbose: bool | None = None,
+    disable: bool | None = None,
 ) -> ContextDecorator:
     """
     Decorator to watch a function and send notifications on errors.
