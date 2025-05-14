@@ -35,8 +35,16 @@ _DESTINATIONS_MAP: dict[_DESTINATIONS, Type[_BaseNotifier]] = {
 # See:
 #   - https://peps.python.org/pep-0695/
 #   - https://docs.python.org/3/reference/compound_stmts.html#type-params
+# NOTE: PEP 604 (`X | Y`) union syntax requires Python 3.10+.
+# For Python < 3.10 (e.g. 3.9), we need to use `typing.Union[X, Y]`.
+# After dropping Python 3.9 support, we can remove using `typing.Union`.
 P = ParamSpec("P")
-R = ContextManagerDecorator | None
+if sys.version_info >= (3, 10):
+    R = ContextManagerDecorator | None
+else:
+    from typing import Union
+
+    R = Union[ContextManagerDecorator, None]
 
 
 @overload
