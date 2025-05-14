@@ -24,8 +24,8 @@ requires-python = ">=3.9"
 dynamic = ["version"]
 
 [project.optional-dependencies]
-check = ["ruff", "mypy", "types-setuptools"]
-test = ["pytest", "types-requests"]
+check = ["ruff", "mypy", "types-setuptools", "types-requests"]
+test = ["pytest"]
 
 [tool.setuptools.dynamic]
 version = { attr = "notifyme.__version__" }
