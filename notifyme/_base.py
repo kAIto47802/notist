@@ -45,6 +45,12 @@ class _BaseNotifier(ABC):
             f"{self.platform.upper()}_MENTION_TO"
         )
         self._token = token or os.getenv(f"{self.platform.upper()}_BOT_TOKEN")
+        if not self._token:
+            _log.error(
+                f"Missing {self.platform} bot token. Please set the {self.platform.upper()}_BOT_TOKEN"
+                "environment variable or pass it as an argument."
+            )
+            self._disable = True
         self._mention_level = mention_level
         self._mention_if_ends = mention_if_ends
         self._default_channel = channel or os.getenv(f"{self.platform.upper()}_CHANNEL")
