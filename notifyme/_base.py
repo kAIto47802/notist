@@ -55,7 +55,7 @@ class _BaseNotifier(ABC):
             f"{self.platform.upper()}_MENTION_TO"
         )
         self._token = token or os.getenv(f"{self.platform.upper()}_BOT_TOKEN")
-        if not self._token:
+        if not self._token and self._verbose:
             _log.error(
                 f"Missing {self.platform} bot token. Please set the {self.platform.upper()}_BOT_TOKEN "
                 "environment variable or pass it as an argument."
@@ -65,7 +65,7 @@ class _BaseNotifier(ABC):
         self._mention_if_ends = mention_if_ends
         self._default_channel = channel or os.getenv(f"{self.platform.upper()}_CHANNEL")
         self._disable = disable
-        if disable:
+        if disable and self._verbose:
             _log.info(f"{self.platform}Notifier is disabled. No messages will be sent.")
 
     def send(
@@ -74,8 +74,6 @@ class _BaseNotifier(ABC):
         *,
         channel: str | None = None,
         mention_to: str | None = None,
-        mention_level: _LevelStr | None = None,
-        mention_if_ends: bool | None = None,
         verbose: bool | None = None,
         disable: bool | None = None,
     ) -> None:
@@ -84,10 +82,7 @@ class _BaseNotifier(ABC):
             _SendConfig(
                 channel=channel or self._default_channel,
                 mention_to=mention_to or self._mention_to,
-                mention_level=mention_level or self._mention_level,
-                mention_if_ends=mention_if_ends
-                if mention_if_ends is not None
-                else self._mention_if_ends,
+                mention_level="info" if mention_to is not None else "error",
                 verbose=verbose if verbose is not None else self._verbose,
                 disable=disable if disable is not None else self._disable,
             ),
@@ -102,12 +97,13 @@ class _BaseNotifier(ABC):
         tb: str | None = None,
         level: _LevelStr = "info",
     ) -> None:
-        if send_config.disable if send_config.disable is not None else self._disable:
+        if send_config.disable:
             return
         try:
             self._do_send(data, send_config, tb, level)
         except Exception as e:
-            _log.error(f"Error sending to {self.platform}: {e}")
+            if self._verbose:
+                _log.error(f"Error sending to {self.platform}: {e}")
 
     @abstractmethod
     def _do_send(
@@ -204,7 +200,7 @@ class _Watch(ContextDecorator, AbstractContextManager):
         et_msg = f"Execution time: {format_timedelta(end - self._start)}"
         if exc_type:
             tb = "".join(traceback.format_exception(exc_type, exc_val, exc_tb))
-            error_msg = f"Error while watching{self._details}: {exc_val}\n{et_msg}"
+            error_msg = f"Error while watching{self._details}: {exc_val}\n{et_msg}."
             self._send(error_msg, tb=tb, level="error")
             if self._send_config.verbose:
                 _log.error(error_msg)
