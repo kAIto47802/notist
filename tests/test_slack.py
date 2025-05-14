@@ -9,7 +9,7 @@ from notifyme._slack import SlackNotifier
 
 class DummyClient:
     def __init__(self) -> None:
-        self.sent = []
+        self.sent: list[Any] = []
 
     def chat_postMessage(self, **kwargs: Any) -> None:
         self.sent.append(kwargs)
