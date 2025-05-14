@@ -28,14 +28,14 @@ R = ContextDecorator | None
 
 
 @overload
-def allow_multi_dist(
+def allow_multi_dest(
     fn: Callable[P, ContextDecorator],
 ) -> Callable[P, ContextDecorator]: ...
 @overload
-def allow_multi_dist(fn: Callable[P, None]) -> Callable[P, None]: ...
+def allow_multi_dest(fn: Callable[P, None]) -> Callable[P, None]: ...
 
 
-def allow_multi_dist(fn: Callable[P, R]) -> Callable[P, R]:
+def allow_multi_dest(fn: Callable[P, R]) -> Callable[P, R]:
     @wraps(fn)
     def wrapper(
         *args: P.args,
@@ -81,7 +81,7 @@ def _combine_contexts(contexts: list[ContextDecorator]) -> ContextDecorator:
     return _Combined()
 
 
-@allow_multi_dist
+@allow_multi_dest
 def init(
     send_to: _DESTINATIONS | list[_DESTINATIONS] = "slack",
     channel: str | None = None,
@@ -122,7 +122,7 @@ def init(
     )
 
 
-@allow_multi_dist
+@allow_multi_dest
 def send(
     data: Any,
     send_to: _DESTINATIONS | list[_DESTINATIONS] = "slack",
@@ -154,7 +154,7 @@ def send(
     _notifier[send_to].send(data, **kwargs)  # type: ignore
 
 
-@allow_multi_dist
+@allow_multi_dest
 def watch(
     label: str | None = None,
     send_to: _DESTINATIONS | list[_DESTINATIONS] = "slack",
