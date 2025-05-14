@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable
 from contextlib import AbstractContextManager, ContextDecorator
 from functools import wraps
 from types import TracebackType
-from typing import Any, Iterable, Literal, ParamSpec, Self, Type, cast, overload
+from typing import Any, Iterable, Literal, ParamSpec, Type, cast, overload
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 import notifyme._log as _log
 from notifyme._base import ContextManagerDecorator, _BaseNotifier, _LevelStr

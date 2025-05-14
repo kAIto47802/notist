@@ -1,7 +1,13 @@
 from __future__ import annotations
 
+import sys
 from contextlib import ContextDecorator
-from typing import Any, Self
+from typing import Any
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 import pytest
 

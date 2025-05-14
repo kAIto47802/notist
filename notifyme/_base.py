@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import traceback
 from abc import ABC, abstractmethod
 from collections.abc import Callable
@@ -9,7 +10,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
 from types import TracebackType
-from typing import Any, Literal, ParamSpec, Protocol, Self, Type, TypeVar
+from typing import Any, Literal, ParamSpec, Protocol, Type, TypeVar
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 import notifyme._log as _log
 from notifyme._utils import format_timedelta
