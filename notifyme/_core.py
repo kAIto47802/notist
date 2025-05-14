@@ -1,11 +1,11 @@
 from collections.abc import Callable
-from contextlib import ContextDecorator
+from contextlib import AbstractContextManager, ContextDecorator
 from functools import wraps
 from types import TracebackType
 from typing import Any, Iterable, Literal, ParamSpec, Self, Type, cast, overload
 
 import notifyme._log as _log
-from notifyme._base import _BaseNotifier, _LevelStr
+from notifyme._base import ContextManagerDecorator, _BaseNotifier, _LevelStr
 from notifyme._discord import DiscordNotifier
 from notifyme._slack import SlackNotifier
 
@@ -24,13 +24,13 @@ _DESTINATIONS_MAP: dict[_DESTINATIONS, Type[_BaseNotifier]] = {
 #   - https://peps.python.org/pep-0695/
 #   - https://docs.python.org/3/reference/compound_stmts.html#type-params
 P = ParamSpec("P")
-R = ContextDecorator | None
+R = ContextManagerDecorator | None
 
 
 @overload
 def allow_multi_dest(
-    fn: Callable[P, ContextDecorator],
-) -> Callable[P, ContextDecorator]: ...
+    fn: Callable[P, ContextManagerDecorator],
+) -> Callable[P, ContextManagerDecorator]: ...
 @overload
 def allow_multi_dest(fn: Callable[P, None]) -> Callable[P, None]: ...
 
@@ -48,8 +48,8 @@ def allow_multi_dest(fn: Callable[P, R]) -> Callable[P, R]:
                 new_kwargs = kwargs.copy()
                 new_kwargs["send_to"] = dest
                 res.append(fn(*args, **new_kwargs))  # type: ignore
-            if all(isinstance(r, ContextDecorator) for r in res):
-                return _combine_contexts(cast(list[ContextDecorator], res))
+            if all(isinstance(r, AbstractContextManager) for r in res):
+                return _combine_contexts(cast(list[ContextManagerDecorator], res))
             elif all(r is None for r in res):
                 return None
             else:
@@ -62,11 +62,13 @@ def allow_multi_dest(fn: Callable[P, R]) -> Callable[P, R]:
     return wrapper
 
 
-def _combine_contexts(contexts: list[ContextDecorator]) -> ContextDecorator:
-    class _Combined(ContextDecorator):
+def _combine_contexts(
+    contexts: list[ContextManagerDecorator],
+) -> ContextManagerDecorator:
+    class _Combined(ContextDecorator, AbstractContextManager):
         def __enter__(self) -> Self:
             for ctx in contexts:
-                ctx.__enter__()  # type: ignore
+                ctx.__enter__()
             return self
 
         def __exit__(
@@ -76,9 +78,9 @@ def _combine_contexts(contexts: list[ContextDecorator]) -> ContextDecorator:
             traceback: TracebackType | None,
         ) -> None:
             for ctx in reversed(contexts):
-                ctx.__exit__(exc_type, exc_value, traceback)  # type: ignore
+                ctx.__exit__(exc_type, exc_value, traceback)
 
-    return _Combined()
+    return _Combined()  # type: ignore
 
 
 @allow_multi_dest
@@ -167,7 +169,7 @@ def watch(
     mention_if_ends: bool | None = None,
     verbose: bool | None = None,
     disable: bool | None = None,
-) -> ContextDecorator:
+) -> ContextManagerDecorator:
     """
     Decorator to watch a function and send notifications on errors.
 
