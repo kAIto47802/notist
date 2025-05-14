@@ -5,7 +5,7 @@ import traceback
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from contextlib import ContextDecorator
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
 from types import TracebackType
@@ -137,7 +137,7 @@ class _Watch(ContextDecorator):
         send_config: _SendConfig,
         label: str | None = None,
     ) -> None:
-        self._send = partial(send_fn, **asdict(send_config))
+        self._send = partial(send_fn, send_config=send_config)
         self._send_config = send_config
         self._start: datetime | None = None
         self._label = label
