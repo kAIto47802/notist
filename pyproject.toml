@@ -25,6 +25,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 check = ["ruff", "mypy", "types-setuptools"]
+test = ["pytest"]
 
 [tool.setuptools.dynamic]
 version = { attr = "notifyme.__version__" }
@@ -35,4 +36,5 @@ include = ["notifyme*"]
 [tool.mypy]
 python_version = "3.11"
 ignore_missing_imports = true
+disallow_untyped_defs = true
 exclude = ["^build/"]
