@@ -5,8 +5,12 @@ from collections.abc import Callable
 from contextlib import AbstractContextManager, ContextDecorator
 from functools import wraps
 from types import TracebackType
-from typing import Any, Iterable, Literal, ParamSpec, Type, cast, overload
+from typing import Any, Iterable, Literal, Type, cast, overload
 
+if sys.version_info >= (3, 10):
+    from typing import ParamSpec
+else:
+    from typing_extensions import ParamSpec
 if sys.version_info >= (3, 11):
     from typing import Self
 else:

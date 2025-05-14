@@ -10,8 +10,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
 from types import TracebackType
-from typing import Any, Literal, ParamSpec, Protocol, Type, TypeVar
+from typing import Any, Literal, Protocol, Type, TypeVar
 
+if sys.version_info >= (3, 10):
+    from typing import ParamSpec
+else:
+    from typing_extensions import ParamSpec
 if sys.version_info >= (3, 11):
     from typing import Self
 else:
