@@ -4,12 +4,12 @@ import os
 import traceback
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from contextlib import ContextDecorator
+from contextlib import AbstractContextManager, ContextDecorator
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
 from types import TracebackType
-from typing import Any, Literal, Self, Type
+from typing import Any, Literal, ParamSpec, Protocol, Self, Type, TypeVar
 
 import notifyme._log as _log
 from notifyme._utils import format_timedelta
@@ -25,6 +25,16 @@ _LEVEL_ORDER: dict[_LevelStr, int] = {
     "warning": 1,
     "error": 2,
 }
+
+
+@dataclass
+class _SendConfig:
+    channel: str | None = None
+    mention_to: str | None = None
+    mention_level: _LevelStr = "error"
+    mention_if_ends: bool = True
+    verbose: bool = True
+    disable: bool = False
 
 
 class _BaseNotifier(ABC):
@@ -47,7 +57,7 @@ class _BaseNotifier(ABC):
         self._token = token or os.getenv(f"{self.platform.upper()}_BOT_TOKEN")
         if not self._token:
             _log.error(
-                f"Missing {self.platform} bot token. Please set the {self.platform.upper()}_BOT_TOKEN"
+                f"Missing {self.platform} bot token. Please set the {self.platform.upper()}_BOT_TOKEN "
                 "environment variable or pass it as an argument."
             )
             self._disable = True
@@ -119,7 +129,7 @@ class _BaseNotifier(ABC):
         mention_if_ends: bool | None = None,
         verbose: bool | None = None,
         disable: bool | None = None,
-    ) -> _Watch:
+    ) -> ContextManagerDecorator:
         return _Watch(
             self._send,
             _SendConfig(
@@ -136,7 +146,33 @@ class _BaseNotifier(ABC):
         )
 
 
-class _Watch(ContextDecorator):
+# NOTE: Python 3.12+ (PEP 695) supports inline type parameter syntax.
+# After dropping Python 3.11 support, update this to use that instead.
+# See:
+#   - https://peps.python.org/pep-0695/
+#   - https://docs.python.org/3/reference/compound_stmts.html#type-params
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+# This protocol guarantees to static checkers (e.g. mypy) that any implementing
+# object have  `__enter__`, `__exit__` and `__call__`.
+# Otherwise, users applying these contexts would get mypy errors because the type
+# system wouldn't know these methods exist.
+class ContextManagerDecorator(Protocol[P, R]):
+    """Protocol for objects that can be used as context managers and decorators."""
+
+    def __enter__(self) -> Self: ...
+    def __exit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None: ...
+    def __call__(self, fn: Callable[P, R]) -> Callable[P, R]: ...
+
+
+class _Watch(ContextDecorator, AbstractContextManager):
     def __init__(
         self,
         send_fn: Callable[..., None],
@@ -188,13 +224,3 @@ class _Watch(ContextDecorator):
     def __call__(self, fn: Callable) -> Any:
         self._fn_name = fn.__name__
         return super().__call__(fn)
-
-
-@dataclass
-class _SendConfig:
-    channel: str | None = None
-    mention_to: str | None = None
-    mention_level: _LevelStr = "error"
-    mention_if_ends: bool = True
-    verbose: bool = True
-    disable: bool = False
