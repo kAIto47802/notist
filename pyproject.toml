@@ -25,7 +25,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 check = ["ruff", "mypy", "types-setuptools"]
-test = ["pytest"]
+test = ["pytest", "types-requests"]
 
 [tool.setuptools.dynamic]
 version = { attr = "notifyme.__version__" }
