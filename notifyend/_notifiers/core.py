@@ -19,7 +19,7 @@ else:
 import notifyend._log as _log
 from notifyend._notifiers.base import BaseNotifier, ContextManagerDecorator, _LevelStr
 from notifyend._notifiers.discord import DiscordNotifier
-from notifyend._slack import SlackNotifier
+from notifyend._notifiers.slack import SlackNotifier
 
 _notifier = {}
 
