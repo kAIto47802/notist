@@ -6,7 +6,7 @@ import pytest
 from pytest import CaptureFixture, MonkeyPatch
 from slack_sdk import WebClient
 
-from notifyme._slack import SlackNotifier
+from notifyend._slack import SlackNotifier
 
 
 class DummyClient:

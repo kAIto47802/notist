@@ -3,8 +3,8 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "notifyme"
-description = "A simple package to send notifications to yourself."
+name = "notifyend"
+description = "A simple package to send notifications script execution status."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [{ name = "Kaito Baba" }]

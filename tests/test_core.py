@@ -11,7 +11,7 @@ else:
 
 import pytest
 
-from notifyme._core import _DESTINATIONS, _combine_contexts, allow_multi_dest
+from notifyend._core import _DESTINATIONS, _combine_contexts, allow_multi_dest
 
 
 @allow_multi_dest

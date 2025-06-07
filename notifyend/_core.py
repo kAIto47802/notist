@@ -16,10 +16,10 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Self
 
-import notifyme._log as _log
-from notifyme._base import ContextManagerDecorator, _BaseNotifier, _LevelStr
-from notifyme._discord import DiscordNotifier
-from notifyme._slack import SlackNotifier
+import notifyend._log as _log
+from notifyend._base import ContextManagerDecorator, _BaseNotifier, _LevelStr
+from notifyend._discord import DiscordNotifier
+from notifyend._slack import SlackNotifier
 
 _notifier = {}
 

@@ -4,8 +4,8 @@ from typing import Any
 
 import requests
 
-import notifyme._log as _log
-from notifyme._base import _LEVEL_ORDER, _BaseNotifier, _LevelStr, _SendConfig
+import notifyend._log as _log
+from notifyend._base import _LEVEL_ORDER, _BaseNotifier, _LevelStr, _SendConfig
 
 
 class DiscordNotifier(_BaseNotifier):

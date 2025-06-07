@@ -21,8 +21,8 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Self
 
-import notifyme._log as _log
-from notifyme._utils import format_timedelta
+import notifyend._log as _log
+from notifyend._utils import format_timedelta
 
 # NOTE: Python 3.12+ (PEP 695) supports type statement.
 # After dropping Python 3.11 support, update this to use that instead.
