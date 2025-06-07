@@ -28,10 +28,10 @@ check = ["ruff", "mypy", "types-setuptools", "types-requests", "typing-extension
 test = ["pytest"]
 
 [tool.setuptools.dynamic]
-version = { attr = "notifyme.__version__" }
+version = { attr = "notifyend.__version__" }
 
 [tool.setuptools.packages.find]
-include = ["notifyme*"]
+include = ["notifyend*"]
 
 [tool.mypy]
 python_version = "3.11"
