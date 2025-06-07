@@ -5,10 +5,10 @@ from typing import Any
 import requests
 
 import notifyend._log as _log
-from notifyend._base import _LEVEL_ORDER, _BaseNotifier, _LevelStr, _SendConfig
+from notifyend._base import _LEVEL_ORDER, BaseNotifier, _LevelStr, _SendConfig
 
 
-class DiscordNotifier(_BaseNotifier):
+class DiscordNotifier(BaseNotifier):
     platform = "Discord"
 
     def __init__(

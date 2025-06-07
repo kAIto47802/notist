@@ -17,14 +17,14 @@ else:
     from typing_extensions import Self
 
 import notifyend._log as _log
-from notifyend._base import ContextManagerDecorator, _BaseNotifier, _LevelStr
+from notifyend._base import BaseNotifier, ContextManagerDecorator, _LevelStr
 from notifyend._discord import DiscordNotifier
 from notifyend._slack import SlackNotifier
 
 _notifier = {}
 
 _DESTINATIONS = Literal["slack", "discord"]
-_DESTINATIONS_MAP: dict[_DESTINATIONS, Type[_BaseNotifier]] = {
+_DESTINATIONS_MAP: dict[_DESTINATIONS, Type[BaseNotifier]] = {
     "slack": SlackNotifier,
     "discord": DiscordNotifier,
 }

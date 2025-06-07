@@ -1,8 +1,10 @@
+from notifyend._base import BaseNotifier
 from notifyend._core import init, send, watch
 from notifyend._discord import DiscordNotifier
 from notifyend._slack import SlackNotifier
 
 __all__ = [
+    "BaseNotifier",
     "DiscordNotifier",
     "SlackNotifier",
     "init",

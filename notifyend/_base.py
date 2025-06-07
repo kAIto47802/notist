@@ -47,7 +47,7 @@ class _SendConfig:
     disable: bool = False
 
 
-class _BaseNotifier(ABC):
+class BaseNotifier(ABC):
     platform: str
 
     def __init__(
