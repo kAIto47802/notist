@@ -48,14 +48,14 @@ else:
 
 
 @overload
-def allow_multi_dest(
+def _allow_multi_dest(
     fn: Callable[P, ContextManagerDecorator],
 ) -> Callable[P, ContextManagerDecorator]: ...
 @overload
-def allow_multi_dest(fn: Callable[P, None]) -> Callable[P, None]: ...
+def _allow_multi_dest(fn: Callable[P, None]) -> Callable[P, None]: ...
 
 
-def allow_multi_dest(fn: Callable[P, R]) -> Callable[P, R]:
+def _allow_multi_dest(fn: Callable[P, R]) -> Callable[P, R]:
     @wraps(fn)
     def wrapper(
         *args: P.args,
@@ -103,7 +103,7 @@ def _combine_contexts(
     return _Combined()  # type: ignore
 
 
-@allow_multi_dest
+@_allow_multi_dest
 def init(
     *,
     send_to: _DESTINATIONS | list[_DESTINATIONS],
@@ -145,7 +145,7 @@ def init(
     )
 
 
-@allow_multi_dest
+@_allow_multi_dest
 def send(
     data: Any,
     *,
@@ -178,7 +178,7 @@ def send(
     _notifier[send_to].send(data, **kwargs)  # type: ignore
 
 
-@allow_multi_dest
+@_allow_multi_dest
 def watch(
     label: str | None = None,
     *,

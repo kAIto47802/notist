@@ -11,10 +11,14 @@ else:
 
 import pytest
 
-from notifyend._notifiers.core import _DESTINATIONS, _combine_contexts, allow_multi_dest
+from notifyend._notifiers.core import (
+    _DESTINATIONS,
+    _allow_multi_dest,
+    _combine_contexts,
+)
 
 
-@allow_multi_dest
+@_allow_multi_dest
 def dummy_send(
     send_to: _DESTINATIONS | list[_DESTINATIONS] | None = None, **kwargs: Any
 ) -> None:
