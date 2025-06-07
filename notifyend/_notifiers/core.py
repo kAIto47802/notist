@@ -17,8 +17,8 @@ else:
     from typing_extensions import Self
 
 import notifyend._log as _log
-from notifyend._base import BaseNotifier, ContextManagerDecorator, _LevelStr
-from notifyend._discord import DiscordNotifier
+from notifyend._notifiers.base import BaseNotifier, ContextManagerDecorator, _LevelStr
+from notifyend._notifiers.discord import DiscordNotifier
 from notifyend._slack import SlackNotifier
 
 _notifier = {}

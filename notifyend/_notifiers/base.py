@@ -48,7 +48,15 @@ class _SendConfig:
 
 
 class BaseNotifier(ABC):
+    """
+    Abstract base class for all notifiers.
+
+    Provides common functionality for sending messages and watching
+    code execution, with optional exception handling and verbosity.
+    """
+
     platform: str
+    """Name of the notification platform (e.g., "Slack")."""
 
     def __init__(
         self,
@@ -60,6 +68,18 @@ class BaseNotifier(ABC):
         verbose: bool = True,
         disable: bool = False,
     ) -> None:
+        """
+        Initialize the notifier with default settings.
+
+        Args:
+            channel: Default channel or destination identifier.
+            mention_to: Default entity to mention on notification.
+            mention_level: Threshold level at or above which mentions are sent.
+            mention_if_ends: Whether to mention at the end of the watch.
+            token: API token or authentication key.
+            verbose: If True, log internal state changes.
+            disable: If True, disable sending all notifications.
+        """
         self._verbose = verbose
         self._mention_to = mention_to or os.getenv(
             f"{self.platform.upper()}_MENTION_TO"
@@ -87,6 +107,16 @@ class BaseNotifier(ABC):
         verbose: bool | None = None,
         disable: bool | None = None,
     ) -> None:
+        """
+        Send a notification message.
+
+        Args:
+            data: The payload or message content.
+            channel: Override channel or destination.
+            mention_to: Override mention target.
+            verbose: Override verbosity setting.
+            disable: Override disable flag.
+        """
         self._send(
             data,
             _SendConfig(
@@ -136,6 +166,21 @@ class BaseNotifier(ABC):
         verbose: bool | None = None,
         disable: bool | None = None,
     ) -> ContextManagerDecorator:
+        """
+        Return an object that can serve as both a context manager and a decorator to watch code execution.
+
+        Args:
+            label: Optional label for the watch context. This label will be included in both notification messages and log entries.
+            channel: Override channel for this watch.
+            mention_to: Override mention target.
+            mention_level: Override mention threshold level.
+            mention_if_ends: Override mention on exit flag.
+            verbose: Override verbosity setting.
+            disable: Override disable flag.
+
+        Returns:
+            An an object that can serve as both a context manager and a decorator.
+        """
         return _Watch(
             self._send,
             _SendConfig(

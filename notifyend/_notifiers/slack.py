@@ -5,7 +5,7 @@ from typing import Any
 from slack_sdk import WebClient
 
 import notifyend._log as _log
-from notifyend._base import _LEVEL_ORDER, BaseNotifier, _LevelStr, _SendConfig
+from notifyend._notifiers.base import _LEVEL_ORDER, BaseNotifier, _LevelStr, _SendConfig
 
 
 class SlackNotifier(BaseNotifier):
