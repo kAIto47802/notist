@@ -46,3 +46,9 @@ html_css_files = ["css/custom.css"]
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
 }
+
+autodoc_default_options = {
+    "members": True,
+    "inherited-members": True,
+    "special-members": "__init__",
+}
