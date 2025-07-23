@@ -9,7 +9,7 @@ from contextlib import AbstractContextManager, ContextDecorator
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
-from types import TracebackType
+from types import ModuleType, TracebackType
 from typing import Any, Literal, Protocol, Type, TypeVar
 
 if sys.version_info >= (3, 10):
@@ -203,6 +203,50 @@ class BaseNotifier(ABC):
             ),
             label,
         )
+
+    def register(
+        self,
+        target: ModuleType | Type[Any],
+        name: str,
+        *,
+        label: str | None = None,
+        channel: str | None = None,
+        mention_to: str | None = None,
+        mention_level: _LevelStr | None = None,
+        mention_if_ends: bool | None = None,
+        verbose: bool | None = None,
+        disable: bool | None = None,
+    ) -> None:
+        """
+        Register existing function or method to be watched by this notifier.
+
+        Args:
+            label: Optional label for the watch context. This label will be included in both notification messages and log entries.
+            channel: Override channel for this watch.
+            mention_to: Override mention target.
+            mention_level: Override mention threshold level.
+            mention_if_ends: Override mention on exit flag.
+            verbose: Override verbosity setting.
+            disable: Override disable flag.
+        """
+        original = getattr(target, name, None)
+        if original is None:
+            _log.warn(
+                f"Cannot register {self.platform}Notifier on {target.__name__}.{name}: "
+                f"target {target.__name__} has no attribute {name}."
+            )
+            return
+        patched = self.watch(
+            label=label,
+            channel=channel,
+            mention_to=mention_to,
+            mention_level=mention_level,
+            mention_if_ends=mention_if_ends,
+            verbose=verbose,
+            disable=disable,
+        )(original)
+        setattr(target, name, patched)
+        _log.info(f"Registered {self.platform}Notifier on {target.__name__}.{name}.")
 
 
 # NOTE: Python 3.12+ (PEP 695) supports inline type parameter syntax.
