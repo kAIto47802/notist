@@ -19,11 +19,17 @@ Install the latest release from our `GitHub <https://github.com/kAIto47802/Notif
    pip install git+https://github.com/kAIto47802/NotifyState.git
 
 
+Set Up Your Notifier (e.g., Slack or Discord)
+---------------------------------------------
+
+Currently, Slack and Discord are supported.
+For setup instructions, please refer to the :doc:`guides` section.
+
 
 Basic Usage
 -----------
 
-Watch a function or block of code
+Watch a Function or Block of Code
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Wrap any function or block to get automatic start/stop/error alerts:
@@ -50,7 +56,7 @@ Wrap any function or block to get automatic start/stop/error alerts:
        ...
 
 
-Send a one-off notification
+Send a One-Off Notification
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can also send notifications at any point in your code, not just at the start or end of a task:
@@ -66,7 +72,7 @@ You can also send notifications at any point in your code, not just at the start
    notifystate.send(data, send_to="slack")
 
 
-Configuring defaults
+Configuring Defaults
 ^^^^^^^^^^^^^^^^^^^^
 
 Rather than specifying ``send_to`` and other options every time, you can initialize once:
