@@ -1,7 +1,7 @@
 Discord Bot Setup
 =================
 
-Before using NotifyEnd's DiscordNotifier, you must create and configure a Discord bot:
+Before using NotifyState's DiscordNotifier, you must create and configure a Discord bot:
 
 
 1. **Create an application**

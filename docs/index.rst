@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-NotifyState: A simple package to send notifications of script execution status
+NotifyState: A Simple Package to Send Notifications of Script Execution Status
 ==============================================================================
 
 
@@ -11,11 +11,11 @@ NotifyState is a lightweight Python package that lets you keep track of your scr
 Whether you're running long-running data jobs, background tasks, or simple scripts, NotifyState helps you stay informed without constantly checking your terminal.
 
 
-Key Features
-------------
+✨ Key Features ✨
+------------------
 
-Real-time Notifications
-^^^^^^^^^^^^^^^^^^^^^^^
+⌛ Real-time Notifications
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Get instant updates on the status of your scripts.
 You can receive notifications when your script:
@@ -26,8 +26,8 @@ You can receive notifications when your script:
 - Or at any point you choose--trigger custom notifications anywhere in your code with any message you like
 
 
-Easy Integration with Simple API
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+🛠️ Easy Integration with Simple API
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can use the :func:`~notifystate.watch` helper either as a function decorator or as a context manager around a block of code:
 
@@ -39,8 +39,10 @@ You can use the :func:`~notifystate.watch` helper either as a function decorator
 
    @notifystate.watch(send_to="slack", channel="my-channel")
    def long_task():
-         # Your long-running code here
-         ...
+       # Your long-running code here
+       ...
+       # An example where an error occurs during task execution:
+       raise Exception("This is an error")
 
 
 **As a context manager:**
@@ -50,13 +52,59 @@ You can use the :func:`~notifystate.watch` helper either as a function decorator
    import notifystate
 
    with notifystate.watch(send_to="slack", channel="my-channel"):
-         # Your long-running code here
-         ...
+       # Your long-running code here
+       ...
 
-Multiple Notifiers
-^^^^^^^^^^^^^^^^^^
+This code example send the following notifications:
+
+- When the function starts running:
+
+.. code-block:: text
+
+   Start watching [function: long_task]...
+
+
+- When the function completes successfully:
+
+.. code-block:: text
+
+   Stop watching [function: long_task].
+   Execution time: 2h 32s.
+
+
+- When the function encounters an error:
+
+.. code-block:: text
+
+   Error while watching [function: with_error]: This is an error
+   Execution time: 2h 32s.
+   > Traceback (most recent call last):
+   >   File "/home/kaito47802/.pyenv/versions/3.11.0/lib/python3.11/contextlib.py", line 81, in inner
+   >     return func(*args, **kwds)
+   >            ^^^^^^^^^^^^^^^^^^^
+   >   File "/home/kaito47802/workspace/notifystate/test.py", line 10, in with_error
+   >     raise Exception("This is an error")
+   > Exception: This is an error
+
+You can also add mentions when necessary.
+
+
+
+
+🔔 Multiple Notifiers
+^^^^^^^^^^^^^^^^^^^^^
 
 Currently supports Slack and Discord. If you need another notifier, feel free to open an issue or a pull request on `GitHub <https://github.com/kAIto47802/NotifyState>`__!
+
+
+📦 Installation 📦
+------------------
+You can install NotifyState from our GitHub:
+
+.. code-block:: bash
+
+   pip install git+https://github.com/kAIto47802/NotifyState.git
+
 
 
 .. toctree::

@@ -1,16 +1,16 @@
 Quickstart
 ==========
 
-Get up and running with NotifyEnd in just a few steps!
+Get up and running with NotifyState in just a few steps!
 
 Installation
 ------------
 
-Install the latest release from `GitHub <https://github.com/kAIto47802/NotifyEnd>`__:
+Install the latest release from `GitHub <https://github.com/kAIto47802/NotifyState>`__:
 
 .. code-block:: bash
 
-   pip install git+https://github.com/kAIto47802/NotifyEnd.git
+   pip install git+https://github.com/kAIto47802/NotifyState.git
 
 
 
