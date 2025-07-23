@@ -30,7 +30,7 @@ jobs:
       id: deployment
       uses: actions/upload-pages-artifact@v3
       with:
-        path: ./out
+        path: ./docs/_build/html
 
   deploy:
     environment:
