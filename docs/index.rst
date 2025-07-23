@@ -11,6 +11,16 @@ NotifyState is a lightweight Python package that lets you keep track of your scr
 Whether you're running long-running data jobs, background tasks, or simple scripts, NotifyState helps you stay informed without constantly checking your terminal.
 
 
+.. image:: https://img.shields.io/badge/-GitHub-181717.svg?logo=github&style=flat
+   :target: https://github.com/kAIto47802/NotifyState
+   :alt: GitHub
+.. image:: https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue
+   :target: https://www.python.org
+   :alt: Python
+.. image:: https://img.shields.io/badge/docs-latest-brightgreen?logo=read-the-docs
+   :target: https://kaito47802.github.io/NotifyState/index.html
+   :alt: Documentation
+
 ✨ Key Features ✨
 ------------------
 

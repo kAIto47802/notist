@@ -1,3 +1,14 @@
 .wy-nav-content {
   max-width: 1200px;
 }
+
+.rst-content {
+  position: relative;
+}
+
+.github-badge {
+  position: absolute;
+  top: 80px;
+  right: 0;
+  z-index: 1000;
+}
