@@ -22,23 +22,24 @@ def _clone_function(fn: Callable[..., Any]) -> Callable[..., Any]:
 def extend_method_docstring(additions: dict[str, str]) -> Callable[[T], T]:
     """
     Class decorator factory that appends extra text to inherited methods' docstrings.
-
-    `additions` should map method names (that aren't overridden) to the snippet you want appended.
+    `additions` should map method names to the snippet you want appended.
     """
 
     def decorator(cls: T) -> T:
         for name, doc in additions.items():
             if not hasattr(cls, name):
                 continue
-            if name in cls.__dict__:
-                raise ValueError(f"Method `{name}` is redefined in `{cls.__name__}`.")
-            method = getattr(cls, name)
+            base_cls = next((b for b in cls.__mro__[1:] if hasattr(b, name)), cls)
+            method = getattr(base_cls if name in cls.__dict__ else cls, name)
             base = method.__doc__ or ""
             extra = textwrap.dedent(doc).strip()
             new_doc = base + "\n\n" + textwrap.indent(extra, " " * 8)
-            new_method = _clone_function(method)
-            new_method.__doc__ = new_doc
-            setattr(cls, name, new_method)
+            if name in cls.__dict__:
+                cls.__dict__[name].__doc__ = new_doc
+            else:
+                new_method = _clone_function(method)
+                new_method.__doc__ = new_doc
+                setattr(cls, name, new_method)
         return cls
 
     return decorator
