@@ -25,6 +25,9 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.viewcode",
+    "sphinx_copybutton",
     "sphinx_autodoc_typehints",
 ]
 
@@ -39,3 +42,7 @@ add_module_names = False
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 html_css_files = ["css/custom.css"]
+
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+}

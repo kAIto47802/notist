@@ -2,11 +2,12 @@ Quickstart
 ==========
 
 Get up and running with NotifyState in just a few steps!
+For more detailed usage, please refer to the :doc:`api` sections.
 
 Installation
 ------------
 
-Install the latest release from `GitHub <https://github.com/kAIto47802/NotifyState>`__:
+Install the latest release from our `GitHub <https://github.com/kAIto47802/NotifyState>`__:
 
 .. code-block:: bash
 

@@ -59,32 +59,32 @@ This code example send the following notifications:
 
 - When the function starts running:
 
-.. code-block:: text
+   .. code-block:: text
 
-   Start watching [function: long_task]...
+      Start watching [function: long_task]...
 
 
 - When the function completes successfully:
 
-.. code-block:: text
+   .. code-block:: text
 
-   Stop watching [function: long_task].
-   Execution time: 2h 32s.
+      Stop watching [function: long_task].
+      Execution time: 2h 32s.
 
 
 - When the function encounters an error:
 
-.. code-block:: text
+   .. code-block:: text
 
-   Error while watching [function: with_error]: This is an error
-   Execution time: 2h 32s.
-   > Traceback (most recent call last):
-   >   File "/home/kaito47802/.pyenv/versions/3.11.0/lib/python3.11/contextlib.py", line 81, in inner
-   >     return func(*args, **kwds)
-   >            ^^^^^^^^^^^^^^^^^^^
-   >   File "/home/kaito47802/workspace/notifystate/test.py", line 10, in with_error
-   >     raise Exception("This is an error")
-   > Exception: This is an error
+      Error while watching [function: with_error]: This is an error
+      Execution time: 2h 32s.
+      > Traceback (most recent call last):
+      >   File "/home/kaito47802/.pyenv/versions/3.11.0/lib/python3.11/contextlib.py", line 81, in inner
+      >     return func(*args, **kwds)
+      >            ^^^^^^^^^^^^^^^^^^^
+      >   File "/home/kaito47802/workspace/notifystate/test.py", line 10, in with_error
+      >     raise Exception("This is an error")
+      > Exception: This is an error
 
 You can also add mentions when necessary.
 
