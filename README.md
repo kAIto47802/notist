@@ -29,7 +29,7 @@ Whether you're running long-running data jobs, background tasks, or simple scrip
   ✨ Key Features ✨
 </h2>
 
-For the detailed usage and quick start guide, please refer to the [documentation](https://notifystate.readthedocs.io).
+For the detailed usage and quick start guide, please refer to the [documentation](https://kaito47802.github.io/notifystate/index.html).
 
 
 <h3>
