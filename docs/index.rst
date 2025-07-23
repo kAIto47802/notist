@@ -39,9 +39,9 @@ You can receive notifications when your script:
 🛠️ Easy Integration with Simple API
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can use the :func:`~notifystate.watch` helper either as a function decorator or as a context manager around a block of code:
+You can use the :func:`~notifystate._core.watch` helper either as a function decorator or as a context manager around a block of code:
 
-**As a decorator:**
+**Use as a decorator to monitor a function:**
 
 .. code-block:: python
 
@@ -49,19 +49,21 @@ You can use the :func:`~notifystate.watch` helper either as a function decorator
 
    @notifystate.watch(send_to="slack", channel="my-channel")
    def long_task():
+       # This function will be monitored
        # Your long-running code here
        ...
        # An example where an error occurs during task execution:
        raise Exception("This is an error")
 
 
-**As a context manager:**
+**Or use as a context manager to monitor a block of code:**
 
 .. code-block:: python
 
    import notifystate
 
    with notifystate.watch(send_to="slack", channel="my-channel"):
+       # Code inside this block will be monitored
        # Your long-running code here
        ...
 

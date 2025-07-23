@@ -6,21 +6,54 @@ from slack_sdk import WebClient
 
 import notifystate._log as _log
 from notifystate._notifiers.base import (
+    _DOC_ADDITIONS_BASE,
     _LEVEL_ORDER,
     BaseNotifier,
     _LevelStr,
     _SendConfig,
 )
+from notifystate._utils import extend_method_docstring
+
+_DOC_ADDITIONS = {
+    "__init__": """
+        Example:
+
+            .. code-block:: python
+
+               from notifystate import SlackNotifier
+
+               # Create a SlackNotifier with defaults
+               slack = SlackNotifier(
+                   channel="my-channel",  # Slack channel name or ID
+                   mention_to="@U012345678",  # Mention a specific user (Optional)
+               )
+        """,
+}
 
 
+@extend_method_docstring(_DOC_ADDITIONS | _DOC_ADDITIONS_BASE)
 class SlackNotifier(BaseNotifier):
     _platform = "Slack"
 
     def __init__(
         self,
-        **kwargs: Any,
+        channel: str | None = None,
+        mention_to: str | None = None,
+        mention_level: _LevelStr = "error",
+        mention_if_ends: bool = True,
+        token: str | None = None,
+        verbose: bool = True,
+        disable: bool = False,
     ) -> None:
-        super().__init__(**kwargs)
+        super().__init__(
+            channel,
+            mention_to,
+            mention_level,
+            mention_if_ends,
+            token,
+            verbose,
+            disable,
+        )
         self._client = WebClient(token=self._token)
         if not self._disable:
             if self._default_channel:

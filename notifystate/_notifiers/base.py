@@ -47,6 +47,82 @@ class _SendConfig:
     disable: bool = False
 
 
+_DOC_ADDITIONS_BASE = {
+    "send": lambda cls: f"""
+        Example:
+
+            .. code-block:: python
+
+               # Immediately send "Job finished!" to your Slack channel
+               {cls._platform.lower()}.send("Job finished!")
+
+               # You can also send any Python data (it will be stringified)
+               {cls._platform.lower()}.send(data)
+        """,
+    "watch": lambda cls: f"""
+        Example:
+
+            .. code-block:: python
+
+               # Use as a decorator to monitor a function
+               @{cls._platform.lower()}.watch()
+               def my_function():
+                   # This function will be monitored
+                   # Your long-running code here
+                   ...
+
+               # Or use as a context manager to monitor a block of code
+               with {cls._platform.lower()}.watch():
+                   # Code inside this block will be monitored
+                   # Your long-running code here
+                   ...
+        """,
+    "register": lambda cls: f"""
+        Example:
+
+            If you want to monitor existing functions from libraries:
+
+            .. code-block:: python
+
+               import requests
+
+               # Register the `get` function from the `requests` library
+               {cls._platform.lower()}.register(requests, "get")
+
+               # Now any time you call `requests.get`, it will be monitored
+               response = requests.get("https://example.com/largefile.zip")
+
+            If you want to monitor existing methods of classes:
+
+            .. code-block:: python
+
+               from transformers import Trainer
+
+               # Register the `train` method of the `Trainer` class
+               {cls._platform.lower()}.register(Trainer, "train")
+
+               # Now any time you call `trainer.train()`, it will be monitored
+               trainer = Trainer(model=...)
+               trainer.train()
+
+            If you want to monitor existing methods of specific class instances:
+
+            .. code-block:: python
+
+               from transformers import Trainer
+
+               # Create a Trainer instance
+               trainer = Trainer(model=...)
+
+               # Register the `train` method of the `trainer` instance
+               {cls._platform.lower()}.register(trainer, "train")
+
+               # Now any time you call `trainer.train()`, it will be monitored
+               trainer.train()
+        """,
+}
+
+
 class BaseNotifier(ABC):
     """
     Abstract base class for all notifiers.
@@ -87,6 +163,11 @@ class BaseNotifier(ABC):
             disable:
                 If :obj:`True`, disable sending all notifications. This is useful for parallel runs or testing
                 where you want to avoid sending actual notifications.
+
+        .. note::
+           The channel and token must be set, either via environment variables or as function arguments.
+           If not set, the notification will not be sent, and an error will be logged
+           (the original Python script will continue running without interruption).
         """
         self._verbose = verbose
         self._mention_to = mention_to or os.getenv(
@@ -121,6 +202,7 @@ class BaseNotifier(ABC):
     ) -> None:
         """
         Send a notification message.
+        You can send notifications at any point in your code, not just at the start or end of a task.
 
         Args:
             data: The payload or message content.
@@ -238,8 +320,8 @@ class BaseNotifier(ABC):
         original = getattr(target, name, None)
         if original is None:
             _log.warn(
-                f"Cannot register {self._platform}Notifier on {target.__name__}.{name}: "
-                f"target {target.__name__} has no attribute {name}."
+                f"Cannot register {self._platform}Notifier on `{target.__name__}.{name}`: "
+                f"target `{target.__name__}` has no attribute `{name}`."
             )
             return
         patched = self.watch(
@@ -252,7 +334,12 @@ class BaseNotifier(ABC):
             disable=disable,
         )(original)
         setattr(target, name, patched)
-        _log.info(f"Registered {self._platform}Notifier on {target.__name__}.{name}.")
+        target_name = (
+            target.__name__
+            if hasattr(target, "__name__")
+            else f"<{target.__class__.__name__} object at {hex(id(target))}>"
+        )
+        _log.info(f"Registered {self._platform}Notifier on `{target_name}.{name}`.")
 
 
 # NOTE: Python 3.12+ (PEP 695) supports inline type parameter syntax.

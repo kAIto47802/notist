@@ -19,7 +19,9 @@ def _clone_function(fn: Callable[..., Any]) -> Callable[..., Any]:
     return wrapper
 
 
-def extend_method_docstring(additions: dict[str, str]) -> Callable[[T], T]:
+def extend_method_docstring(
+    additions: dict[str, str | Callable[[T], str]],
+) -> Callable[[T], T]:
     """
     Class decorator factory that appends extra text to inherited methods' docstrings.
     `additions` should map method names to the snippet you want appended.
@@ -32,7 +34,8 @@ def extend_method_docstring(additions: dict[str, str]) -> Callable[[T], T]:
             base_cls = next((b for b in cls.__mro__[1:] if hasattr(b, name)), cls)
             method = getattr(base_cls if name in cls.__dict__ else cls, name)
             base = method.__doc__ or ""
-            extra = textwrap.dedent(doc).strip()
+            doc_str = doc(cls) if callable(doc) else doc
+            extra = textwrap.dedent(doc_str).strip()
             new_doc = base + "\n\n" + textwrap.indent(extra, " " * 8)
             if name in cls.__dict__:
                 cls.__dict__[name].__doc__ = new_doc
