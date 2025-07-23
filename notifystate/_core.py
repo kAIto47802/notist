@@ -4,7 +4,7 @@ import sys
 from collections.abc import Callable
 from contextlib import AbstractContextManager, ContextDecorator
 from functools import wraps
-from types import TracebackType
+from types import ModuleType, TracebackType
 from typing import Any, Iterable, Literal, Type, cast, overload
 
 if sys.version_info >= (3, 10):
@@ -223,6 +223,45 @@ def watch(
     )
     _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
     return _notifier[send_to].watch(label, **kwargs)  # type: ignore
+
+
+@_allow_multi_dest
+def register(
+    target: ModuleType | Type[Any],
+    name: str,
+    *,
+    send_to: _DESTINATIONS | list[_DESTINATIONS] | None = None,
+    label: str | None = None,
+    channel: str | None = None,
+    mention_to: str | None = None,
+    mention_level: _LevelStr | None = None,
+    mention_if_ends: bool | None = None,
+    verbose: bool | None = None,
+    disable: bool | None = None,
+) -> ContextManagerDecorator:
+    """
+    Register existing function or method to be watched by this notifier.
+
+    Args:
+        label: Optional label for the watch context. This label will be included in both notification messages and log entries.
+        channel: Override channel for this watch.
+        mention_to: Override mention target.
+        mention_level: Override mention threshold level.
+        mention_if_ends: Override mention on exit flag.
+        verbose: Override verbosity setting.
+        disable: Override disable flag.
+    """
+    assert isinstance(send_to, str)
+    kwargs = dict(
+        channel=channel,
+        mention_to=mention_to,
+        mention_level=mention_level,
+        mention_if_ends=mention_if_ends,
+        verbose=verbose,
+        disable=disable,
+    )
+    _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
+    return _notifier[send_to].register(target, name, label=label, **kwargs)  # type: ignore
 
 
 def _init_if_needed(
