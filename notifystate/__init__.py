@@ -1,4 +1,4 @@
-from notifystate._core import init, send, watch
+from notifystate._core import init, register, send, watch
 from notifystate._notifiers import (
     BaseNotifier,
     DiscordNotifier,
@@ -10,6 +10,7 @@ __all__ = [
     "DiscordNotifier",
     "SlackNotifier",
     "init",
+    "register",
     "send",
     "watch",
 ]

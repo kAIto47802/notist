@@ -146,6 +146,7 @@ class BaseNotifier(ABC):
     ) -> None:
         """
         Initialize the notifier with default settings.
+        This settings can be overridden at each call of :meth:`register`, :meth:`send`, and :meth:`watch`.
 
         Args:
             channel:
@@ -203,13 +204,14 @@ class BaseNotifier(ABC):
         """
         Send a notification message.
         You can send notifications at any point in your code, not just at the start or end of a task.
+        Any data can be sent, and it will be stringified.
 
         Args:
             data: The payload or message content.
-            channel: Override channel or destination.
-            mention_to: Override mention target.
-            verbose: Override verbosity setting.
-            disable: Override disable flag.
+            channel: Override the default channel for notifications.
+            mention_to: Override the default entity to mention on notification.
+            verbose: Override the default verbosity setting.
+            disable: Override the default disable flag.
         """
         self._send(
             data,
@@ -262,15 +264,16 @@ class BaseNotifier(ABC):
     ) -> ContextManagerDecorator:
         """
         Return an object that can serve as both a context manager and a decorator to watch code execution.
+        This will automatically send notifications when the function or code block starts, ends, or raises an exception.
 
         Args:
             label: Optional label for the watch context. This label will be included in both notification messages and log entries.
-            channel: Override channel for this watch.
-            mention_to: Override mention target.
-            mention_level: Override mention threshold level.
-            mention_if_ends: Override mention on exit flag.
-            verbose: Override verbosity setting.
-            disable: Override disable flag.
+            channel: Override the default channel for notifications.
+            mention_to: Override the default entity to mention on notification.
+            mention_level: Override the default mention threshold level.
+            mention_if_ends: Override the default setting for whether to mention at the end of the watch.
+            verbose: Override the default verbosity setting.
+            disable: Override the default disable flag.
 
         Returns:
             An an object that can serve as both a context manager and a decorator.
@@ -304,18 +307,19 @@ class BaseNotifier(ABC):
         disable: bool | None = None,
     ) -> None:
         """
-        Register existing function or method to be watched by this notifier.
+        Register existing function or method to be monitored by this notifier.
+        This function corresponds to applying the :meth:`watch` decorator to an existing function or method.
 
         Args:
             target: The module, class, or class instance containing the function to be registered.
             name: The name of the function to be registered.
             label: Optional label for the watch context. This label will be included in both notification messages and log entries.
-            channel: Override channel for this watch.
-            mention_to: Override mention target.
-            mention_level: Override mention threshold level.
-            mention_if_ends: Override mention on exit flag.
-            verbose: Override verbosity setting.
-            disable: Override disable flag.
+            channel: Override the default channel for notifications.
+            mention_to: Override the default entity to mention on notification.
+            mention_level: Override the default mention threshold level.
+            mention_if_ends: Override the default setting for whether to mention at the end of the watch.
+            verbose: Override the default verbosity setting.
+            disable: Override the default disable flag.
         """
         original = getattr(target, name, None)
         if original is None:

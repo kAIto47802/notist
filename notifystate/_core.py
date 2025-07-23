@@ -5,7 +5,7 @@ from collections.abc import Callable
 from contextlib import AbstractContextManager, ContextDecorator
 from functools import wraps
 from types import ModuleType, TracebackType
-from typing import Any, Iterable, Literal, Type, cast, overload
+from typing import Any, Iterable, Literal, Type, TypeVar, cast, overload
 
 if sys.version_info >= (3, 10):
     from typing import ParamSpec
@@ -21,7 +21,7 @@ from notifystate._notifiers.base import BaseNotifier, ContextManagerDecorator, _
 from notifystate._notifiers.discord import DiscordNotifier
 from notifystate._notifiers.slack import SlackNotifier
 
-_notifier = {}
+_notifier: dict[str, BaseNotifier] = {}
 
 _DESTINATIONS = Literal["slack", "discord"]
 _DESTINATIONS_MAP: dict[_DESTINATIONS, Type[BaseNotifier]] = {
@@ -62,6 +62,8 @@ def _allow_multi_dest(fn: Callable[P, R]) -> Callable[P, R]:
         **kwargs: P.kwargs,
     ) -> R:
         send_to = kwargs.get("send_to")
+        if send_to is None and _notifier:
+            send_to = list(_notifier.keys())
         if isinstance(send_to, Iterable) and not isinstance(send_to, str):
             res = []
             for dest in send_to:
@@ -101,6 +103,27 @@ def _combine_contexts(
                 ctx.__exit__(exc_type, exc_value, traceback)
 
     return _Combined()  # type: ignore
+
+
+T = TypeVar("T")
+
+
+class _PhantomContextManagerDecorator(ContextDecorator, AbstractContextManager):
+    """A no-op context manager decorator that does nothing."""
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        pass
+
+    def __call__(self, fn: Callable) -> Any:
+        return fn
 
 
 @_allow_multi_dest
@@ -171,6 +194,9 @@ def send(
         verbose: Override verbosity setting.
         disable: Override disable flag.
     """
+    if send_to is None:
+        _warn_not_set_send_to()
+        return
     assert isinstance(send_to, str)
     kwargs = dict(
         channel=channel,
@@ -212,6 +238,9 @@ def watch(
     Returns:
         An an object that can serve as both a context manager and a decorator.
     """
+    if send_to is None:
+        _warn_not_set_send_to()
+        return _PhantomContextManagerDecorator()
     assert isinstance(send_to, str)
     kwargs = dict(
         channel=channel,
@@ -238,7 +267,7 @@ def register(
     mention_if_ends: bool | None = None,
     verbose: bool | None = None,
     disable: bool | None = None,
-) -> ContextManagerDecorator:
+) -> None:
     """
     Register existing function or method to be watched by this notifier.
 
@@ -253,6 +282,9 @@ def register(
         verbose: Override verbosity setting.
         disable: Override disable flag.
     """
+    if send_to is None:
+        _warn_not_set_send_to()
+        return
     assert isinstance(send_to, str)
     kwargs = dict(
         channel=channel,
@@ -263,7 +295,7 @@ def register(
         disable=disable,
     )
     _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
-    return _notifier[send_to].register(target, name, label=label, **kwargs)  # type: ignore
+    _notifier[send_to].register(target, name, label=label, **kwargs)  # type: ignore
 
 
 def _init_if_needed(
@@ -286,3 +318,11 @@ def _init_if_needed(
         disable=disable,
     )
     init(send_to=send_to, **{k: v for k, v in kwargs.items() if v is not None})  # type: ignore
+
+
+def _warn_not_set_send_to() -> None:
+    _log.warn(
+        "No destination specified. "
+        "Please specify `send_to` parameter or initialize notifier with `notifystate.init()`. "
+        "No notifications will be sent."
+    )
