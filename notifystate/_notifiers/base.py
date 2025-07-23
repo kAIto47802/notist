@@ -210,7 +210,7 @@ class BaseNotifier(ABC):
 
     def register(
         self,
-        target: ModuleType | Type[Any],
+        target: ModuleType | Type[Any] | Any,
         name: str,
         *,
         label: str | None = None,
@@ -225,6 +225,8 @@ class BaseNotifier(ABC):
         Register existing function or method to be watched by this notifier.
 
         Args:
+            target: The module, class, or class instance containing the function to be registered.
+            name: The name of the function to be registered.
             label: Optional label for the watch context. This label will be included in both notification messages and log entries.
             channel: Override channel for this watch.
             mention_to: Override mention target.
