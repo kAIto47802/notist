@@ -1,0 +1,139 @@
+Quickstart
+==========
+
+Get up and running with NotifyEnd in just a few steps!
+
+Installation
+------------
+
+Install the latest release from `GitHub <https://github.com/kAIto47802/NotifyEnd>`__:
+
+.. code-block:: bash
+
+   pip install git+https://github.com/kAIto47802/NotifyEnd.git
+
+
+
+Basic Usage
+-----------
+
+Watch a function or block of code
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Wrap any function or block to get automatic start/stop/error alerts:
+
+**As a decorator**:
+
+.. code-block:: python
+
+   import notifystate
+
+   @notifystate.watch(send_to="slack")
+   def long_task():
+       # Your long-running code here
+       ...
+
+**As a context manager**:
+
+.. code-block:: python
+
+   import notifystate
+
+   with notifystate.watch(send_to="slack"):
+       # Your long-running code here
+       ...
+
+
+Send a one-off notification
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can also send notifications at any point in your code, not just at the start or end of a task:
+
+.. code-block:: python
+
+   import notifystate
+
+   # Immediately send "Job finished!" to your Slack channel
+   notifystate.send("Job finished!", send_to="slack")
+
+   # You can also send any Python data (it will be stringified)
+   notifystate.send(data, send_to="slack")
+
+
+Configuring defaults
+^^^^^^^^^^^^^^^^^^^^
+
+Rather than specifying ``send_to`` and other options every time, you can initialize once:
+
+.. code-block:: python
+
+   import notifystate
+
+   # Set up Slack notifiers with defaults
+   notifystate.init(send_to="slack", channel="my-channel", mention_to="@U012345678")
+
+   # Now you only need to call send or watch without repeating options
+   notifystate.send("All systems go!")
+
+   with notifystate.watch():
+       # This will use the defaults set in init
+       ...
+
+Environment Variables
+^^^^^^^^^^^^^^^^^^^^^
+
+You can also configure default channels and tokens via environment variables, so you don't have to pass ``channel`` or ``token`` every time:
+
+.. code-block:: bash
+
+   # For Slack notifier
+   export SLACK_CHANNEL="my-channel"
+   export SLACK_BOT_TOKEN="xoxb-1234..."
+
+   # For Discord notifier
+   export DISCORD_CHANNEL="1234567890"
+   export DISCORD_BOT_TOKEN="ABCD1234..."
+
+Once set, you can omit those parameters:
+
+.. code-block:: python
+
+   import notifystate
+
+   # Will use SLACK_CHANNEL and SLACK_BOT_TOKEN
+   notifystate.init(send_to="slack")
+
+   notifystate.send("Automatic notification!")
+
+   with notifystate.watch():
+       ...
+
+
+Custom Notifier Instances
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Instead of the procedural API, you can also create a notifier instance and call its methods:
+
+.. code-block:: python
+
+   from notifystate import SlackNotifier
+
+   # Create a SlackNotifier with defaults
+   slack = SlackNotifier(
+       channel="my-channel",
+       mention_to="@U012345678",  # Mention a specific user
+   )
+
+   # Send a one-off message
+   slack.send("Hello via instance!")
+
+   # Or watch a function:
+   @slack.watch()
+   def long_task():
+       # Your long-running code here
+       ...
+
+Next Steps
+----------
+
+- Explore the :doc:`api` for full customization options.

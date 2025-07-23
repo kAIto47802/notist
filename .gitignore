@@ -42,3 +42,5 @@ pip-delete-this-directory.txt
 .env
 
 .mypy_cache
+
+docs/_build/
