@@ -6,6 +6,6 @@
 Core Utils
 ==============
 
-.. automodule:: notifystate._notifiers.core
+.. automodule:: notifystate._core
    :members:
    :undoc-members:

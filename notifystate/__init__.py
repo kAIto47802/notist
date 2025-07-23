@@ -1,10 +1,8 @@
+from notifystate._core import init, send, watch
 from notifystate._notifiers import (
     BaseNotifier,
     DiscordNotifier,
     SlackNotifier,
-    init,
-    send,
-    watch,
 )
 
 __all__ = [

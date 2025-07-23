@@ -11,7 +11,7 @@ else:
 
 import pytest
 
-from notifystate._notifiers.core import (
+from notifystate._core import (
     _DESTINATIONS,
     _allow_multi_dest,
     _combine_contexts,
