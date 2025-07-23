@@ -4,8 +4,13 @@ from typing import Any
 
 from slack_sdk import WebClient
 
-import notifyend._log as _log
-from notifyend._notifiers.base import _LEVEL_ORDER, BaseNotifier, _LevelStr, _SendConfig
+import notifystate._log as _log
+from notifystate._notifiers.base import (
+    _LEVEL_ORDER,
+    BaseNotifier,
+    _LevelStr,
+    _SendConfig,
+)
 
 
 class SlackNotifier(BaseNotifier):

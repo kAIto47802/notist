@@ -1,4 +1,4 @@
-from notifyend._notifiers import (
+from notifystate._notifiers import (
     BaseNotifier,
     DiscordNotifier,
     SlackNotifier,

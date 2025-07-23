@@ -16,10 +16,10 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Self
 
-import notifyend._log as _log
-from notifyend._notifiers.base import BaseNotifier, ContextManagerDecorator, _LevelStr
-from notifyend._notifiers.discord import DiscordNotifier
-from notifyend._notifiers.slack import SlackNotifier
+import notifystate._log as _log
+from notifystate._notifiers.base import BaseNotifier, ContextManagerDecorator, _LevelStr
+from notifystate._notifiers.discord import DiscordNotifier
+from notifystate._notifiers.slack import SlackNotifier
 
 _notifier = {}
 
@@ -119,13 +119,14 @@ def init(
     Initialize the notifier with the specified parameters.
 
     Args:
-        send_to (str): The destination to send notifications to. Can be "slack" or "discord".
-        verbose (bool): Whether to enable verbose logging.
-        mention_to (str | None): The user to mention in the notification.
-        mention_level (str): The level at which to mention the user.
-        channel (str | None): The channel to send notifications to.
-        token (str | None): The token for authentication.
-        disable (bool): Whether to disable the notifier.
+        send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
+        channel: Default channel for notifications.
+        mention_to: Default entity to mention on notification.
+        mention_level: Threshold level at or above which mentions are sent.
+        mention_if_ends: Whether to mention at the end of the watch.
+        token: API token or authentication key.
+        verbose: If True, log internal state changes.
+        disable: If True, disable sending all notifications.
     """
     global _notifier
     assert isinstance(send_to, str)
@@ -158,12 +159,17 @@ def send(
     disable: bool | None = None,
 ) -> None:
     """
-    Send a notification to the specified destination.
+    Send a notification message.
 
     Args:
-        data (Any): The data to send in the notification.
-        send_to (str): The destination to send notifications to. Can be "slack" or "discord".
-        channel (str | None): The channel to send notifications to.
+        data: The payload or message content.
+        send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
+        channel: Override channel or destination.
+        mention_to: Override mention target.
+        mention_level: Threshold level at or above which mentions are sent.
+        mention_if_ends: Whether to mention at the end of the watch.
+        verbose: Override verbosity setting.
+        disable: Override disable flag.
     """
     assert isinstance(send_to, str)
     kwargs = dict(
@@ -191,14 +197,20 @@ def watch(
     disable: bool | None = None,
 ) -> ContextManagerDecorator:
     """
-    Decorator to watch a function and send notifications on errors.
+    Return an object that can serve as both a context manager and a decorator to watch code execution.
 
     Args:
-        send_to (str): The destination to send notifications to. Can be "slack" or "discord".
-        channel (str | None): The channel to send notifications to.
-        mention_to (str | None): The user to mention in the notification.
-        mention_level (str): The level at which to mention the user.
-        disable (bool): Whether to disable the notifier.
+        label: Optional label for the watch context. This label will be included in both notification messages and log entries.
+        send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
+        channel: Override channel for this watch.
+        mention_to: Override mention target.
+        mention_level: Override mention threshold level.
+        mention_if_ends: Override mention on exit flag.
+        verbose: Override verbosity setting.
+        disable: Override disable flag.
+
+    Returns:
+        An an object that can serve as both a context manager and a decorator.
     """
     assert isinstance(send_to, str)
     kwargs = dict(

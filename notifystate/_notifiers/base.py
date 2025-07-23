@@ -21,8 +21,8 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Self
 
-import notifyend._log as _log
-from notifyend._utils import format_timedelta
+import notifystate._log as _log
+from notifystate._utils import format_timedelta
 
 # NOTE: Python 3.12+ (PEP 695) supports type statement.
 # After dropping Python 3.11 support, update this to use that instead.
@@ -72,13 +72,21 @@ class BaseNotifier(ABC):
         Initialize the notifier with default settings.
 
         Args:
-            channel: Default channel or destination identifier.
+            channel:
+                Default channel for notifications. If not provided, it will look for an environment variable
+                named `{platform}_CHANNEL` where `{platform}` is the notifier's platform name in uppercase
+                (e.g., `SLACK_CHANNEL` for Slack).
             mention_to: Default entity to mention on notification.
             mention_level: Threshold level at or above which mentions are sent.
             mention_if_ends: Whether to mention at the end of the watch.
-            token: API token or authentication key.
-            verbose: If True, log internal state changes.
-            disable: If True, disable sending all notifications.
+            token:
+                API token or authentication key. If not provided, it will look for an environment variable named
+                `{platform}_BOT_TOKEN` where `{platform}` is the notifier's platform name in uppercase
+                (e.g., `SLACK_BOT_TOKEN` for Slack).
+            verbose: If obj:`True`, log internal state changes.
+            disable:
+                If :obj:`True`, disable sending all notifications. This is useful for parallel runs or testing
+                where you want to avoid sending actual notifications.
         """
         self._verbose = verbose
         self._mention_to = mention_to or os.getenv(

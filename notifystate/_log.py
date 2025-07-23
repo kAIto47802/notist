@@ -16,7 +16,7 @@ class _LogColor(Enum):
     WHITE = "\033[97m"
 
 
-_PREFIX = "[notifyend] "
+_PREFIX = "[NotifyState] "
 
 
 def info(message: str, with_timestamp: bool = True) -> None:

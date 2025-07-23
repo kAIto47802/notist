@@ -3,8 +3,8 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "notifyend"
-description = "A simple package to send notifications script execution status."
+name = "notifystate"
+description = "A simple package to send notifications of script execution status."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [{ name = "Kaito Baba" }]
@@ -26,12 +26,17 @@ dynamic = ["version"]
 [project.optional-dependencies]
 check = ["ruff", "mypy", "types-setuptools", "types-requests", "typing-extensions"]
 test = ["pytest"]
+docs = [
+    "sphinx",
+    "sphinx-autodoc-typehints",
+    "sphinx-rtd-theme",
+]
 
 [tool.setuptools.dynamic]
-version = { attr = "notifyend.__version__" }
+version = { attr = "notifystate.__version__" }
 
 [tool.setuptools.packages.find]
-include = ["notifyend*"]
+include = ["notifystate*"]
 
 [tool.mypy]
 python_version = "3.11"
