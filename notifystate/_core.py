@@ -143,7 +143,6 @@ def init(
     This settings can be overridden at each call of :func:`~notifystate.register`,
     :func:`~notifystate.send`, and :func:`~notifystate.watch`.
 
-
     Args:
         send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
         channel:
@@ -164,7 +163,7 @@ def init(
 
     .. note::
        The channel and token must be set, either via environment variables or as function arguments.
-        If not set, the notification will not be sent, and an error will be logged
+       If not set, the notification will not be sent, and an error will be logged
        (the original Python script will continue running without interruption).
     """
     global _notifier
