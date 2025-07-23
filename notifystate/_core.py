@@ -140,16 +140,32 @@ def init(
 ) -> None:
     """
     Initialize the notifier with the specified parameters.
+    This settings can be overridden at each call of :func:`~notifystate.register`,
+    :func:`~notifystate.send`, and :func:`~notifystate.watch`.
+
 
     Args:
         send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
-        channel: Default channel for notifications.
+        channel:
+            Default channel for notifications. If not provided, it will look for an environment variable
+            named `{platform}_CHANNEL` where `{platform}` is the notifier's platform name in uppercase
+            (e.g., `SLACK_CHANNEL` for Slack).
         mention_to: Default entity to mention on notification.
         mention_level: Threshold level at or above which mentions are sent.
         mention_if_ends: Whether to mention at the end of the watch.
-        token: API token or authentication key.
-        verbose: If True, log internal state changes.
-        disable: If True, disable sending all notifications.
+        token:
+            API token or authentication key. If not provided, it will look for an environment variable named
+            `{platform}_BOT_TOKEN` where `{platform}` is the notifier's platform name in uppercase
+            (e.g., `SLACK_BOT_TOKEN` for Slack).
+        verbose: If obj:`True`, log internal state changes.
+        disable:
+            If :obj:`True`, disable sending all notifications. This is useful for parallel runs or testing
+            where you want to avoid sending actual notifications.
+
+    .. note::
+       The channel and token must be set, either via environment variables or as function arguments.
+        If not set, the notification will not be sent, and an error will be logged
+       (the original Python script will continue running without interruption).
     """
     global _notifier
     assert isinstance(send_to, str)
@@ -176,23 +192,21 @@ def send(
     send_to: _DESTINATIONS | list[_DESTINATIONS] | None = None,
     channel: str | None = None,
     mention_to: str | None = None,
-    mention_level: _LevelStr | None = None,
-    mention_if_ends: bool | None = None,
     verbose: bool | None = None,
     disable: bool | None = None,
 ) -> None:
     """
     Send a notification message.
+    You can send notifications at any point in your code, not just at the start or end of a task.
+    Any data can be sent, and it will be stringified.
 
     Args:
         data: The payload or message content.
         send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
-        channel: Override channel or destination.
-        mention_to: Override mention target.
-        mention_level: Threshold level at or above which mentions are sent.
-        mention_if_ends: Whether to mention at the end of the watch.
-        verbose: Override verbosity setting.
-        disable: Override disable flag.
+        channel: Override the default channel for notifications.
+        mention_to: Override the default entity to mention on notification.
+        verbose: Override the default verbosity setting.
+        disable: Override the default disable flag.
     """
     if send_to is None:
         _warn_not_set_send_to()
@@ -201,8 +215,6 @@ def send(
     kwargs = dict(
         channel=channel,
         mention_to=mention_to,
-        mention_level=mention_level,
-        mention_if_ends=mention_if_ends,
         verbose=verbose,
         disable=disable,
     )
@@ -224,16 +236,17 @@ def watch(
 ) -> ContextManagerDecorator:
     """
     Return an object that can serve as both a context manager and a decorator to watch code execution.
+    This will automatically send notifications when the function or code block starts, ends, or raises an exception.
 
     Args:
         label: Optional label for the watch context. This label will be included in both notification messages and log entries.
         send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
-        channel: Override channel for this watch.
-        mention_to: Override mention target.
-        mention_level: Override mention threshold level.
-        mention_if_ends: Override mention on exit flag.
-        verbose: Override verbosity setting.
-        disable: Override disable flag.
+        channel: Override the default channel for notifications.
+        mention_to: Override the default entity to mention on notification.
+        mention_level: Override the default mention threshold level.
+        mention_if_ends: Override the default setting for whether to mention at the end of the watch.
+        verbose: Override the default verbosity setting.
+        disable: Override the default disable flag.
 
     Returns:
         An an object that can serve as both a context manager and a decorator.
@@ -270,17 +283,18 @@ def register(
 ) -> None:
     """
     Register existing function or method to be watched by this notifier.
+    This function corresponds to applying the :meth:`watch` decorator to an existing function or method.
 
     Args:
         target: The module, class, or class instance containing the function to be registered.
         name: The name of the function to be registered.
         label: Optional label for the watch context. This label will be included in both notification messages and log entries.
-        channel: Override channel for this watch.
-        mention_to: Override mention target.
-        mention_level: Override mention threshold level.
-        mention_if_ends: Override mention on exit flag.
-        verbose: Override verbosity setting.
-        disable: Override disable flag.
+        channel: Override the default channel for notifications.
+        mention_to: Override the default entity to mention on notification.
+        mention_level: Override the default mention threshold level.
+        mention_if_ends: Override the default setting for whether to mention at the end of the watch.
+        verbose: Override the default verbosity setting.
+        disable: Override the default disable flag.
     """
     if send_to is None:
         _warn_not_set_send_to()

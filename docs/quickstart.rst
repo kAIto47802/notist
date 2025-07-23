@@ -157,7 +157,7 @@ You can also configure default channels and tokens via environment variables, so
    export SLACK_BOT_TOKEN="xoxb-1234..."
 
    # For Discord notifier
-   export DISCORD_CHANNEL="1234567890"
+   export DISCORD_CHANNEL="1234567890123456789"
    export DISCORD_BOT_TOKEN="ABCD1234..."
 
 Once set, you can omit those parameters:
