@@ -34,7 +34,7 @@ For more detailed usage, please refer to the :doc:`api` sections.
 Watch a Function or Block of Code
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Wrap any function or block with the :func:`~notifystate._core.watch` function to get automatic start/stop/error alerts:
+Wrap any function or block of code with the :func:`~notifystate._core.watch` function to get automatic start/stop/error alerts:
 
 **Use as a decorator to monitor a function**:
 
@@ -58,6 +58,56 @@ Wrap any function or block with the :func:`~notifystate._core.watch` function to
        # Code inside this block will be monitored
        # Your long-running code here
        ...
+
+Register an Existing Function or Method to be Monitored
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can also register an existing function or method to be monitored using the :func:`~notifystate._core.register` function.
+
+This function corresponds to applying the :func:`~notifystate._core.watch` decorator to an existing function or method.
+
+
+If you want to monitor existing functions from libraries:
+
+If you want to monitor existing functions from libraries:
+
+.. code-block:: python
+
+   import requests
+
+   # Register the `get` function from the `requests` library
+   notifystate.register(requests, "get")
+
+   # Now any time you call `requests.get`, it will be monitored
+   response = requests.get("https://example.com/largefile.zip")
+
+If you want to monitor existing methods of classes:
+
+.. code-block:: python
+
+   from transformers import Trainer
+
+   # Register the `train` method of the `Trainer` class
+   notifystate.register(Trainer, "train")
+
+   # Now any time you call `trainer.train()`, it will be monitored
+   trainer = Trainer(model=...)
+   trainer.train()
+
+If you want to monitor existing methods of specific class instances:
+
+.. code-block:: python
+
+   from transformers import Trainer
+
+   # Create a Trainer instance
+   trainer = Trainer(model=...)
+
+   # Register the `train` method of the `trainer` instance
+   notifystate.register(trainer, "train")
+
+   # Now any time you call `trainer.train()`, it will be monitored
+   trainer.train()
 
 
 Send a One-Off Notification
