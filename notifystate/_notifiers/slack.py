@@ -14,7 +14,7 @@ from notifystate._notifiers.base import (
 
 
 class SlackNotifier(BaseNotifier):
-    platform = "Slack"
+    _platform = "Slack"
 
     def __init__(
         self,

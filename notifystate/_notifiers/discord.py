@@ -14,7 +14,7 @@ from notifystate._notifiers.base import (
 
 
 class DiscordNotifier(BaseNotifier):
-    platform = "Discord"
+    _platform = "Discord"
 
     def __init__(
         self,

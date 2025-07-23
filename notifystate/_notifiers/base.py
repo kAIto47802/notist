@@ -55,7 +55,7 @@ class BaseNotifier(ABC):
     code execution, with optional exception handling and verbosity.
     """
 
-    platform: str
+    _platform: str
     """Name of the notification platform (e.g., "Slack")."""
 
     def __init__(
@@ -90,21 +90,25 @@ class BaseNotifier(ABC):
         """
         self._verbose = verbose
         self._mention_to = mention_to or os.getenv(
-            f"{self.platform.upper()}_MENTION_TO"
+            f"{self._platform.upper()}_MENTION_TO"
         )
-        self._token = token or os.getenv(f"{self.platform.upper()}_BOT_TOKEN")
+        self._token = token or os.getenv(f"{self._platform.upper()}_BOT_TOKEN")
         if not self._token and self._verbose:
             _log.error(
-                f"Missing {self.platform} bot token. Please set the {self.platform.upper()}_BOT_TOKEN "
+                f"Missing {self._platform} bot token. Please set the {self._platform.upper()}_BOT_TOKEN "
                 "environment variable or pass it as an argument."
             )
             self._disable = True
         self._mention_level = mention_level
         self._mention_if_ends = mention_if_ends
-        self._default_channel = channel or os.getenv(f"{self.platform.upper()}_CHANNEL")
+        self._default_channel = channel or os.getenv(
+            f"{self._platform.upper()}_CHANNEL"
+        )
         self._disable = disable
         if disable and self._verbose:
-            _log.info(f"{self.platform}Notifier is disabled. No messages will be sent.")
+            _log.info(
+                f"{self._platform}Notifier is disabled. No messages will be sent."
+            )
 
     def send(
         self,
@@ -151,7 +155,7 @@ class BaseNotifier(ABC):
             self._do_send(data, send_config, tb, level)
         except Exception as e:
             if self._verbose:
-                _log.error(f"Error sending to {self.platform}: {e}")
+                _log.error(f"Error sending to {self._platform}: {e}")
 
     @abstractmethod
     def _do_send(
@@ -232,7 +236,7 @@ class BaseNotifier(ABC):
         original = getattr(target, name, None)
         if original is None:
             _log.warn(
-                f"Cannot register {self.platform}Notifier on {target.__name__}.{name}: "
+                f"Cannot register {self._platform}Notifier on {target.__name__}.{name}: "
                 f"target {target.__name__} has no attribute {name}."
             )
             return
@@ -246,7 +250,7 @@ class BaseNotifier(ABC):
             disable=disable,
         )(original)
         setattr(target, name, patched)
-        _log.info(f"Registered {self.platform}Notifier on {target.__name__}.{name}.")
+        _log.info(f"Registered {self._platform}Notifier on {target.__name__}.{name}.")
 
 
 # NOTE: Python 3.12+ (PEP 695) supports inline type parameter syntax.
