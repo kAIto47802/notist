@@ -124,6 +124,7 @@ You can also add mentions when necessary.
 
 Currently supports Slack and Discord. If you need another notifier, feel free to open an issue or a pull request!
 
+<br>
 
 <h2 align="center">
   📦 Installation 📦
