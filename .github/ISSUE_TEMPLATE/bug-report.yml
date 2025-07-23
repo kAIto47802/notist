@@ -11,7 +11,7 @@ body:
     attributes:
       label: ✅ Checks
       options:
-        - label: I have searched [existing/past issues](https://github.com/sarulab-speech/NotifyState/issues) and found no similar issue.
+        - label: I have searched [existing/past issues](https://github.com/kAIto47802/NotifyState/issues) and found no similar issue.
           required: true
 
   - type: textarea
