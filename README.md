@@ -55,6 +55,8 @@ You can receive notifications when your script:
   </a>
 </h3>
 
+#### Watch Your Functions and Blocks of Code
+
 You can use the `notifystate.watch` helper either as a function decorator or as a context manager around a block of code:
 
 **Use as a decorator to monitor a function:**
@@ -111,7 +113,52 @@ This code example send the following notifications:
    > Exception: This is an error
    ```
 
-You can also add mentions when necessary.
+#### Register an Existing Function or Method to be Monitored
+
+You can also register an existing function or method to be monitored using the `notifystate.register` function.
+
+**Monitor existing functions from libraries:**
+
+```python
+import notifystate
+import requests
+
+# Register the `get` function from the `requests` library
+notifystate.register(requests, "get", send_to="slack")
+
+# Now any time you call `requests.get`, it will be monitored
+response = requests.get("https://example.com/largefile.zip")
+```
+
+**Monitor existing methods of classes:**
+
+```python
+import notifystate
+from transformers import Trainer
+
+# Register the `train` method of the `Trainer` class
+notifystate.register(Trainer, "train", send_to="slack")
+
+# Now any time you call `trainer.train()`, it will be monitored
+trainer = Trainer(model=...)
+trainer.train()
+```
+
+**Monitor existing methods of specific class instances:**
+
+```python
+import notifystate
+from transformers import Trainer
+
+# Create a Trainer instance
+trainer = Trainer(model=...)
+
+# Register the `train` method of the `trainer` instance
+notifystate.register(trainer, "train", send_to="slack")
+
+# Now any time you call `trainer.train()`, it will be monitored
+trainer.train()
+```
 
 
 

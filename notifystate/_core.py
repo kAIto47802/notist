@@ -139,9 +139,10 @@ def init(
     disable: bool = False,
 ) -> None:
     """
-    Initialize the notifier with the specified parameters.
+    Initialize the notifier with default settings.
     This settings can be overridden at each call of :func:`~notifystate.register`,
     :func:`~notifystate.send`, and :func:`~notifystate.watch`.
+    Alternatively, you can skip initialization with this function and provide all settings directly through these functions.
 
     Args:
         send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
@@ -165,6 +166,19 @@ def init(
        The channel and token must be set, either via environment variables or as function arguments.
        If not set, the notification will not be sent, and an error will be logged
        (the original Python script will continue running without interruption).
+
+    .. note::
+       The destination (`send_to`) must be set, either in this :func:`~notifystate.init` function
+       or as an argument to the :func:`~notifystate.register`, :func:`~notifystate.send`, and :func:`~notifystate.watch`.
+
+    Example:
+
+        .. code-block:: python
+
+           import notifystate
+
+           # Set up Slack notifiers with defaults
+           notifystate.init(send_to="slack", channel="my-channel", mention_to="@U012345678")
     """
     global _notifier
     assert isinstance(send_to, str)
@@ -206,6 +220,16 @@ def send(
         mention_to: Override the default entity to mention on notification.
         verbose: Override the default verbosity setting.
         disable: Override the default disable flag.
+
+    Example:
+
+        .. code-block:: python
+
+           # Immediately send "Job finished!" to your Slack channel
+           notifystate.send("Job finished!", send_to="slack")
+
+           # You can also send any Python data (it will be stringified)
+           notifystate.send(data, send_to="slack")
     """
     if send_to is None:
         _warn_not_set_send_to()
@@ -249,6 +273,27 @@ def watch(
 
     Returns:
         An an object that can serve as both a context manager and a decorator.
+
+    Example:
+
+        Use as a decorator to monitor a function:
+
+        .. code-block:: python
+
+           @notifystate.watch(send_to="slack")
+           def long_task():
+               # This function will be monitored
+               # Your long-running code here
+               ...
+
+        Use as a context manager to monitor a block of code:
+
+        .. code-block:: python
+
+           with notifystate.watch(send_to="slack"):
+               # Code inside this block will be monitored
+               # Your long-running code here
+               ...
     """
     if send_to is None:
         _warn_not_set_send_to()
@@ -287,6 +332,7 @@ def register(
     Args:
         target: The module, class, or class instance containing the function to be registered.
         name: The name of the function to be registered.
+        send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
         label: Optional label for the watch context. This label will be included in both notification messages and log entries.
         channel: Override the default channel for notifications.
         mention_to: Override the default entity to mention on notification.
@@ -294,6 +340,48 @@ def register(
         mention_if_ends: Override the default setting for whether to mention at the end of the watch.
         verbose: Override the default verbosity setting.
         disable: Override the default disable flag.
+
+    Example:
+
+        Monitor existing functions from libraries:
+
+        .. code-block:: python
+
+           import requests
+
+           # Register the `get` function from the `requests` library
+           notifystate.register(requests, "get", send_to="slack")
+
+           # Now any time you call `requests.get`, it will be monitored
+           response = requests.get("https://example.com/largefile.zip")
+
+        Monitor existing methods of classes:
+
+        .. code-block:: python
+
+           from transformers import Trainer
+
+           # Register the `train` method of the `Trainer` class
+           notifystate.register(Trainer, "train", send_to="slack")
+
+           # Now any time you call `trainer.train()`, it will be monitored
+           trainer = Trainer(model=...)
+           trainer.train()
+
+        Monitor existing methods of specific class instances:
+
+        .. code-block:: python
+
+           from transformers import Trainer
+
+           # Create a Trainer instance
+           trainer = Trainer(model=...)
+
+           # Register the `train` method of the `trainer` instance
+           notifystate.register(trainer, "train", send_to="slack")
+
+           # Now any time you call `trainer.train()`, it will be monitored
+           trainer.train()
     """
     if send_to is None:
         _warn_not_set_send_to()
