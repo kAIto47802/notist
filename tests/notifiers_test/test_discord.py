@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Generic, TypeVar, cast
 
 import pytest
 import requests
@@ -41,26 +42,41 @@ def dummy_post(
     return sent
 
 
+T = TypeVar("T")
+
+
+# NOTE: Python 3.12+ (PEP 695) supports type-parameterized class .
+# After dropping Python 3.11 support, update this to use that instead.
+# See:
+#   - https://peps.python.org/pep-0695/
+@dataclass(frozen=True)
+class _OverrideTestCase(Generic[T]):
+    default: T
+    override: T
+    expected: T
+
+
 parametrize_channel = pytest.mark.parametrize(
-    "default_channel, channel, expected_channel",
+    "channel",
     [
-        (None, None, None),
-        ("default-channel", None, "default-channel"),
-        (None, "test-channel", "test-channel"),
-        ("default-channel", "test-channel", "test-channel"),
+        _OverrideTestCase(None, None, None),
+        _OverrideTestCase("default-channel", None, "default-channel"),
+        _OverrideTestCase(None, "test-channel", "test-channel"),
+        _OverrideTestCase("default-channel", "test-channel", "test-channel"),
     ],
 )
 parametrize_disable = pytest.mark.parametrize(
-    "default_disable, disable, expected_disable",
+    "disable",
     [
-        (False, None, False),
-        (True, None, True),
-        (False, True, True),
-        (True, True, True),
-        (False, False, False),
-        (True, False, False),
+        _OverrideTestCase(False, None, False),
+        _OverrideTestCase(True, None, True),
+        _OverrideTestCase(False, True, True),
+        _OverrideTestCase(True, True, True),
+        _OverrideTestCase(False, False, False),
+        _OverrideTestCase(True, False, False),
     ],
 )
+parametrize_label = pytest.mark.parametrize("label", ["label1", None])
 
 
 @parametrize_channel
@@ -69,27 +85,25 @@ parametrize_disable = pytest.mark.parametrize(
 def test_discord_send(
     dummy_post: Sent,
     capsys: CaptureFixture[str],
-    default_channel: str | None,
-    channel: str | None,
-    expected_channel: str | None,
+    channel: _OverrideTestCase[str | None],
     mention_to: str | None,
-    default_disable: bool,
-    disable: bool | None,
-    expected_disable: bool,
+    disable: _OverrideTestCase[bool | None],
 ) -> None:
     discord = DiscordNotifier(
-        channel=default_channel,
+        channel=channel.default,
         token="tok",
-        disable=default_disable,
+        disable=cast(bool, disable.default),
     )
-    discord.send("msg", channel=channel, mention_to=mention_to, disable=disable)
-    if expected_disable or expected_channel is None:
+    discord.send(
+        "msg", channel=channel.override, mention_to=mention_to, disable=disable.override
+    )
+    if disable.expected or channel.expected is None:
         assert dummy_post == []
     else:
         assert len(dummy_post) == 1
         assert (
             dummy_post[0][0]
-            == f"https://discord.com/api/v10/channels/{expected_channel}/messages"
+            == f"https://discord.com/api/v10/channels/{channel.expected}/messages"
         )
         assert dummy_post[0][1]["Authorization"] == "Bot tok"
         assert dummy_post[0][1]["Content-Type"] == "application/json"
@@ -97,40 +111,36 @@ def test_discord_send(
             f"<{mention_to}>\nmsg" if mention_to else "msg"
         )
     captured = capsys.readouterr()
-    if default_disable:
+    if disable.default:
         assert "DiscordNotifier is disabled. No messages will be sent." in captured.out
-    if not expected_disable and expected_channel is None:
+    if not disable.expected and channel.expected is None:
         assert "No Discord channel ID specified." in captured.out
 
 
-@pytest.mark.parametrize("label", ["label1", None])
+@parametrize_label
 @parametrize_channel
 @parametrize_disable
 def test_discord_with_watch_success(
     dummy_post: Sent,
     capsys: CaptureFixture[str],
     label: str | None,
-    default_channel: str | None,
-    channel: str | None,
-    expected_channel: str | None,
-    default_disable: bool,
-    disable: bool | None,
-    expected_disable: bool,
+    channel: _OverrideTestCase[str | None],
+    disable: _OverrideTestCase[bool | None],
 ) -> None:
     discord = DiscordNotifier(
-        token="tok", channel=default_channel, disable=default_disable
+        token="tok", channel=channel.default, disable=cast(bool, disable.default)
     )
-    with discord.watch(label=label, channel=channel, disable=disable):
+    with discord.watch(label=label, channel=channel.override, disable=disable.override):
         pass
     details = f" [{label}]" if label else ""
-    if expected_disable or expected_channel is None:
+    if disable.expected or channel.expected is None:
         assert dummy_post == []
     else:
         assert len(dummy_post) == 2
         assert (
             dummy_post[0][0]
             == dummy_post[1][0]
-            == f"https://discord.com/api/v10/channels/{expected_channel}/messages"
+            == f"https://discord.com/api/v10/channels/{channel.expected}/messages"
         )
         assert (
             dummy_post[0][1]["Authorization"]
@@ -145,37 +155,41 @@ def test_discord_with_watch_success(
         assert dummy_post[0][2]["content"] == f"Start watching{details}..."
         assert (
             dummy_post[1][2]["content"]
-            == f"Stop watching{details}.\nExecution time: 0s."
+            == f"End watching{details}.\nExecution time: 0s."
         )
     captured = capsys.readouterr()
-    if default_disable:
+    if disable.default:
         assert "DiscordNotifier is disabled. No messages will be sent." in captured.out
-    if not expected_disable and expected_channel is None:
+    if not disable.expected and channel.expected is None:
         assert "No Discord channel ID specified." in captured.out
 
 
-@pytest.mark.parametrize("label", ["label1", None])
+@parametrize_label
 @parametrize_channel
+@parametrize_disable
 def test_discord_with_watch_error(
     dummy_post: Sent,
     label: str | None,
-    default_channel: str | None,
-    channel: str | None,
-    expected_channel: str | None,
+    channel: _OverrideTestCase[str | None],
+    disable: _OverrideTestCase[bool | None],
 ) -> None:
-    discord = DiscordNotifier(token="tok", channel=default_channel)
+    discord = DiscordNotifier(
+        token="tok", channel=channel.default, disable=cast(bool, disable.default)
+    )
     with pytest.raises(Exception):
-        with discord.watch(label=label, channel=channel):
+        with discord.watch(
+            label=label, channel=channel.override, disable=disable.override
+        ):
             raise Exception("This is an error")
     details = f" [{label}]" if label else ""
-    if expected_channel is None:
+    if disable.expected or channel.expected is None:
         assert dummy_post == []
     else:
         assert len(dummy_post) == 2
         assert (
             dummy_post[0][0]
             == dummy_post[1][0]
-            == f"https://discord.com/api/v10/channels/{expected_channel}/messages"
+            == f"https://discord.com/api/v10/channels/{channel.expected}/messages"
         )
         assert (
             dummy_post[0][1]["Authorization"]
@@ -198,33 +212,35 @@ def test_discord_with_watch_error(
         )
 
 
-@pytest.mark.parametrize("label", ["label1", None])
+@parametrize_label
 @parametrize_channel
+@parametrize_disable
 def test_discord_watch_decorator_success(
     dummy_post: Sent,
     label: str | None,
-    default_channel: str | None,
-    channel: str | None,
-    expected_channel: str | None,
+    channel: _OverrideTestCase[str | None],
+    disable: _OverrideTestCase[bool | None],
 ) -> None:
-    discord = DiscordNotifier(token="tok", channel=default_channel)
+    discord = DiscordNotifier(
+        token="tok", channel=channel.default, disable=cast(bool, disable.default)
+    )
 
-    @discord.watch(label=label, channel=channel)
+    @discord.watch(label=label, channel=channel.override, disable=disable.override)
     def with_success() -> None:
         pass
 
     with_success()
     details = (
-        f" [{label}, function: with_success]" if label else " [function: with_success]"
+        f" [{label}|function: with_success]" if label else " [function: with_success]"
     )
-    if expected_channel is None:
+    if disable.expected or channel.expected is None:
         assert dummy_post == []
     else:
         assert len(dummy_post) == 2
         assert (
             dummy_post[0][0]
             == dummy_post[1][0]
-            == f"https://discord.com/api/v10/channels/{expected_channel}/messages"
+            == f"https://discord.com/api/v10/channels/{channel.expected}/messages"
         )
         assert (
             dummy_post[0][1]["Authorization"]
@@ -239,39 +255,39 @@ def test_discord_watch_decorator_success(
         assert dummy_post[0][2]["content"] == f"Start watching{details}..."
         assert (
             dummy_post[1][2]["content"]
-            == f"Stop watching{details}.\nExecution time: 0s."
+            == f"End watching{details}.\nExecution time: 0s."
         )
 
 
-@pytest.mark.parametrize("label", ["label1", None])
+@parametrize_label
 @parametrize_channel
+@parametrize_disable
 def test_discord_watch_decorator_error(
     dummy_post: Sent,
     label: str | None,
-    default_channel: str | None,
-    channel: str | None,
-    expected_channel: str | None,
+    channel: _OverrideTestCase[str | None],
+    disable: _OverrideTestCase[bool | None],
 ) -> None:
-    discord = DiscordNotifier(token="tok", channel=default_channel)
+    discord = DiscordNotifier(
+        token="tok", channel=channel.default, disable=cast(bool, disable.default)
+    )
 
-    @discord.watch(label=label, channel=channel)
+    @discord.watch(label=label, channel=channel.override, disable=disable.override)
     def with_error() -> None:
         raise Exception("This is an error")
 
     with pytest.raises(Exception):
         with_error()
 
-    details = (
-        f" [{label}, function: with_error]" if label else " [function: with_error]"
-    )
-    if expected_channel is None:
+    details = f" [{label}|function: with_error]" if label else " [function: with_error]"
+    if disable.expected or channel.expected is None:
         assert dummy_post == []
     else:
         assert len(dummy_post) == 2
         assert (
             dummy_post[0][0]
             == dummy_post[1][0]
-            == f"https://discord.com/api/v10/channels/{expected_channel}/messages"
+            == f"https://discord.com/api/v10/channels/{channel.expected}/messages"
         )
         assert (
             dummy_post[0][1]["Authorization"]

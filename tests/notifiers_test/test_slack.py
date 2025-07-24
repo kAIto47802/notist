@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any
+from dataclasses import dataclass
+from typing import Generic, TypeVar, cast
 
 import pytest
 from pytest import CaptureFixture, MonkeyPatch
@@ -25,26 +26,41 @@ def dummy_client(monkeypatch: MonkeyPatch) -> DummyClient:
     return client
 
 
+T = TypeVar("T")
+
+
+# NOTE: Python 3.12+ (PEP 695) supports type-parameterized class .
+# After dropping Python 3.11 support, update this to use that instead.
+# See:
+#   - https://peps.python.org/pep-0695/
+@dataclass(frozen=True)
+class _OverrideTestCase(Generic[T]):
+    default: T
+    override: T
+    expected: T
+
+
 parametrize_channel = pytest.mark.parametrize(
-    "default_channel, channel, expected_channel",
+    "channel",
     [
-        (None, None, None),
-        ("default-channel", None, "default-channel"),
-        (None, "test-channel", "test-channel"),
-        ("default-channel", "test-channel", "test-channel"),
+        _OverrideTestCase(None, None, None),
+        _OverrideTestCase("default-channel", None, "default-channel"),
+        _OverrideTestCase(None, "test-channel", "test-channel"),
+        _OverrideTestCase("default-channel", "test-channel", "test-channel"),
     ],
 )
 parametrize_disable = pytest.mark.parametrize(
-    "default_disable, disable, expected_disable",
+    "disable",
     [
-        (False, None, False),
-        (True, None, True),
-        (False, True, True),
-        (True, True, True),
-        (False, False, False),
-        (True, False, False),
+        _OverrideTestCase(False, None, False),
+        _OverrideTestCase(True, None, True),
+        _OverrideTestCase(False, True, True),
+        _OverrideTestCase(True, True, True),
+        _OverrideTestCase(False, False, False),
+        _OverrideTestCase(True, False, False),
     ],
 )
+parametrize_label = pytest.mark.parametrize("label", ["label1", None])
 
 
 @parametrize_channel
@@ -53,185 +69,188 @@ parametrize_disable = pytest.mark.parametrize(
 def test_slack_send(
     dummy_client: DummyClient,
     capsys: CaptureFixture[str],
-    default_channel: str | None,
-    channel: str | None,
-    expected_channel: str | None,
+    channel: _OverrideTestCase[str | None],
     mention_to: str | None,
-    default_disable: bool,
-    disable: bool | None,
-    expected_disable: bool,
+    disable: _OverrideTestCase[bool | None],
 ) -> None:
     slack = SlackNotifier(
-        channel=default_channel,
+        channel=channel.default,
         token="tok",
-        disable=default_disable,
+        disable=cast(bool, disable.default),
     )
     slack._client = dummy_client  # type: ignore
-    slack.send("msg", channel=channel, mention_to=mention_to, disable=disable)
-    if expected_disable or expected_channel is None:
+    slack.send(
+        "msg", channel=channel.override, mention_to=mention_to, disable=disable.override
+    )
+    if disable.expected or channel.expected is None:
         assert dummy_client.sent == []
     else:
         assert dummy_client.sent == [
             {
                 "text": f"<{mention_to}>\nmsg" if mention_to else "msg",
-                "channel": expected_channel,
+                "channel": channel.expected,
                 "attachments": None,
             }
         ]
     captured = capsys.readouterr()
-    if default_disable:
+    if disable.default:
         assert "SlackNotifier is disabled. No messages will be sent." in captured.out
-    if not expected_disable and expected_channel is None:
+    if not disable.expected and channel.expected is None:
         assert "No Slack channel specified." in captured.out
 
 
-@pytest.mark.parametrize("label", ["label1", None])
+@parametrize_label
 @parametrize_channel
 @parametrize_disable
 def test_slack_with_watch_success(
     dummy_client: DummyClient,
     capsys: CaptureFixture[str],
     label: str | None,
-    default_channel: str | None,
-    channel: str | None,
-    expected_channel: str | None,
-    default_disable: bool,
-    disable: bool | None,
-    expected_disable: bool,
+    channel: _OverrideTestCase[str | None],
+    disable: _OverrideTestCase[bool | None],
 ) -> None:
-    slack = SlackNotifier(token="tok", channel=default_channel, disable=default_disable)
+    slack = SlackNotifier(
+        token="tok", channel=channel.default, disable=cast(bool, disable.default)
+    )
     slack._client = dummy_client  # type: ignore
-    with slack.watch(label=label, channel=channel, disable=disable):
+    with slack.watch(label=label, channel=channel.override, disable=disable.override):
         pass
     details = f" [{label}]" if label else ""
-    if expected_disable or expected_channel is None:
+    if disable.expected or channel.expected is None:
         assert dummy_client.sent == []
     else:
         assert dummy_client.sent == [
             {
                 "text": f"Start watching{details}...",
-                "channel": expected_channel,
+                "channel": channel.expected,
                 "attachments": None,
             },
             {
-                "text": f"Stop watching{details}.\nExecution time: 0s.",
-                "channel": expected_channel,
+                "text": f"End watching{details}.\nExecution time: 0s.",
+                "channel": channel.expected,
                 "attachments": None,
             },
         ]
     captured = capsys.readouterr()
-    if default_disable:
+    if disable.default:
         assert "SlackNotifier is disabled. No messages will be sent." in captured.out
-    if not expected_disable and expected_channel is None:
+    if not disable.expected and channel.expected is None:
         assert "No Slack channel specified." in captured.out
 
 
-@pytest.mark.parametrize("label", ["label1", None])
+@parametrize_label
 @parametrize_channel
+@parametrize_disable
 def test_slack_with_watch_error(
     dummy_client: DummyClient,
     label: str | None,
-    default_channel: str | None,
-    channel: str | None,
-    expected_channel: str | None,
+    channel: _OverrideTestCase[str | None],
+    disable: _OverrideTestCase[bool | None],
 ) -> None:
-    slack = SlackNotifier(token="tok", channel=default_channel)
+    slack = SlackNotifier(
+        token="tok", channel=channel.default, disable=cast(bool, disable.default)
+    )
     slack._client = dummy_client  # type: ignore
     with pytest.raises(Exception):
-        with slack.watch(label=label, channel=channel):
+        with slack.watch(
+            label=label, channel=channel.override, disable=disable.override
+        ):
             raise Exception("This is an error")
     details = f" [{label}]" if label else ""
-    if expected_channel is None:
+    if disable.expected or channel.expected is None:
         assert dummy_client.sent == []
     else:
         assert dummy_client.sent[0] == {
             "text": f"Start watching{details}...",
-            "channel": expected_channel,
+            "channel": channel.expected,
             "attachments": None,
         }
         assert (
             dummy_client.sent[1]["text"]
             == f"Error while watching{details}: This is an error\nExecution time: 0s."
         )
-        assert dummy_client.sent[1]["channel"] == expected_channel
+        assert dummy_client.sent[1]["channel"] == channel.expected
         assert (
             "Exception: This is an error"
             in dummy_client.sent[1]["attachments"][0]["blocks"][0]["text"]["text"]
         )
 
 
-@pytest.mark.parametrize("label", ["label1", None])
+@parametrize_label
 @parametrize_channel
+@parametrize_disable
 def test_slack_watch_decorator_success(
     dummy_client: DummyClient,
     label: str | None,
-    default_channel: str | None,
-    channel: str | None,
-    expected_channel: str | None,
+    channel: _OverrideTestCase[str | None],
+    disable: _OverrideTestCase[bool | None],
 ) -> None:
-    slack = SlackNotifier(token="tok", channel=default_channel)
+    slack = SlackNotifier(
+        token="tok", channel=channel.default, disable=cast(bool, disable.default)
+    )
     slack._client = dummy_client  # type: ignore
 
-    @slack.watch(label=label, channel=channel)
+    @slack.watch(label=label, channel=channel.override, disable=disable.override)
     def with_success() -> None:
         pass
 
     with_success()
     details = (
-        f" [{label}, function: with_success]" if label else " [function: with_success]"
+        f" [{label}|function: with_success]" if label else " [function: with_success]"
     )
-    if expected_channel is None:
+    print(dummy_client.sent)
+    if disable.expected or channel.expected is None:
         assert dummy_client.sent == []
     else:
         assert dummy_client.sent == [
             {
                 "text": f"Start watching{details}...",
-                "channel": expected_channel,
+                "channel": channel.expected,
                 "attachments": None,
             },
             {
-                "text": f"Stop watching{details}.\nExecution time: 0s.",
-                "channel": expected_channel,
+                "text": f"End watching{details}.\nExecution time: 0s.",
+                "channel": channel.expected,
                 "attachments": None,
             },
         ]
 
 
-@pytest.mark.parametrize("label", ["label1", None])
+@parametrize_label
 @parametrize_channel
+@parametrize_disable
 def test_slack_watch_decorator_error(
     dummy_client: DummyClient,
     label: str | None,
-    default_channel: str | None,
-    channel: str | None,
-    expected_channel: str | None,
+    channel: _OverrideTestCase[str | None],
+    disable: _OverrideTestCase[bool | None],
 ) -> None:
-    slack = SlackNotifier(token="tok", channel=default_channel)
+    slack = SlackNotifier(
+        token="tok", channel=channel.default, disable=cast(bool, disable.default)
+    )
     slack._client = dummy_client  # type: ignore
 
-    @slack.watch(label=label, channel=channel)
+    @slack.watch(label=label, channel=channel.override, disable=disable.override)
     def with_error() -> None:
         raise Exception("This is an error")
 
     with pytest.raises(Exception):
         with_error()
 
-    details = (
-        f" [{label}, function: with_error]" if label else " [function: with_error]"
-    )
-    if expected_channel is None:
+    details = f" [{label}|function: with_error]" if label else " [function: with_error]"
+    if disable.expected or channel.expected is None:
         assert dummy_client.sent == []
     else:
         assert dummy_client.sent[0] == {
             "text": f"Start watching{details}...",
-            "channel": expected_channel,
+            "channel": channel.expected,
             "attachments": None,
         }
         assert (
             dummy_client.sent[1]["text"]
             == f"Error while watching{details}: This is an error\nExecution time: 0s."
         )
-        assert dummy_client.sent[1]["channel"] == expected_channel
+        assert dummy_client.sent[1]["channel"] == channel.expected
         assert (
             "Exception: This is an error"
             in dummy_client.sent[1]["attachments"][0]["blocks"][0]["text"]["text"]
