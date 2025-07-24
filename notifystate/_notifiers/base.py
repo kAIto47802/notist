@@ -4,7 +4,7 @@ import os
 import sys
 import traceback
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from contextlib import AbstractContextManager, ContextDecorator
 from dataclasses import dataclass
 from datetime import datetime
@@ -122,6 +122,8 @@ _DOC_ADDITIONS_BASE = {
         """,
 }
 
+T = TypeVar("T")
+
 
 class BaseNotifier(ABC):
     """
@@ -222,9 +224,8 @@ class BaseNotifier(ABC):
                 verbose=verbose if verbose is not None else self._verbose,
                 disable=disable if disable is not None else self._disable,
             ),
+            prefix="Send message: ",
         )
-        if self._verbose:
-            _log.info(f"Send message: {data}")
 
     def _send(
         self,
@@ -232,11 +233,17 @@ class BaseNotifier(ABC):
         send_config: _SendConfig,
         tb: str | None = None,
         level: _LevelStr = "info",
+        prefix: str = "",
     ) -> None:
-        if send_config.disable:
-            return
         try:
-            self._do_send(data, send_config, tb, level)
+            if not send_config.disable:
+                self._do_send(data, send_config, tb, level)
+            if self._verbose:
+                {
+                    "info": _log.info,
+                    "warning": _log.warn,
+                    "error": _log.error,
+                }[level](f"{prefix}{data}")
         except Exception as e:
             if self._verbose:
                 _log.error(f"Error sending to {self._platform}: {e}")
@@ -278,18 +285,18 @@ class BaseNotifier(ABC):
         Returns:
             An an object that can serve as both a context manager and a decorator.
         """
+        send_config = _SendConfig(
+            channel=channel or self._default_channel,
+            mention_to=mention_to or self._mention_to,
+            mention_level=mention_level or self._mention_level,
+            mention_if_ends=mention_if_ends
+            if mention_if_ends is not None
+            else self._mention_if_ends,
+            verbose=verbose if verbose is not None else self._verbose,
+            disable=disable if disable is not None else self._disable,
+        )
         return _Watch(
-            self._send,
-            _SendConfig(
-                channel=channel or self._default_channel,
-                mention_to=mention_to or self._mention_to,
-                mention_level=mention_level or self._mention_level,
-                mention_if_ends=mention_if_ends
-                if mention_if_ends is not None
-                else self._mention_if_ends,
-                verbose=verbose if verbose is not None else self._verbose,
-                disable=disable if disable is not None else self._disable,
-            ),
+            partial(self._send, send_config=send_config),
             label,
         )
 
@@ -323,10 +330,11 @@ class BaseNotifier(ABC):
         """
         original = getattr(target, name, None)
         if original is None:
-            _log.warn(
-                f"Cannot register {self._platform}Notifier on `{target.__name__}.{name}`: "
-                f"target `{target.__name__}` has no attribute `{name}`."
-            )
+            if self._verbose:
+                _log.warn(
+                    f"Cannot register {self._platform}Notifier on `{target.__name__}.{name}`: "
+                    f"target `{target.__name__}` has no attribute `{name}`."
+                )
             return
         patched = self.watch(
             label=label,
@@ -343,7 +351,75 @@ class BaseNotifier(ABC):
             if hasattr(target, "__name__")
             else f"<{target.__class__.__name__} object at {hex(id(target))}>"
         )
-        _log.info(f"Registered {self._platform}Notifier on `{target_name}.{name}`.")
+        if self._verbose:
+            _log.info(f"Registered {self._platform}Notifier on `{target_name}.{name}`.")
+
+    def watch_iterable(
+        self,
+        iterable: Iterable[T],
+        step: int = 1,
+        total: int | None = None,
+        *,
+        label: str | None = None,
+        channel: str | None = None,
+        mention_to: str | None = None,
+        mention_level: _LevelStr | None = None,
+        mention_if_ends: bool | None = None,
+        verbose: bool | None = None,
+        disable: bool | None = None,
+    ) -> Iterable[T]:
+        """
+        A generator that yields items from an iterable while sending notifications about the progress.
+        This is useful for monitoring long-running tasks that process items from an iterable.
+
+        Args:
+            iterable: The iterable to watch.
+            step: The number of items to process before sending a progress notification.
+            total: The total number of items in the iterable. If not provided, it will not be included in the progress messages.
+            label: Optional label for the watch context. This label will be included in both notification messages and log entries.
+            mention_to: Override the default entity to mention on notification.
+            mention_level: Override the default mention threshold level.
+            mention_if_ends: Override the default setting for whether to mention at the end of the watch.
+            verbose: Override the default verbosity setting.
+            disable: Override the default disable flag.
+        """
+        start = datetime.now()
+        iterable_object = (
+            f"<{iterable.__class__.__name__} object at {hex(id(iterable))}>"
+        )
+        send_config = _SendConfig(
+            channel=channel or self._default_channel,
+            mention_to=mention_to or self._mention_to,
+            mention_level=mention_level or self._mention_level,
+            mention_if_ends=mention_if_ends
+            if mention_if_ends is not None
+            else self._mention_if_ends,
+            verbose=verbose if verbose is not None else self._verbose,
+            disable=disable if disable is not None else self._disable,
+        )
+        details = f" {iterable_object} [{label}]" if label else f" {iterable_object}"
+        message = f"Start watching{details}..."
+        self._send(message, send_config)
+
+        iterable_watch = _IterableWatch(
+            step,
+            total,
+            iterable_object,
+            start,
+            partial(self._send, send_config=send_config),
+        )
+
+        for count, item in enumerate(iterable):
+            iterable_watch.set_count(count)
+            with iterable_watch:
+                yield item
+
+        end = datetime.now()
+        message = (
+            f"End watching{details}.\n"
+            f"Total execution time: {format_timedelta(end - start)}"
+        )
+        self._send(message, send_config)
 
 
 # NOTE: Python 3.12+ (PEP 695) supports inline type parameter syntax.
@@ -376,11 +452,9 @@ class _Watch(ContextDecorator, AbstractContextManager):
     def __init__(
         self,
         send_fn: Callable[..., None],
-        send_config: _SendConfig,
         label: str | None = None,
     ) -> None:
-        self._send = partial(send_fn, send_config=send_config)
-        self._send_config = send_config
+        self._send = send_fn
         self._start: datetime | None = None
         self._label = label
         self._fn_name: str | None = None
@@ -389,8 +463,6 @@ class _Watch(ContextDecorator, AbstractContextManager):
         self._start = datetime.now()
         message = f"Start watching{self._details}..."
         self._send(message)
-        if self._send_config.verbose:
-            _log.info(message)
         return self
 
     def __exit__(
@@ -406,17 +478,13 @@ class _Watch(ContextDecorator, AbstractContextManager):
             tb = "".join(traceback.format_exception(exc_type, exc_val, exc_tb))
             error_msg = f"Error while watching{self._details}: {exc_val}\n{et_msg}."
             self._send(error_msg, tb=tb, level="error")
-            if self._send_config.verbose:
-                _log.error(error_msg)
         else:
-            msg = f"Stop watching{self._details}.\n{et_msg}."
+            msg = f"End watching{self._details}.\n{et_msg}."
             self._send(msg)
-            if self._send_config.verbose:
-                _log.info(msg)
 
     @property
     def _details(self) -> str:
-        details = ", ".join(
+        details = "|".join(
             filter(None, [self._label, self._fn_name and f"function: {self._fn_name}"])
         )
         return f" [{details}]" if details else ""
@@ -424,3 +492,86 @@ class _Watch(ContextDecorator, AbstractContextManager):
     def __call__(self, fn: Callable) -> Any:
         self._fn_name = fn.__name__
         return super().__call__(fn)
+
+
+class _IterableWatch(AbstractContextManager):
+    def __init__(
+        self,
+        step: int,
+        total: int | None,
+        iterable_object: str,
+        start: datetime,
+        send_fn: Callable[..., None],
+    ) -> None:
+        self._step = step
+        self._total = total
+        self._iterable_object = iterable_object
+        self._start = start
+        self._count: int | None = None
+        self._prev_start: datetime | None = None
+        self._send = send_fn
+
+    def set_count(self, count: int) -> None:
+        self._count = count
+
+    def __enter__(self) -> Self:
+        assert self._count is not None
+        if self._count % self._step:
+            return self
+        self._prev_start = datetime.now()
+        message = (
+            "Processing "
+            + self._item_message
+            + (f"of {self._total} " if self._total is not None else "")
+            + f"from {self._iterable_object}..."
+        )
+        self._send(message)
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        assert self._count is not None
+        if self._count % self._step:
+            return
+        if exc_type:
+            tb = "".join(traceback.format_exception(exc_type, exc_val, exc_tb))
+            message = (
+                "Error while processing "
+                + self._item_message
+                + (f"of {self._total} " if self._total is not None else "")
+                + f"from {self._iterable_object}: {exc_val}\n"
+                + self._et_message
+            )
+            self._send(message, tb=tb, level="error")
+        else:
+            message = (
+                "Processed "
+                + self._item_message
+                + (f"of {self._total} " if self._total is not None else "")
+                + f"from {self._iterable_object}.\n"
+                + self._et_message
+            )
+            self._send(message)
+
+    @property
+    def _et_message(self) -> str:
+        end = datetime.now()
+        assert self._prev_start is not None
+        assert self._count is not None
+        return (
+            f"Execution time for item {self._count + 1}: {format_timedelta(end - self._prev_start)}\n"
+            f"Total execution time: {format_timedelta(end - self._start)}"
+        )
+
+    @property
+    def _item_message(self) -> str:
+        assert self._count is not None
+        return (
+            f"item {self._count + 1} "
+            if self._step == 1
+            else f"items {self._count + 1}–{self._count + self._step} "
+        )
