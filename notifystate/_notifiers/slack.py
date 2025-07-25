@@ -55,7 +55,7 @@ class SlackNotifier(BaseNotifier):
             disable,
         )
         self._client = WebClient(token=self._token)
-        if not self._disable:
+        if not self._disable and self._verbose:
             if self._default_channel:
                 _log.info(
                     f"SlackNotifier initialized with default channel: {self._default_channel}"
@@ -73,7 +73,7 @@ class SlackNotifier(BaseNotifier):
         level: _LevelStr = "info",
     ) -> None:
         channel = send_config.channel or self._default_channel
-        if channel is None:
+        if channel is None and self._verbose:
             _log.error(
                 "No Slack channel specified.\nSkipping sending message to Slack."
             )

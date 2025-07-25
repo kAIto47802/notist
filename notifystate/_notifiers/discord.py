@@ -54,7 +54,7 @@ class DiscordNotifier(BaseNotifier):
             verbose,
             disable,
         )
-        if not self._disable:
+        if not self._disable and self._verbose:
             if self._default_channel:
                 _log.info(
                     f"DiscordNotifier initialized with channel ID: {self._default_channel}"
@@ -72,7 +72,7 @@ class DiscordNotifier(BaseNotifier):
         level: _LevelStr = "info",
     ) -> None:
         channel_id = send_config.channel or self._default_channel
-        if not channel_id:
+        if not channel_id and self._verbose:
             _log.error(
                 "No Discord channel ID specified.\nSkipping sending message to Discord."
             )

@@ -220,7 +220,7 @@ class BaseNotifier(ABC):
             _SendConfig(
                 channel=channel or self._default_channel,
                 mention_to=mention_to or self._mention_to,
-                mention_level="info" if mention_to is not None else "error",
+                mention_level="info" if mention_to or self._mention_to else "error",
                 verbose=verbose if verbose is not None else self._verbose,
                 disable=disable if disable is not None else self._disable,
             ),
@@ -330,7 +330,7 @@ class BaseNotifier(ABC):
         """
         original = getattr(target, name, None)
         if original is None:
-            if self._verbose:
+            if verbose if verbose is not None else self._verbose:
                 _log.warn(
                     f"Cannot register {self._platform}Notifier on `{target.__name__}.{name}`: "
                     f"target `{target.__name__}` has no attribute `{name}`."
@@ -351,7 +351,7 @@ class BaseNotifier(ABC):
             if hasattr(target, "__name__")
             else f"<{target.__class__.__name__} object at {hex(id(target))}>"
         )
-        if self._verbose:
+        if verbose if verbose is not None else self._verbose:
             _log.info(f"Registered {self._platform}Notifier on `{target_name}.{name}`.")
 
     def watch_iterable(
@@ -417,7 +417,7 @@ class BaseNotifier(ABC):
         end = datetime.now()
         message = (
             f"End watching{details}.\n"
-            f"Total execution time: {format_timedelta(end - start)}"
+            f"Total execution time: {format_timedelta(end - start)}."
         )
         self._send(message, send_config)
 
@@ -563,8 +563,8 @@ class _IterableWatch(AbstractContextManager):
         assert self._prev_start is not None
         assert self._count is not None
         return (
-            f"Execution time for item {self._count + 1}: {format_timedelta(end - self._prev_start)}\n"
-            f"Total execution time: {format_timedelta(end - self._start)}"
+            f"Execution time for item {self._count + 1}: {format_timedelta(end - self._prev_start)}.\n"
+            f"Total execution time: {format_timedelta(end - self._start)}."
         )
 
     @property

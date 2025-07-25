@@ -56,6 +56,11 @@ class _OverrideTestCase(Generic[T]):
     expected: T
 
 
+# NOTE: It is sufficient for here to only test the `watch` and `send` methods,
+# as the rest of the methods are inherited from `BaseNotifier` and tested in `SlackNotifier`.
+
+parametrize_label = pytest.mark.parametrize("label", ["label1", None])
+
 parametrize_channel = pytest.mark.parametrize(
     "channel",
     [
@@ -76,7 +81,6 @@ parametrize_disable = pytest.mark.parametrize(
         _OverrideTestCase(True, False, False),
     ],
 )
-parametrize_label = pytest.mark.parametrize("label", ["label1", None])
 
 
 @parametrize_channel
