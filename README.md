@@ -29,7 +29,7 @@
   ✨ Key Features ✨
 </h2>
 
-For the detailed usage and quick start guide, please refer to the [documentation](https://kaito47802.github.io/notifystate/index.html).
+For the detailed usage and quick start guide, please refer to the [documentation](https://kaito47802.github.io/NotifyState/index.html).
 
 
 <h3>
@@ -154,6 +154,7 @@ from transformers import Trainer
 trainer = Trainer(model=...)
 
 # Register the `train` method of the `trainer` instance
+# This will not affect other instances of Trainer
 notifystate.register(trainer, "train", send_to="slack")
 
 # Now any time you call `trainer.train()`, it will be monitored
