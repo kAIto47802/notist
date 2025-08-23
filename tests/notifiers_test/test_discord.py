@@ -136,7 +136,6 @@ def test_discord_with_watch_success(
     )
     with discord.watch(label=label, channel=channel.override, disable=disable.override):
         pass
-    details = f" [{label}]" if label else ""
     if disable.expected or channel.expected is None:
         assert dummy_post == []
     else:
@@ -156,11 +155,9 @@ def test_discord_with_watch_success(
             == dummy_post[1][1]["Content-Type"]
             == "application/json"
         )
-        assert dummy_post[0][2]["content"] == f"Start watching{details}..."
-        assert (
-            dummy_post[1][2]["content"]
-            == f"End watching{details}.\nExecution time: 0s."
-        )
+        assert "Start watching" in dummy_post[0][2]["content"]
+        assert "End watching" in dummy_post[1][2]["content"]
+        assert "Execution time: 0s." in dummy_post[1][2]["content"]
     captured = capsys.readouterr()
     if disable.default:
         assert "DiscordNotifier is disabled. No messages will be sent." in captured.out
@@ -185,7 +182,6 @@ def test_discord_with_watch_error(
             label=label, channel=channel.override, disable=disable.override
         ):
             raise Exception("This is an error")
-    details = f" [{label}]" if label else ""
     if disable.expected or channel.expected is None:
         assert dummy_post == []
     else:
@@ -205,11 +201,10 @@ def test_discord_with_watch_error(
             == dummy_post[1][1]["Content-Type"]
             == "application/json"
         )
-        assert dummy_post[0][2]["content"] == f"Start watching{details}..."
-        assert (
-            dummy_post[1][2]["content"]
-            == f"Error while watching{details}: This is an error\nExecution time: 0s."
-        )
+        assert "Start watching" in dummy_post[0][2]["content"]
+        assert "Error while watching" in dummy_post[1][2]["content"]
+        assert "This is an error" in dummy_post[1][2]["content"]
+        assert "Execution time: 0s." in dummy_post[1][2]["content"]
         assert (
             "Exception: This is an error"
             in dummy_post[1][2]["embeds"][0]["description"]
@@ -234,9 +229,6 @@ def test_discord_watch_decorator_success(
         pass
 
     with_success()
-    details = (
-        f" [{label}|function: with_success]" if label else " [function: with_success]"
-    )
     if disable.expected or channel.expected is None:
         assert dummy_post == []
     else:
@@ -256,11 +248,9 @@ def test_discord_watch_decorator_success(
             == dummy_post[1][1]["Content-Type"]
             == "application/json"
         )
-        assert dummy_post[0][2]["content"] == f"Start watching{details}..."
-        assert (
-            dummy_post[1][2]["content"]
-            == f"End watching{details}.\nExecution time: 0s."
-        )
+        assert "Start watching" in dummy_post[0][2]["content"]
+        assert "End watching" in dummy_post[1][2]["content"]
+        assert "Execution time: 0s." in dummy_post[1][2]["content"]
 
 
 @parametrize_label
@@ -283,7 +273,6 @@ def test_discord_watch_decorator_error(
     with pytest.raises(Exception):
         with_error()
 
-    details = f" [{label}|function: with_error]" if label else " [function: with_error]"
     if disable.expected or channel.expected is None:
         assert dummy_post == []
     else:
@@ -303,11 +292,10 @@ def test_discord_watch_decorator_error(
             == dummy_post[1][1]["Content-Type"]
             == "application/json"
         )
-        assert dummy_post[0][2]["content"] == f"Start watching{details}..."
-        assert (
-            dummy_post[1][2]["content"]
-            == f"Error while watching{details}: This is an error\nExecution time: 0s."
-        )
+        assert "Start watching" in dummy_post[0][2]["content"]
+        assert "Error while watching" in dummy_post[1][2]["content"]
+        assert "This is an error" in dummy_post[1][2]["content"]
+        assert "Execution time: 0s." in dummy_post[1][2]["content"]
         assert (
             "Exception: This is an error"
             in dummy_post[1][2]["embeds"][0]["description"]

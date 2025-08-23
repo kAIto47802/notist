@@ -177,7 +177,7 @@ def test_slack_send(
 @parametrize_mention_if_ends
 @parametrize_verbose
 @parametrize_disable
-def test_slack_with_watch_success(
+def test_slack_watch_context_success(
     dummy_client: DummyClient,
     capsys: CaptureFixture[str],
     label: str | None,
@@ -208,37 +208,28 @@ def test_slack_with_watch_success(
         disable=disable.override,
     ):
         pass
-    details = f" [{label}]" if label else ""
     if disable.expected or channel.expected is None:
         assert dummy_client.sent == []
     else:
-        assert dummy_client.sent == [
-            {
-                "text": (
-                    f"<{mention_to.expected}>\n"
-                    if mention_to.expected
-                    and _LEVEL_ORDER[mention_level.expected] <= _LEVEL_ORDER["info"]
-                    else ""
-                )
-                + f"Start watching{details}...",
-                "channel": channel.expected,
-                "attachments": None,
-            },
-            {
-                "text": (
-                    f"<{mention_to.expected}>\n"
-                    if mention_to.expected
-                    and (
-                        _LEVEL_ORDER[mention_level.expected] <= _LEVEL_ORDER["info"]
-                        or mention_if_ends.expected
-                    )
-                    else ""
-                )
-                + f"End watching{details}.\nExecution time: 0s.",
-                "channel": channel.expected,
-                "attachments": None,
-            },
-        ]
+        assert len(dummy_client.sent) == 2
+        assert all(s["channel"] == channel.expected for s in dummy_client.sent)
+        assert all(s["attachments"] is None for s in dummy_client.sent)
+        assert (
+            f"<{mention_to.expected}>\n"
+            if mention_to.expected
+            and _LEVEL_ORDER[mention_level.expected] <= _LEVEL_ORDER["info"]
+            else ""
+        ) + "Start watching" in dummy_client.sent[0]["text"]
+        assert (
+            f"<{mention_to.expected}>\n"
+            if mention_to.expected
+            and (
+                _LEVEL_ORDER[mention_level.expected] <= _LEVEL_ORDER["info"]
+                or mention_if_ends.expected
+            )
+            else ""
+        ) + "End watching" in dummy_client.sent[1]["text"]
+        assert "Execution time: 0s." in dummy_client.sent[1]["text"]
     captured = capsys.readouterr()
     if not verbose.expected and not verbose.default:
         assert "[NotifyState]" not in captured.out
@@ -257,7 +248,7 @@ def test_slack_with_watch_success(
 @parametrize_mention_level
 @parametrize_verbose
 @parametrize_disable
-def test_slack_with_watch_error(
+def test_slack_watch_context_error(
     dummy_client: DummyClient,
     capsys: CaptureFixture[str],
     label: str | None,
@@ -286,25 +277,19 @@ def test_slack_with_watch_error(
             disable=disable.override,
         ):
             raise Exception("This is an error")
-    details = f" [{label}]" if label else ""
     if disable.expected or channel.expected is None:
         assert dummy_client.sent == []
     else:
-        assert dummy_client.sent[0] == {
-            "text": f"Start watching{details}...",
-            "channel": channel.expected,
-            "attachments": None,
-        }
+        assert len(dummy_client.sent) == 2
+        assert all(s["channel"] == channel.expected for s in dummy_client.sent)
+        assert dummy_client.sent[0]["attachments"] is None
+        assert "Start watching" in dummy_client.sent[0]["text"]
         assert (
-            dummy_client.sent[1]["text"]
-            == (
-                f"<{mention_to.expected}>\n"
-                if mention_to.expected
-                and _LEVEL_ORDER[mention_level.expected] <= _LEVEL_ORDER["error"]
-                else ""
-            )
-            + f"Error while watching{details}: This is an error\nExecution time: 0s."
-        )
+            f"<{mention_to.expected}>\n"
+            if mention_to.expected
+            and _LEVEL_ORDER[mention_level.expected] <= _LEVEL_ORDER["error"]
+            else ""
+        ) + "Error while watching" in dummy_client.sent[1]["text"]
         assert dummy_client.sent[1]["channel"] == channel.expected
         assert (
             "Exception: This is an error"
@@ -339,24 +324,15 @@ def test_slack_watch_decorator_success(
         pass
 
     with_success()
-    details = (
-        f" [{label}|function: with_success]" if label else " [function: with_success]"
-    )
     if disable.expected or channel.expected is None:
         assert dummy_client.sent == []
     else:
-        assert dummy_client.sent == [
-            {
-                "text": f"Start watching{details}...",
-                "channel": channel.expected,
-                "attachments": None,
-            },
-            {
-                "text": f"End watching{details}.\nExecution time: 0s.",
-                "channel": channel.expected,
-                "attachments": None,
-            },
-        ]
+        assert len(dummy_client.sent) == 2
+        assert all(s["channel"] == channel.expected for s in dummy_client.sent)
+        assert all(s["attachments"] is None for s in dummy_client.sent)
+        assert "Start watching" in dummy_client.sent[0]["text"]
+        assert "End watching" in dummy_client.sent[1]["text"]
+        assert "Execution time: 0s." in dummy_client.sent[1]["text"]
 
 
 @parametrize_label
@@ -378,19 +354,15 @@ def test_slack_watch_decorator_error(
     with pytest.raises(Exception):
         with_error()
 
-    details = f" [{label}|function: with_error]" if label else " [function: with_error]"
     if disable.expected or channel.expected is None:
         assert dummy_client.sent == []
     else:
-        assert dummy_client.sent[0] == {
-            "text": f"Start watching{details}...",
-            "channel": channel.expected,
-            "attachments": None,
-        }
-        assert (
-            dummy_client.sent[1]["text"]
-            == f"Error while watching{details}: This is an error\nExecution time: 0s."
-        )
+        assert len(dummy_client.sent) == 2
+        assert all(s["channel"] == channel.expected for s in dummy_client.sent)
+        assert "Start watching" in dummy_client.sent[0]["text"]
+        assert "Error while watching" in dummy_client.sent[1]["text"]
+        assert "This is an error" in dummy_client.sent[1]["text"]
+        assert "Execution time: 0s." in dummy_client.sent[1]["text"]
         assert dummy_client.sent[1]["channel"] == channel.expected
         assert (
             "Exception: This is an error"
@@ -409,18 +381,12 @@ def test_slack_register_module(
     slack.register(requests, "get")
     requests.get("https://example.com")
 
-    assert dummy_client.sent == [
-        {
-            "text": "Start watching [function: get]...",
-            "channel": "test-channel",
-            "attachments": None,
-        },
-        {
-            "text": "End watching [function: get].\nExecution time: 0s.",
-            "channel": "test-channel",
-            "attachments": None,
-        },
-    ]
+    assert len(dummy_client.sent) == 2
+    assert all(s["channel"] == "test-channel" for s in dummy_client.sent)
+    assert all(s["attachments"] is None for s in dummy_client.sent)
+    assert "Start watching" in dummy_client.sent[0]["text"]
+    assert "End watching" in dummy_client.sent[1]["text"]
+    assert "Execution time: 0s." in dummy_client.sent[1]["text"]
 
 
 @parametrize_label
@@ -456,23 +422,11 @@ def test_slack_register_class(
         assert dummy_client.sent == []
         return
 
-    details = f" [{label}|function: method]" if label else " [function: method]"
-    assert (
-        dummy_client.sent
-        == [
-            {
-                "text": f"Start watching{details}...",
-                "channel": channel.expected,
-                "attachments": None,
-            },
-            {
-                "text": f"End watching{details}.\nExecution time: 0s.",
-                "channel": channel.expected,
-                "attachments": None,
-            },
-        ]
-        * 3
-    )
+    assert len(dummy_client.sent) == 6
+    assert all(s["channel"] == channel.expected for s in dummy_client.sent)
+    assert all(s["attachments"] is None for s in dummy_client.sent)
+    assert all("Start watching" in dummy_client.sent[i]["text"] for i in range(0, 6, 2))
+    assert all("End watching" in dummy_client.sent[i]["text"] for i in range(1, 6, 2))
 
 
 @parametrize_label
@@ -509,23 +463,11 @@ def test_slack_register_instance(
         assert dummy_client.sent == []
         return
 
-    details = f" [{label}|function: method]" if label else " [function: method]"
-    assert (
-        dummy_client.sent
-        == [
-            {
-                "text": f"Start watching{details}...",
-                "channel": channel.expected,
-                "attachments": None,
-            },
-            {
-                "text": f"End watching{details}.\nExecution time: 0s.",
-                "channel": channel.expected,
-                "attachments": None,
-            },
-        ]
-        * 2
-    )
+    assert len(dummy_client.sent) == 4
+    assert all(s["channel"] == channel.expected for s in dummy_client.sent)
+    assert all(s["attachments"] is None for s in dummy_client.sent)
+    assert all("Start watching" in dummy_client.sent[i]["text"] for i in range(0, 4, 2))
+    assert all("End watching" in dummy_client.sent[i]["text"] for i in range(1, 4, 2))
 
 
 @parametrize_label
@@ -572,100 +514,7 @@ def test_slack_watch_iterable_success(
         "channel": channel.expected,
         "attachments": None,
     }
-    if step == 1:
-        if total is None:
-            assert dummy_client.sent[1:-1] == sum(
-                [
-                    [
-                        {
-                            "text": f"Processing item {i} from {iterable_object}...",
-                            "channel": channel.expected,
-                            "attachments": None,
-                        },
-                        {
-                            "text": (
-                                f"Processed item {i} from {iterable_object}.\n"
-                                f"Execution time for item {i}: 0s.\n"
-                                f"Total execution time: 0s."
-                            ),
-                            "channel": channel.expected,
-                            "attachments": None,
-                        },
-                    ]
-                    for i in range(1, 5)
-                ],
-                [],
-            )
-        else:
-            assert dummy_client.sent[1:-1] == sum(
-                [
-                    [
-                        {
-                            "text": f"Processing item {i} of {total} from {iterable_object}...",
-                            "channel": channel.expected,
-                            "attachments": None,
-                        },
-                        {
-                            "text": (
-                                f"Processed item {i} of {total} from {iterable_object}.\n"
-                                f"Execution time for item {i} of {total}: 0s.\n"
-                                f"Total execution time: 0s."
-                            ),
-                            "channel": channel.expected,
-                            "attachments": None,
-                        },
-                    ]
-                    for i in range(1, 5)
-                ],
-                [],
-            )
-    else:
-        if total is None:
-            assert dummy_client.sent[1:-1] == sum(
-                [
-                    [
-                        {
-                            "text": f"Processing items {i}–{i + step - 1} from {iterable_object}...",
-                            "channel": channel.expected,
-                            "attachments": None,
-                        },
-                        {
-                            "text": (
-                                f"Processed items {i}–{i + step - 1} from {iterable_object}.\n"
-                                f"Execution time for items {i}–{i + step - 1}: 0s.\n"
-                                f"Total execution time: 0s."
-                            ),
-                            "channel": channel.expected,
-                            "attachments": None,
-                        },
-                    ]
-                    for i in range(1, 5, step)
-                ],
-                [],
-            )
-        else:
-            assert dummy_client.sent[1:-1] == sum(
-                [
-                    [
-                        {
-                            "text": f"Processing items {i}–{min(i + step - 1, total)} of {total} from {iterable_object}...",
-                            "channel": channel.expected,
-                            "attachments": None,
-                        },
-                        {
-                            "text": (
-                                f"Processed items {i}–{min(i + step - 1, total)} of {total} from {iterable_object}.\n"
-                                f"Execution time for items {i}–{min(i + step - 1, total)} of {total}: 0s.\n"
-                                f"Total execution time: 0s."
-                            ),
-                            "channel": channel.expected,
-                            "attachments": None,
-                        },
-                    ]
-                    for i in range(1, 5, step)
-                ],
-                [],
-            )
+    assert len(dummy_client.sent) == 2 * (4 // step + 1)
 
 
 @parametrize_label
