@@ -548,6 +548,8 @@ def test_slack_watch_iterable_success(
     iterable_object = f"<range object at {hex(id(iterable))}>"
     for _ in slack.watch_iterable(
         iterable,
+        step=step,
+        total=total,
         label=label,
         channel=channel.override,
         disable=disable.override,
@@ -587,6 +589,112 @@ def test_slack_watch_iterable_success(
                             },
                         ]
                         for i in range(1, 4)
+                    ],
+                    [],
+                ),
+                {
+                    "text": f"End watching{details}.\nTotal execution time: 0s.",
+                    "channel": channel.expected,
+                    "attachments": None,
+                },
+            ]
+        else:
+            assert dummy_client.sent == [
+                {
+                    "text": f"Start watching{details}...",
+                    "channel": channel.expected,
+                    "attachments": None,
+                },
+                *sum(
+                    [
+                        [
+                            {
+                                "text": f"Processing item {i} of {total} from {iterable_object}...",
+                                "channel": channel.expected,
+                                "attachments": None,
+                            },
+                            {
+                                "text": (
+                                    f"Processed item {i} of {total} from {iterable_object}.\n"
+                                    f"Execution time for item {i} of {total}: 0s.\n"
+                                    f"Total execution time: 0s."
+                                ),
+                                "channel": channel.expected,
+                                "attachments": None,
+                            },
+                        ]
+                        for i in range(1, 4)
+                    ],
+                    [],
+                ),
+                {
+                    "text": f"End watching{details}.\nTotal execution time: 0s.",
+                    "channel": channel.expected,
+                    "attachments": None,
+                },
+            ]
+    else:
+        if total is None:
+            assert dummy_client.sent == [
+                {
+                    "text": f"Start watching{details}...",
+                    "channel": channel.expected,
+                    "attachments": None,
+                },
+                *sum(
+                    [
+                        [
+                            {
+                                "text": f"Processing items {i}–{i + step - 1} from {iterable_object}...",
+                                "channel": channel.expected,
+                                "attachments": None,
+                            },
+                            {
+                                "text": (
+                                    f"Processed items {i}–{i + step - 1} from {iterable_object}.\n"
+                                    f"Execution time for items {i}–{i + step - 1}: 0s.\n"
+                                    f"Total execution time: 0s."
+                                ),
+                                "channel": channel.expected,
+                                "attachments": None,
+                            },
+                        ]
+                        for i in range(1, 4, step)
+                    ],
+                    [],
+                ),
+                {
+                    "text": f"End watching{details}.\nTotal execution time: 0s.",
+                    "channel": channel.expected,
+                    "attachments": None,
+                },
+            ]
+        else:
+            assert dummy_client.sent == [
+                {
+                    "text": f"Start watching{details}...",
+                    "channel": channel.expected,
+                    "attachments": None,
+                },
+                *sum(
+                    [
+                        [
+                            {
+                                "text": f"Processing items {i}–{i + step - 1} of {total} from {iterable_object}...",
+                                "channel": channel.expected,
+                                "attachments": None,
+                            },
+                            {
+                                "text": (
+                                    f"Processed items {i}–{i + step - 1} of {total} from {iterable_object}.\n"
+                                    f"Execution time for items {i}–{i + step - 1} of {total}: 0s.\n"
+                                    f"Total execution time: 0s."
+                                ),
+                                "channel": channel.expected,
+                                "attachments": None,
+                            },
+                        ]
+                        for i in range(1, 4, step)
                     ],
                     [],
                 ),
