@@ -134,6 +134,7 @@ def init(
     mention_to: str | None = None,
     mention_level: _LevelStr = "error",
     mention_if_ends: bool = True,
+    callsite_level: _LevelStr = "error",
     token: str | None = None,
     verbose: bool = True,
     disable: bool = False,
@@ -151,8 +152,9 @@ def init(
             named `{platform}_CHANNEL` where `{platform}` is the notifier's platform name in uppercase
             (e.g., `SLACK_CHANNEL` for Slack).
         mention_to: Default entity to mention on notification.
-        mention_level: Threshold level at or above which mentions are sent.
+        mention_level: Minimum log level to trigger a mention.
         mention_if_ends: Whether to mention at the end of the watch.
+        callsite_level: Minimum log level to emit the call-site source snippet.
         token:
             API token or authentication key. If not provided, it will look for an environment variable named
             `{platform}_BOT_TOKEN` where `{platform}` is the notifier's platform name in uppercase
@@ -192,6 +194,7 @@ def init(
         mention_to=mention_to,
         mention_level=mention_level,
         mention_if_ends=mention_if_ends,
+        callsite_level=callsite_level,
         token=token,
         verbose=verbose,
         disable=disable,
@@ -254,6 +257,9 @@ def watch(
     mention_to: str | None = None,
     mention_level: _LevelStr | None = None,
     mention_if_ends: bool | None = None,
+    callsite_level: _LevelStr | None = None,
+    callsite_context_before: int = 1,
+    callsite_context_after: int = 4,
     verbose: bool | None = None,
     disable: bool | None = None,
 ) -> ContextManagerDecorator:
@@ -268,6 +274,9 @@ def watch(
         mention_to: Override the default entity to mention on notification.
         mention_level: Override the default mention threshold level.
         mention_if_ends: Override the default setting for whether to mention at the end of the watch.
+        callsite_level: Override the default call-site source snippet threshold level.
+        callsite_context_before: Number of lines of context to include before the call site.
+        callsite_context_after: Number of lines of context to include after the call site.
         verbose: Override the default verbosity setting.
         disable: Override the default disable flag.
 
@@ -304,11 +313,17 @@ def watch(
         mention_to=mention_to,
         mention_level=mention_level,
         mention_if_ends=mention_if_ends,
+        callsite_level=callsite_level,
         verbose=verbose,
         disable=disable,
     )
     _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
-    return _notifier[send_to].watch(label, **kwargs)  # type: ignore
+    return _notifier[send_to].watch(
+        label,
+        callsite_context_before=callsite_context_before,
+        callsite_context_after=callsite_context_after,
+        **kwargs,  # type: ignore
+    )
 
 
 @_allow_multi_dest
@@ -322,6 +337,9 @@ def register(
     mention_to: str | None = None,
     mention_level: _LevelStr | None = None,
     mention_if_ends: bool | None = None,
+    callsite_level: _LevelStr | None = None,
+    callsite_context_before: int = 1,
+    callsite_context_after: int = 4,
     verbose: bool | None = None,
     disable: bool | None = None,
 ) -> None:
@@ -338,6 +356,9 @@ def register(
         mention_to: Override the default entity to mention on notification.
         mention_level: Override the default mention threshold level.
         mention_if_ends: Override the default setting for whether to mention at the end of the watch.
+        callsite_level: Override the default call-site source snippet threshold level.
+        callsite_context_before: Number of lines of context to include before the call site.
+        callsite_context_after: Number of lines of context to include after the call site.
         verbose: Override the default verbosity setting.
         disable: Override the default disable flag.
 
@@ -392,11 +413,19 @@ def register(
         mention_to=mention_to,
         mention_level=mention_level,
         mention_if_ends=mention_if_ends,
+        callsite_level=callsite_level,
         verbose=verbose,
         disable=disable,
     )
     _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
-    _notifier[send_to].register(target, name, label=label, **kwargs)  # type: ignore
+    _notifier[send_to].register(
+        target,
+        name,
+        label=label,
+        callsite_context_before=callsite_context_before,
+        callsite_context_after=callsite_context_after,
+        **kwargs,  # type: ignore
+    )
 
 
 def _init_if_needed(
@@ -405,6 +434,7 @@ def _init_if_needed(
     mention_to: str | None = None,
     mention_level: _LevelStr | None = None,
     mention_if_ends: bool | None = None,
+    callsite_level: _LevelStr | None = None,
     verbose: bool | None = None,
     disable: bool | None = None,
 ) -> None:
@@ -415,6 +445,7 @@ def _init_if_needed(
         mention_to=mention_to,
         mention_level=mention_level,
         mention_if_ends=mention_if_ends,
+        callsite_level=callsite_level,
         verbose=verbose,
         disable=disable,
     )

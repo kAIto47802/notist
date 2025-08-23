@@ -12,8 +12,8 @@ from contextlib import AbstractContextManager, ContextDecorator
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
-from types import FrameType, ModuleType, TracebackType
-from typing import Any, Literal, Protocol, Type, TypeVar, cast
+from types import ModuleType, TracebackType
+from typing import Any, Literal, Protocol, Type, TypeVar
 
 if sys.version_info >= (3, 10):
     from typing import ParamSpec
@@ -145,6 +145,7 @@ class BaseNotifier(ABC):
         mention_to: str | None = None,
         mention_level: _LevelStr = "error",
         mention_if_ends: bool = True,
+        callsite_level: _LevelStr = "error",
         token: str | None = None,
         verbose: bool = True,
         disable: bool = False,
@@ -159,8 +160,9 @@ class BaseNotifier(ABC):
                 named `{platform}_CHANNEL` where `{platform}` is the notifier's platform name in uppercase
                 (e.g., `SLACK_CHANNEL` for Slack).
             mention_to: Default entity to mention on notification.
-            mention_level: Threshold level at or above which mentions are sent.
+            mention_level: Minimum log level to trigger a mention.
             mention_if_ends: Whether to mention at the end of the watch.
+            callsite_level: Minimum log level to emit the call-site source snippet.
             token:
                 API token or authentication key. If not provided, it will look for an environment variable named
                 `{platform}_BOT_TOKEN` where `{platform}` is the notifier's platform name in uppercase
@@ -188,6 +190,7 @@ class BaseNotifier(ABC):
             self._disable = True
         self._mention_level = mention_level
         self._mention_if_ends = mention_if_ends
+        self._default_callsite_level = callsite_level
         self._default_channel = channel or os.getenv(
             f"{self._platform.upper()}_CHANNEL"
         )
@@ -269,6 +272,9 @@ class BaseNotifier(ABC):
         mention_to: str | None = None,
         mention_level: _LevelStr | None = None,
         mention_if_ends: bool | None = None,
+        callsite_level: _LevelStr | None = None,
+        callsite_context_before: int = 1,
+        callsite_context_after: int = 4,
         verbose: bool | None = None,
         disable: bool | None = None,
     ) -> ContextManagerDecorator:
@@ -282,6 +288,9 @@ class BaseNotifier(ABC):
             mention_to: Override the default entity to mention on notification.
             mention_level: Override the default mention threshold level.
             mention_if_ends: Override the default setting for whether to mention at the end of the watch.
+            callsite_level: Override the default call-site source snippet threshold level.
+            callsite_context_before: Number of lines of context to include before the call site.
+            callsite_context_after: Number of lines of context to include after the call site.
             verbose: Override the default verbosity setting.
             disable: Override the default disable flag.
 
@@ -301,6 +310,9 @@ class BaseNotifier(ABC):
         return _Watch(
             partial(self._send, send_config=send_config),
             label,
+            callsite_level or self._default_callsite_level,
+            callsite_context_before,
+            callsite_context_after,
         )
 
     def register(
@@ -313,6 +325,9 @@ class BaseNotifier(ABC):
         mention_to: str | None = None,
         mention_level: _LevelStr | None = None,
         mention_if_ends: bool | None = None,
+        callsite_level: _LevelStr | None = None,
+        callsite_context_before: int = 1,
+        callsite_context_after: int = 4,
         verbose: bool | None = None,
         disable: bool | None = None,
     ) -> None:
@@ -328,6 +343,9 @@ class BaseNotifier(ABC):
             mention_to: Override the default entity to mention on notification.
             mention_level: Override the default mention threshold level.
             mention_if_ends: Override the default setting for whether to mention at the end of the watch.
+            callsite_level: Override the default call-site source snippet threshold level.
+            callsite_context_before: Number of lines of context to include before the call site.
+            callsite_context_after: Number of lines of context to include after the call site.
             verbose: Override the default verbosity setting.
             disable: Override the default disable flag.
         """
@@ -345,6 +363,9 @@ class BaseNotifier(ABC):
             mention_to=mention_to,
             mention_level=mention_level,
             mention_if_ends=mention_if_ends,
+            callsite_level=callsite_level,
+            callsite_context_before=callsite_context_before,
+            callsite_context_after=callsite_context_after,
             verbose=verbose,
             disable=disable,
         )(original)
@@ -462,24 +483,47 @@ class _Watch(ContextDecorator, AbstractContextManager):
         self,
         send_fn: Callable[..., None],
         label: str | None = None,
+        callsite_level: _LevelStr = "error",
+        callsite_context_before: int = 1,
+        callsite_context_after: int = 4,
     ) -> None:
         self._send = send_fn
         self._start: datetime | None = None
         self._label = label
+        self._callsite_level = callsite_level
+        self._callsite_context_before = callsite_context_before
+        self._callsite_context_after = callsite_context_after
         self._target: str | None = None
+        self._called_from: str | None = None
+        self._called_lines: list[tuple[int, str]] | None = None
+        self._defined_at: str | None = None
+        self._is_fn = False
 
     def __enter__(self) -> Self:
         self._start = datetime.now()
 
-        if not self._target:
-            f = cast(FrameType, cast(FrameType, inspect.currentframe()).f_back)
-            filename = f.f_code.co_filename
-            fnname = f.f_code.co_name
-            lineno = f.f_lineno
-            line = linecache.getline(filename, lineno).rstrip()
-            self._target = f"{filename}:{lineno} in {fnname} :: {line}"
+        f = (f0 := inspect.currentframe()) and (f1 := f0.f_back) and f1.f_back
+        filename = f and f.f_code.co_filename
+        fnname = f and f.f_code.co_name
+        lineno = f and f.f_lineno
+        module = f and f.f_globals.get("__name__", "<unknown>")
+        self._called_lines = (
+            [
+                (num := lineno + i, linecache.getline(filename, num).rstrip())
+                for i in range(
+                    -self._callsite_context_before, self._callsite_context_after
+                )
+            ]
+            if filename and lineno is not None
+            else None
+        )
+        if self._is_fn:
+            self._called_from = f"`{module}.{fnname}` @ {filename}:{lineno}"
+        else:
+            self._called_from = f"{filename}:{lineno}"
+            self._target = f"code block in `{module}.{fnname}`"
 
-        message = f"Start watching{self._details}..."
+        message = f"Start watching{self._details()}"
         self._send(message)
         return self
 
@@ -495,26 +539,49 @@ class _Watch(ContextDecorator, AbstractContextManager):
         exc_only = "".join(traceback.format_exception_only(exc_type, exc_val)).strip()
         if exc_type:
             tb = "".join(traceback.format_exception(exc_type, exc_val, exc_tb))
-            error_msg = f"Error while watching{self._details}: {exc_only}\n{et_msg}."
+            error_msg = (
+                f"Error while watching{self._details('error')}: {exc_only}\n{et_msg}."
+            )
             self._send(error_msg, tb=tb, level="error")
         else:
-            msg = f"End watching{self._details}.\n{et_msg}."
+            msg = f"End watching{self._details()}\n{et_msg}."
             self._send(msg)
 
-    @property
-    def _details(self) -> str:
-        return (
-            f" <{self._target}> [{self._label}]"
+    def _details(self, level: _LevelStr = "info") -> str:
+        assert self._called_from is not None
+        target = (
+            f" <{self._target}> [label: {self._label}]"
             if self._label
             else f" <{self._target}>"
         )
+        w = self._called_lines and len(str(self._called_lines[-1][0]))
+        called_lines = (
+            _LEVEL_ORDER[self._callsite_level] <= _LEVEL_ORDER[level]
+            and self._called_lines
+            and w
+            and "\n".join(
+                [f"  | {i:>{w}d} > {line}" for i, line in self._called_lines]
+            ).rstrip()
+        )
+        if self._is_fn:
+            assert self._defined_at is not None
+            defined_at = f"  | Defined at: {self._defined_at}"
+            called_from = f"  | Called from: {self._called_from}"
+            return "\n".join(
+                filter(None, [target, defined_at, called_from, called_lines])
+            )
+        else:
+            called_from = f"  | at: {self._called_from}"
+            return "\n".join(filter(None, [target, called_from, called_lines]))
 
     def __call__(self, fn: Callable) -> Any:
+        self._is_fn = True
         filename = inspect.getsourcefile(fn) or fn.__code__.co_filename
         lineno = fn.__code__.co_firstlineno
         module = fn.__module__
         qualname = fn.__qualname__
-        self._target = f"function `{module}.{qualname}` in {filename}:{lineno}"
+        self._target = f"function `{module}.{qualname}`"
+        self._defined_at = f"{filename}:{lineno}"
 
         wrapped = super().__call__(fn)
         return functools.wraps(fn)(wrapped)
