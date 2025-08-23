@@ -563,8 +563,11 @@ class _IterableWatch(AbstractContextManager):
         assert self._prev_start is not None
         assert self._count is not None
         return (
-            f"Execution time for item {self._count + 1}: {format_timedelta(end - self._prev_start)}.\n"
-            f"Total execution time: {format_timedelta(end - self._start)}."
+            "Execution time for "
+            + self._item_message.rstrip()
+            + (f" of {self._total}" if self._total is not None else "")
+            + f": {format_timedelta(end - self._prev_start)}.\n"
+            + f"Total execution time: {format_timedelta(end - self._start)}."
         )
 
     @property
