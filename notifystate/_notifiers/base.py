@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import functools
+import inspect
+import linecache
 import os
 import sys
 import traceback
@@ -9,8 +12,8 @@ from contextlib import AbstractContextManager, ContextDecorator
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
-from types import ModuleType, TracebackType
-from typing import Any, Literal, Protocol, Type, TypeVar
+from types import FrameType, ModuleType, TracebackType
+from typing import Any, Literal, Protocol, Type, TypeVar, cast
 
 if sys.version_info >= (3, 10):
     from typing import ParamSpec
@@ -401,18 +404,24 @@ class BaseNotifier(ABC):
         message = f"Start watching{details}..."
         self._send(message, send_config)
 
+        if step < 1:
+            step = 1
+            _log.warn(
+                f"Step must be at least 1. Setting step to 1 for {self._platform}Notifier."
+            )
+
         iterable_watch = _IterableWatch(
             step,
             total,
-            iterable_object,
+            details,
             start,
             partial(self._send, send_config=send_config),
         )
 
-        for count, item in enumerate(iterable):
-            iterable_watch.set_count(count)
+        for item in iterable:
             with iterable_watch:
                 yield item
+        iterable_watch.send_final_message_if_needed()
 
         end = datetime.now()
         message = (
@@ -457,10 +466,19 @@ class _Watch(ContextDecorator, AbstractContextManager):
         self._send = send_fn
         self._start: datetime | None = None
         self._label = label
-        self._fn_name: str | None = None
+        self._target: str | None = None
 
     def __enter__(self) -> Self:
         self._start = datetime.now()
+
+        if not self._target:
+            f = cast(FrameType, cast(FrameType, inspect.currentframe()).f_back)
+            filename = f.f_code.co_filename
+            fnname = f.f_code.co_name
+            lineno = f.f_lineno
+            line = linecache.getline(filename, lineno).rstrip()
+            self._target = f"{filename}:{lineno} in {fnname} :: {line}"
+
         message = f"Start watching{self._details}..."
         self._send(message)
         return self
@@ -474,9 +492,10 @@ class _Watch(ContextDecorator, AbstractContextManager):
         assert self._start
         end = datetime.now()
         et_msg = f"Execution time: {format_timedelta(end - self._start)}"
+        exc_only = "".join(traceback.format_exception_only(exc_type, exc_val)).strip()
         if exc_type:
             tb = "".join(traceback.format_exception(exc_type, exc_val, exc_tb))
-            error_msg = f"Error while watching{self._details}: {exc_val}\n{et_msg}."
+            error_msg = f"Error while watching{self._details}: {exc_only}\n{et_msg}."
             self._send(error_msg, tb=tb, level="error")
         else:
             msg = f"End watching{self._details}.\n{et_msg}."
@@ -484,14 +503,21 @@ class _Watch(ContextDecorator, AbstractContextManager):
 
     @property
     def _details(self) -> str:
-        details = "|".join(
-            filter(None, [self._label, self._fn_name and f"function: {self._fn_name}"])
+        return (
+            f" <{self._target}> [{self._label}]"
+            if self._label
+            else f" <{self._target}>"
         )
-        return f" [{details}]" if details else ""
 
     def __call__(self, fn: Callable) -> Any:
-        self._fn_name = fn.__name__
-        return super().__call__(fn)
+        filename = inspect.getsourcefile(fn) or fn.__code__.co_filename
+        lineno = fn.__code__.co_firstlineno
+        module = fn.__module__
+        qualname = fn.__qualname__
+        self._target = f"function `{module}.{qualname}` in {filename}:{lineno}"
+
+        wrapped = super().__call__(fn)
+        return functools.wraps(fn)(wrapped)
 
 
 class _IterableWatch(AbstractContextManager):
@@ -499,31 +525,33 @@ class _IterableWatch(AbstractContextManager):
         self,
         step: int,
         total: int | None,
-        iterable_object: str,
+        details: str,
         start: datetime,
         send_fn: Callable[..., None],
     ) -> None:
         self._step = step
         self._total = total
-        self._iterable_object = iterable_object
+        self._details = details
         self._start = start
         self._count: int | None = None
         self._prev_start: datetime | None = None
         self._send = send_fn
-
-    def set_count(self, count: int) -> None:
-        self._count = count
+        self._cur_range_start: int | None = None
+        self._cur_range_end: int | None = None
 
     def __enter__(self) -> Self:
+        self._count = 0 if self._count is None else self._count + 1
         assert self._count is not None
         if self._count % self._step:
             return self
+        self._cur_range_start = self._count + 1
+        self._cur_range_end = min(self._count + self._step, self._total or 1 << 30)
         self._prev_start = datetime.now()
         message = (
             "Processing "
             + self._item_message
             + (f"of {self._total} " if self._total is not None else "")
-            + f"from {self._iterable_object}..."
+            + f"from{self._details}..."
         )
         self._send(message)
         return self
@@ -535,33 +563,41 @@ class _IterableWatch(AbstractContextManager):
         exc_tb: TracebackType | None,
     ) -> None:
         assert self._count is not None
-        if self._count % self._step:
-            return
         if exc_type:
-            tb = "".join(traceback.format_exception(exc_type, exc_val, exc_tb))
             message = (
                 "Error while processing "
                 + self._item_message
                 + (f"of {self._total} " if self._total is not None else "")
-                + f"from {self._iterable_object}: {exc_val}\n"
+                + f"from{self._details}\n"
                 + self._et_message
             )
-            self._send(message, tb=tb, level="error")
-        else:
-            message = (
-                "Processed "
-                + self._item_message
-                + (f"of {self._total} " if self._total is not None else "")
-                + f"from {self._iterable_object}.\n"
-                + self._et_message
-            )
-            self._send(message)
+            self._send(message, level="error")
+            return
+        if (self._count + 1) % self._step:
+            return
+        self._send_end_message()
+
+    def _send_end_message(self) -> None:
+        message = (
+            "Processed "
+            + self._item_message
+            + (f"of {self._total} " if self._total is not None else "")
+            + f"from{self._details}.\n"
+            + self._et_message
+        )
+        self._send(message)
+
+    def send_final_message_if_needed(self) -> None:
+        assert self._count is not None
+        if not (self._count + 1) % self._step:
+            return
+        self._cur_range_end = self._count + 1
+        self._send_end_message()
 
     @property
     def _et_message(self) -> str:
         end = datetime.now()
         assert self._prev_start is not None
-        assert self._count is not None
         return (
             "Execution time for "
             + self._item_message.rstrip()
@@ -572,9 +608,10 @@ class _IterableWatch(AbstractContextManager):
 
     @property
     def _item_message(self) -> str:
-        assert self._count is not None
+        assert self._cur_range_start is not None
+        assert self._cur_range_end is not None
         return (
-            f"item {self._count + 1} "
+            f"item {self._cur_range_start} "
             if self._step == 1
-            else f"items {self._count + 1}–{self._count + self._step} "
+            else f"items {self._cur_range_start}–{self._cur_range_end} "
         )
