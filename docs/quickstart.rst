@@ -110,6 +110,20 @@ If you want to monitor existing methods of specific class instances:
    # Now any time you call `trainer.train()`, it will be monitored
    trainer.train()
 
+Watch Your Iteration (e.g., for Loop)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can monitor the progress of an iterable (e.g., for loop) using the :func:`~notist._core.watch_iterable` function:
+
+.. code-block:: python
+
+   import notist
+
+   # Monitor progress of processing a long-running for loop
+   for batch in notist.watch_iterable(train_dataloader, step=10, send_to="slack"):
+      # This loop will be monitored, and you'll receive notifications every 10 iterations.
+      # If an error occurs inside this loop, you'll be notified immediately.
+      ...
 
 Send a One-Off Notification
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

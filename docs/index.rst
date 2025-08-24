@@ -33,7 +33,7 @@ You can receive notifications when your script:
 - Starts running
 - Completes successfully
 - Encounters an error
-- Or at any point you choose--trigger custom notifications anywhere in your code with any message you like
+- Or at any point you choose—trigger custom notifications anywhere in your code with any message you like
 
 
 🛠️ Easy Integration with Simple API
@@ -78,29 +78,44 @@ This code example send the following notifications:
 
    .. code-block:: text
 
-      Start watching [function: long_task]...
+      Start watching <function `__main__.without_error`>
+       ▷ Defined at: /home/kaito47802/workspace/NotifyState/sample.py:21
+       ▷ Called from: `__main__` @ /home/kaito47802/workspace/NotifyState/sample.py:28
 
 
 - When the function completes successfully:
 
    .. code-block:: text
 
-      Stop watching [function: long_task].
-      Execution time: 2h 32s.
+      End watching <function `__main__.without_error`>
+       ▷ Defined at: /home/kaito47802/workspace/NotifyState/sample.py:21
+       ▷ Called from: `__main__` @ /home/kaito47802/workspace/NotifyState/sample.py:28
+       ⦿ Execution time: 0s
 
 
 - When the function encounters an error:
 
    .. code-block:: text
 
-      Error while watching [function: with_error]: This is an error
-      Execution time: 2h 32s.
+      @kAIto47802
+      Error while watching <function `__main__.with_error`>
+       ▷ Defined at: /home/kaito47802/workspace/NotifyState/sample.py:15
+       ▷ Called from: `__main__` @ /home/kaito47802/workspace/NotifyState/sample.py:30
+        29 │     print("Example function that raises an error")
+        30 │     with_error()
+      ╭───────┄┄ ────────────
+      │ 31 │     print("You will see a Slack notification for the error above")
+      │ 32 │     print(
+      │ 33 │         "You can use the watch() helper as a function decorator or as a context manager"
+      ╰─❯ Exception: This is an error
+       ⦿ Execution time: 0s
+
       > Traceback (most recent call last):
-      >   File "/home/kaito47802/.pyenv/versions/3.11.0/lib/python3.11/contextlib.py", line 81, in inner
-      >     return func(*args, **kwds)
-      >            ^^^^^^^^^^^^^^^^^^^
-      >   File "/home/kaito47802/workspace/notist/test.py", line 10, in with_error
-      >     raise Exception("This is an error")
+      >  File "/home/kaito47802/.pyenv/versions/3.12.0/lib/python3.12/contextlib.py", line 81, in inner
+      >    return func(*args, **kwds)
+      >           ^^^^^^^^^^^^^^^^^^^
+      >  File "/home/kaito47802/workspace/NotifyState/sample.py", line 18, in with_error
+      >    raise Exception("This is an error")
       > Exception: This is an error
 
 Register an Existing Function or Method to be Monitored
@@ -151,6 +166,9 @@ You can also register an existing function or method to be monitored using the :
 
    # Now any time you call `trainer.train()`, it will be monitored
    trainer.train()
+
+We also provide other features such as :func:`~notist._core.send` and :func:`~notist._core.watch_iterable`. See :doc:`api` for details.
+
 
 🔔 Multiple Notifiers
 ^^^^^^^^^^^^^^^^^^^^^
