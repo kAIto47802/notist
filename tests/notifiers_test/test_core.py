@@ -4,6 +4,12 @@ import sys
 from contextlib import ContextDecorator
 from typing import Any
 
+from pytest import MonkeyPatch
+from test_discord import Sent, dummy_post  # noqa: F401
+from test_slack import DummyClient, dummy_client  # noqa: F401
+
+import notist._core
+
 if sys.version_info >= (3, 11):
     from typing import Self
 else:
@@ -64,3 +70,52 @@ def test_combine_contexts_order() -> None:
     with combo:
         called.append("BODY")
     assert called == ["A+", "B+", "BODY", "B-", "A-"]
+
+
+parametrize_destination = pytest.mark.parametrize(
+    "destination",
+    ["slack", "discord", ["slack"], ["slack", "discord"]],
+)
+
+
+@parametrize_destination
+def test_init(
+    monkeypatch: MonkeyPatch,
+    destination: _DESTINATIONS | list[_DESTINATIONS],
+) -> None:
+    dummy_notifiers = {}
+    monkeypatch.setattr(notist._core, "_notifiers", dummy_notifiers)
+    notist.init(send_to=destination, token="tok")
+    if isinstance(destination, str):
+        destination = [destination]
+    assert set(dummy_notifiers.keys()) == set(destination)
+    notist.init(send_to=destination, token="tok")
+    assert set(dummy_notifiers.keys()) == set(destination)
+
+
+@parametrize_destination
+def test_send(
+    monkeypatch: MonkeyPatch,
+    dummy_client: DummyClient,
+    dummy_post: Sent,
+    destination: _DESTINATIONS | list[_DESTINATIONS],
+) -> None:
+    dummy_notifiers = {}
+    monkeypatch.setattr(notist._core, "_notifiers", dummy_notifiers)
+    notist.init(send_to=destination, token="tok", channel="chan")
+    if isinstance(destination, str):
+        destination = [destination]
+    if "slack" in dummy_notifiers:
+        dummy_notifiers["slack"]._client = dummy_client  # type: ignore
+    notist.send("msg")
+    print(destination)
+    if "slack" in destination:
+        assert len(dummy_client.sent) == 1
+        assert dummy_client.sent[0]["text"] == "msg"
+    else:
+        assert dummy_client.sent == []
+    if "discord" in destination:
+        assert len(dummy_post) == 1
+        assert dummy_post[0][2]["content"] == "msg"
+    else:
+        assert len(dummy_post) == 0
