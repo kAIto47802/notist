@@ -45,7 +45,7 @@ You can receive notifications when your script:
 - Starts running
 - Completes successfully
 - Encounters an error
-- Or at any point you choose–trigger custom notifications anywhere in your code with any message you like
+- Or at any point you choose—trigger custom notifications anywhere in your code with any message you like
 
 
 <h3>
@@ -89,27 +89,42 @@ This code example send the following notifications:
 - When the function starts running:
 
    ```text
-   Start watching [function: long_task]...
+   Start watching <function `__main__.without_error`>
+    ▷ Defined at: /home/kaito47802/workspace/NotifyState/sample.py:21
+    ▷ Called from: `__main__` @ /home/kaito47802/workspace/NotifyState/sample.py:28
    ```
 
 - When the function completes successfully:
 
    ```text
-   Stop watching [function: long_task].
-   Execution time: 2h 32s.
+   End watching <function `__main__.without_error`>
+    ▷ Defined at: /home/kaito47802/workspace/NotifyState/sample.py:21
+    ▷ Called from: `__main__` @ /home/kaito47802/workspace/NotifyState/sample.py:28
+    ⦿ Execution time: 0s
    ```
 
 - When the function encounters an error:
 
    ```text
-   Error while watching [function: with_error]: This is an error
-   Execution time: 2h 32s.
+   @kAIto47802
+   Error while watching <function `__main__.with_error`>
+    ▷ Defined at: /home/kaito47802/workspace/NotifyState/sample.py:15
+    ▷ Called from: `__main__` @ /home/kaito47802/workspace/NotifyState/sample.py:30
+     29 │     print("Example function that raises an error")
+     30 │     with_error()
+   ╭───────┄┄ ────────────
+   │ 31 │     print("You will see a Slack notification for the error above")
+   │ 32 │     print(
+   │ 33 │         "You can use the watch() helper as a function decorator or as a context manager"
+   ╰─❯ Exception: This is an error
+    ⦿ Execution time: 0s
+
    > Traceback (most recent call last):
-   >   File "/home/kaito47802/.pyenv/versions/3.11.0/lib/python3.11/contextlib.py", line 81, in inner
-   >     return func(*args, **kwds)
-   >            ^^^^^^^^^^^^^^^^^^^
-   >   File "/home/kaito47802/workspace/notist/test.py", line 10, in with_error
-   >     raise Exception("This is an error")
+   >  File "/home/kaito47802/.pyenv/versions/3.12.0/lib/python3.12/contextlib.py", line 81, in inner
+   >    return func(*args, **kwds)
+   >           ^^^^^^^^^^^^^^^^^^^
+   >  File "/home/kaito47802/workspace/NotifyState/sample.py", line 18, in with_error
+   >    raise Exception("This is an error")
    > Exception: This is an error
    ```
 
@@ -161,7 +176,10 @@ notist.register(trainer, "train", send_to="slack")
 trainer.train()
 ```
 
-
+We also provide other features such as `send` and `watch_iterable`. See the documentation for details:
+<a href="https://kaito47802.github.io/NotifyState/index.html">
+  <img src="https://img.shields.io/badge/docs-latest-brightgreen?logo=read-the-docs" alt="Documentation" align="top"/>
+</a>
 
 
 <h3>
