@@ -30,7 +30,7 @@ if TYPE_CHECKING:
         from typing_extensions import Self
 
 
-_notifier: dict[str, BaseNotifier] = {}
+_notifiers: dict[str, BaseNotifier] = {}
 
 _DESTINATIONS = Literal["slack", "discord"]
 _DESTINATIONS_MAP: dict[_DESTINATIONS, type[BaseNotifier]] = {
@@ -67,35 +67,6 @@ def _allow_multi_dest(fn: Callable[P, Iterable[T]]) -> Callable[P, Iterable[T]]:
 def _allow_multi_dest(fn: Callable[P, None]) -> Callable[P, None]: ...
 
 
-# def _allow_multi_dest(fn: Callable[P, R]) -> Callable[P, R]:
-#     @wraps(fn)
-#     def wrapper(
-#         *args: P.args,
-#         **kwargs: P.kwargs,
-#     ) -> R:
-#         send_to = kwargs.get("send_to")
-#         if send_to is None and _notifier:
-#             send_to = list(_notifier.keys())
-#         if isinstance(send_to, Iterable) and not isinstance(send_to, str):
-#             res = []
-#             for dest in send_to:
-#                 new_kwargs = kwargs.copy()
-#                 new_kwargs["send_to"] = dest
-#                 res.append(fn(*args, **new_kwargs))  # type: ignore
-#             if all(isinstance(r, AbstractContextManager) for r in res):
-#                 return _combine_contexts(cast(list[ContextManagerDecorator], res))
-#             elif all(r is None for r in res):
-#                 return None
-#             else:
-#                 raise ValueError(
-#                     "Cannot mix context decorators and non-context decorators."
-#                 )
-#         else:
-#             return fn(*args, **kwargs)
-
-#     return wrapper
-
-
 def _allow_multi_dest(fn: Callable[P, R]) -> Callable[P, R]:
     @wraps(fn)
     def wrapper(
@@ -103,11 +74,9 @@ def _allow_multi_dest(fn: Callable[P, R]) -> Callable[P, R]:
         **kwargs: P.kwargs,
     ) -> R:
         send_to = kwargs.get("send_to")
-        if send_to is None and _notifier:
-            # send_to = ls if len(ls := list(_notifier.keys())) > 1 else ls[0]
-            send_to = list(_notifier.keys())
+        if send_to is None and _notifiers:
+            send_to = list(_notifiers.keys())
         iterable = next(iter(v for k, v in kwargs.items() if k == "iterable"), None)
-        # print(kwargs)
         if isinstance(send_to, Iterable) and not isinstance(send_to, str):
             res = []
             for i, dest in enumerate(send_to):
@@ -118,7 +87,6 @@ def _allow_multi_dest(fn: Callable[P, R]) -> Callable[P, R]:
                     new_kwargs["class_name"] = iterable.__class__.__name__
                     new_kwargs["object_id"] = hex(id(iterable))
                 res.append(fn(*args, **new_kwargs))  # type: ignore
-            print("#####", res)
             if all(isinstance(r, AbstractContextManager) for r in res):
                 return _combine_contexts(cast(list[ContextManagerDecorator], res))
             elif all(isinstance(r, Generator) for r in res):
@@ -230,14 +198,14 @@ def init(
            # Set up Slack notifiers with defaults
            notist.init(send_to="slack", channel="my-channel", mention_to="@U012345678")
     """
-    global _notifier
+    global _notifiers
     assert isinstance(send_to, str)
-    if send_to in _notifier:
+    if send_to in _notifiers:
         _log.warn(
             f"{_DESTINATIONS_MAP[send_to].__class__.__name__} already initialized. Skipping."
         )
         return
-    _notifier[send_to] = _DESTINATIONS_MAP[send_to](
+    _notifiers[send_to] = _DESTINATIONS_MAP[send_to](
         channel=channel,
         mention_to=mention_to,
         mention_level=mention_level,
@@ -293,7 +261,7 @@ def send(
         disable=disable,
     )
     _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
-    _notifier[send_to].send(data, **kwargs)  # type: ignore
+    _notifiers[send_to].send(data, **kwargs)  # type: ignore
 
 
 @_allow_multi_dest
@@ -366,7 +334,7 @@ def watch(
         disable=disable,
     )
     _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
-    return _notifier[send_to].watch(
+    return _notifiers[send_to].watch(
         label,
         callsite_context_before=callsite_context_before,
         callsite_context_after=callsite_context_after,
@@ -466,7 +434,7 @@ def register(
         disable=disable,
     )
     _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
-    _notifier[send_to].register(
+    _notifiers[send_to].register(
         target,
         name,
         label=label,
@@ -510,7 +478,7 @@ def _watch_iterable_impl(
         disable=disable,
     )
     _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
-    return _notifier[send_to]._watch_iterable_impl(  # type: ignore
+    return _notifiers[send_to]._watch_iterable_impl(  # type: ignore
         iterable,
         step=step,
         total=total,
@@ -598,7 +566,7 @@ def _init_if_needed(
     verbose: bool | None = None,
     disable: bool | None = None,
 ) -> None:
-    if send_to in _notifier:
+    if send_to in _notifiers:
         return
     kwargs = dict(
         channel=channel,
