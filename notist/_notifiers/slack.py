@@ -2,21 +2,19 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import requests
+from slack_sdk import WebClient
 
-import notifystate._log as _log
-from notifystate._log import LEVEL_ORDER
-from notifystate._notifiers.base import (
+import notist._log as _log
+from notist._log import LEVEL_ORDER, RESET, fg256
+from notist._notifiers.base import (
     DOC_ADDITIONS_BASE,
     BaseNotifier,
     SendConfig,
 )
-from notifystate._utils import extend_method_docstring
+from notist._utils import extend_method_docstring
 
 if TYPE_CHECKING:
-    from typing import Any
-
-    from notifystate._log import LevelStr
+    from notist._log import LevelStr
 
 
 _DOC_ADDITIONS = {
@@ -25,11 +23,11 @@ _DOC_ADDITIONS = {
 
             .. code-block:: python
 
-               from notifystate import DiscordNotifier
+               from notifystate import SlackNotifier
 
-               # Create a DiscordNotifier with defaults
-               discord = DiscordNotifier(
-                   channel="1234567890123456789",  # Discord channel ID (cannot use channel name for Discord)
+               # Create a SlackNotifier with defaults
+               slack = SlackNotifier(
+                   channel="my-channel",  # Slack channel name or ID
                    mention_to="@U012345678",  # Mention a specific user (Optional)
                )
         """,
@@ -37,8 +35,8 @@ _DOC_ADDITIONS = {
 
 
 @extend_method_docstring(_DOC_ADDITIONS | DOC_ADDITIONS_BASE)
-class DiscordNotifier(BaseNotifier):
-    _platform = "Discord"
+class SlackNotifier(BaseNotifier):
+    _platform = "Slack"
 
     def __init__(
         self,
@@ -61,14 +59,15 @@ class DiscordNotifier(BaseNotifier):
             verbose,
             disable,
         )
+        self._client = WebClient(token=self._token)
         if not self._disable and self._verbose:
             if self._default_channel:
                 _log.info(
-                    f"DiscordNotifier initialized with channel ID: {self._default_channel}"
+                    f"SlackNotifier initialized with default channel: {fg256(33)}{self._default_channel}{RESET}"
                 )
             else:
                 _log.warn(
-                    "No Discord channel ID configured. Need to specify channel each time."
+                    "No Slack channel configured. Need to specify channel each time."
                 )
 
     def _do_send(
@@ -78,16 +77,13 @@ class DiscordNotifier(BaseNotifier):
         tb: str | None = None,
         level: LevelStr = "info",
     ) -> None:
-        channel_id = send_config.channel or self._default_channel
-        if not channel_id and send_config.verbose:
-            _log.error(
-                "No Discord channel ID specified.\nSkipping sending message to Discord."
-            )
+        channel = send_config.channel or self._default_channel
+        if channel is None:
+            if send_config.verbose:
+                _log.error(
+                    "No Slack channel specified.\nSkipping sending message to Slack."
+                )
             return
-        headers = {
-            "Authorization": f"Bot {self._token}",
-            "Content-Type": "application/json",
-        }
         mention_to = send_config.mention_to or self._mention_to
         mention_level = send_config.mention_level or self._mention_level
         text = (
@@ -97,16 +93,22 @@ class DiscordNotifier(BaseNotifier):
             or (send_config.mention_if_ends and "End" in message)
             else message
         )
-        payload: dict[str, Any] = {
-            "content": text,
-            "allowed_mentions": {"parse": ["users", "roles", "everyone"]},
-        }
-        if tb:
-            payload["embeds"] = [{"description": tb, "color": 0xFF3D33}]
-
-        resp = requests.post(
-            f"https://discord.com/api/v10/channels/{channel_id}/messages",
-            headers=headers,
-            json=payload,
+        self._client.chat_postMessage(
+            text=text,
+            channel=channel,
+            attachments=tb
+            and [
+                {
+                    "blocks": [
+                        {
+                            "type": "section",
+                            "text": {
+                                "type": "plain_text",
+                                "text": tb,
+                            },
+                        }
+                    ],
+                    "color": "#ff3d33",
+                }
+            ],
         )
-        resp.raise_for_status()

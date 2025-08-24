@@ -7,11 +7,11 @@ from datetime import datetime
 from functools import partial
 from typing import TYPE_CHECKING, TypeVar
 
-import notifystate._log as _log
-from notifystate._log import Glyph as _G
-from notifystate._log import LevelStr, fg256, prepare_for_message
-from notifystate._utils import format_timedelta
-from notifystate._watch import ContextManagerDecorator, IterableWatch, Watch
+import notist._log as _log
+from notist._log import Glyph as _G
+from notist._log import LevelStr, fg256, prepare_for_message
+from notist._utils import format_timedelta
+from notist._watch import ContextManagerDecorator, IterableWatch, Watch
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

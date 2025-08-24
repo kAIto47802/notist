@@ -9,15 +9,15 @@ from contextlib import AbstractContextManager, ContextDecorator
 from datetime import datetime
 from typing import TYPE_CHECKING, Protocol, TypeVar
 
-from notifystate._log import (
+from notist._log import (
     LEVEL_ORDER,
     RESET,
     LevelStr,
     fg256,
 )
-from notifystate._log import Glyph as _G
-from notifystate._log import SpecialToken as _S
-from notifystate._utils import format_timedelta
+from notist._log import Glyph as _G
+from notist._log import SpecialToken as _S
+from notist._utils import format_timedelta
 
 if TYPE_CHECKING:
     from collections.abc import Callable

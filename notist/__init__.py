@@ -1,5 +1,5 @@
-from notifystate._core import init, register, send, watch
-from notifystate._notifiers import (
+from notist._core import init, register, send, watch
+from notist._notifiers import (
     BaseNotifier,
     DiscordNotifier,
     SlackNotifier,

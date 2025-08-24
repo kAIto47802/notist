@@ -5,11 +5,11 @@ from contextlib import AbstractContextManager, ContextDecorator
 from functools import wraps
 from typing import TYPE_CHECKING, Iterable, Literal, TypeVar, cast, overload
 
-import notifystate._log as _log
-from notifystate._notifiers.base import BaseNotifier
-from notifystate._notifiers.discord import DiscordNotifier
-from notifystate._notifiers.slack import SlackNotifier
-from notifystate._watch import ContextManagerDecorator
+import notist._log as _log
+from notist._notifiers.base import BaseNotifier
+from notist._notifiers.discord import DiscordNotifier
+from notist._notifiers.slack import SlackNotifier
+from notist._watch import ContextManagerDecorator
 
 if sys.version_info >= (3, 10):
     from typing import ParamSpec
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from types import ModuleType, TracebackType
     from typing import Any
 
-    from notifystate._log import LevelStr
+    from notist._log import LevelStr
 
     if sys.version_info >= (3, 11):
         from typing import Self
