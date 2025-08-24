@@ -1,17 +1,23 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING
 
 import requests
 
 import notifystate._log as _log
-from notifystate._log import LEVEL_ORDER, LevelStr
+from notifystate._log import LEVEL_ORDER
 from notifystate._notifiers.base import (
     DOC_ADDITIONS_BASE,
     BaseNotifier,
     SendConfig,
 )
 from notifystate._utils import extend_method_docstring
+
+if TYPE_CHECKING:
+    from typing import Any
+
+    from notifystate._log import LevelStr
+
 
 _DOC_ADDITIONS = {
     "__init__": """

@@ -5,11 +5,9 @@ import inspect
 import linecache
 import sys
 import traceback
-from collections.abc import Callable
 from contextlib import AbstractContextManager, ContextDecorator
 from datetime import datetime
-from types import TracebackType
-from typing import Any, Protocol, Type, TypeVar
+from typing import TYPE_CHECKING, Protocol, TypeVar
 
 from notifystate._log import (
     LEVEL_ORDER,
@@ -20,6 +18,12 @@ from notifystate._log import (
 from notifystate._log import Glyph as _G
 from notifystate._log import SpecialToken as _S
 from notifystate._utils import format_timedelta
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from types import TracebackType
+    from typing import Any
+
 
 if sys.version_info >= (3, 10):
     from typing import ParamSpec
@@ -50,7 +54,7 @@ class ContextManagerDecorator(Protocol[P, R]):
     def __enter__(self) -> Self: ...
     def __exit__(
         self,
-        exc_type: Type[BaseException] | None,
+        exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None: ...
@@ -109,7 +113,7 @@ class Watch(ContextDecorator, AbstractContextManager):
 
     def __exit__(
         self,
-        exc_type: Type[BaseException] | None,
+        exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
@@ -136,13 +140,15 @@ class Watch(ContextDecorator, AbstractContextManager):
             else f" {fg256(45)}<{self._target}>{RESET}"
         )
         called_lines = (
-            LEVEL_ORDER[self._callsite_level] <= LEVEL_ORDER[level]
-        ) and _get_called_lines_str(
-            self._filename,
-            self._lineno,
-            self._callsite_context_before,
-            self._callsite_context_after,
-            message,
+            (LEVEL_ORDER[self._callsite_level] <= LEVEL_ORDER[level])
+            and _get_called_lines_str(
+                self._filename,
+                self._lineno,
+                self._callsite_context_before,
+                self._callsite_context_after,
+                message,
+            )
+            or None
         )
         if self._is_fn:
             assert self._defined_at is not None
@@ -226,7 +232,7 @@ class IterableWatch(AbstractContextManager):
 
     def __exit__(
         self,
-        exc_type: Type[BaseException] | None,
+        exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
@@ -257,13 +263,15 @@ class IterableWatch(AbstractContextManager):
             f" {fg256(8)}{_G.RARROWF} in: {fg256(12)}{self._called_from}{RESET}"
         )
         called_lines = (
-            LEVEL_ORDER[self._callsite_level] <= LEVEL_ORDER[level]
-        ) and _get_called_lines_str(
-            self._filename,
-            self._lineno,
-            self._callsite_context_before,
-            self._callsite_context_after,
-            message,
+            (LEVEL_ORDER[self._callsite_level] <= LEVEL_ORDER[level])
+            and _get_called_lines_str(
+                self._filename,
+                self._lineno,
+                self._callsite_context_before,
+                self._callsite_context_after,
+                message,
+            )
+            or None
         )
         return "\n".join(filter(None, [target, called_from, called_lines]))
 

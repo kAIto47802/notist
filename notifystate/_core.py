@@ -1,32 +1,38 @@
 from __future__ import annotations
 
 import sys
-from collections.abc import Callable
 from contextlib import AbstractContextManager, ContextDecorator
 from functools import wraps
-from types import ModuleType, TracebackType
-from typing import Any, Iterable, Literal, Type, TypeVar, cast, overload
-
-if sys.version_info >= (3, 10):
-    from typing import ParamSpec
-else:
-    from typing_extensions import ParamSpec
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing_extensions import Self
+from typing import TYPE_CHECKING, Iterable, Literal, TypeVar, cast, overload
 
 import notifystate._log as _log
-from notifystate._log import LevelStr
 from notifystate._notifiers.base import BaseNotifier
 from notifystate._notifiers.discord import DiscordNotifier
 from notifystate._notifiers.slack import SlackNotifier
 from notifystate._watch import ContextManagerDecorator
 
+if sys.version_info >= (3, 10):
+    from typing import ParamSpec
+else:
+    from typing_extensions import ParamSpec
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from types import ModuleType, TracebackType
+    from typing import Any
+
+    from notifystate._log import LevelStr
+
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        from typing_extensions import Self
+
+
 _notifier: dict[str, BaseNotifier] = {}
 
 _DESTINATIONS = Literal["slack", "discord"]
-_DESTINATIONS_MAP: dict[_DESTINATIONS, Type[BaseNotifier]] = {
+_DESTINATIONS_MAP: dict[_DESTINATIONS, type[BaseNotifier]] = {
     "slack": SlackNotifier,
     "discord": DiscordNotifier,
 }
@@ -97,7 +103,7 @@ def _combine_contexts(
 
         def __exit__(
             self,
-            exc_type: Type[BaseException] | None,
+            exc_type: type[BaseException] | None,
             exc_value: BaseException | None,
             traceback: TracebackType | None,
         ) -> None:
@@ -118,7 +124,7 @@ class _PhantomContextManagerDecorator(ContextDecorator, AbstractContextManager):
 
     def __exit__(
         self,
-        exc_type: Type[BaseException] | None,
+        exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
@@ -330,7 +336,7 @@ def watch(
 
 @_allow_multi_dest
 def register(
-    target: ModuleType | Type[Any] | Any,
+    target: ModuleType | type[Any] | Any,
     name: str,
     *,
     send_to: _DESTINATIONS | list[_DESTINATIONS] | None = None,

@@ -1,10 +1,18 @@
 from __future__ import annotations
 
 import re
+import sys
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Literal, Self
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        from typing_extensions import Self
+
 
 _PREFIX = "[NotifyState] "
 

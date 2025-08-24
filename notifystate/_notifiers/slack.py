@@ -1,15 +1,21 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from slack_sdk import WebClient
 
 import notifystate._log as _log
-from notifystate._log import LEVEL_ORDER, RESET, LevelStr, fg256
+from notifystate._log import LEVEL_ORDER, RESET, fg256
 from notifystate._notifiers.base import (
     DOC_ADDITIONS_BASE,
     BaseNotifier,
     SendConfig,
 )
 from notifystate._utils import extend_method_docstring
+
+if TYPE_CHECKING:
+    from notifystate._log import LevelStr
+
 
 _DOC_ADDITIONS = {
     "__init__": """
@@ -72,10 +78,11 @@ class SlackNotifier(BaseNotifier):
         level: LevelStr = "info",
     ) -> None:
         channel = send_config.channel or self._default_channel
-        if channel is None and self._verbose:
-            _log.error(
-                "No Slack channel specified.\nSkipping sending message to Slack."
-            )
+        if channel is None:
+            if self._verbose:
+                _log.error(
+                    "No Slack channel specified.\nSkipping sending message to Slack."
+                )
             return
         mention_to = send_config.mention_to or self._mention_to
         mention_level = send_config.mention_level or self._mention_level

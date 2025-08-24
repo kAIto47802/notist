@@ -1,29 +1,22 @@
 from __future__ import annotations
 
 import os
-import sys
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
-from types import ModuleType
-from typing import Any, Type, TypeVar
-
-if sys.version_info >= (3, 10):
-    pass
-else:
-    pass
-if sys.version_info >= (3, 11):
-    pass
-else:
-    pass
+from typing import TYPE_CHECKING, TypeVar
 
 import notifystate._log as _log
 from notifystate._log import Glyph as _G
 from notifystate._log import LevelStr, fg256, prepare_for_message
 from notifystate._utils import format_timedelta
 from notifystate._watch import ContextManagerDecorator, IterableWatch, Watch
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from types import ModuleType
+    from typing import Any
 
 
 @dataclass
@@ -303,7 +296,7 @@ class BaseNotifier(ABC):
 
     def register(
         self,
-        target: ModuleType | Type[Any] | Any,
+        target: ModuleType | type[Any] | Any,
         name: str,
         *,
         label: str | None = None,

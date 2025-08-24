@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import functools
 import textwrap
-from collections.abc import Callable
 from datetime import timedelta
-from typing import Any, Type, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
-T = TypeVar("T", bound=Type[Any])
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+
+T = TypeVar("T", bound=type[Any])
 
 
 def _clone_function(fn: Callable[..., Any]) -> Callable[..., Any]:
