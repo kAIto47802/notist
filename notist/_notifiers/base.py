@@ -439,8 +439,43 @@ class BaseNotifier(ABC):
             verbose: Override the default verbosity setting.
             disable: Override the default disable flag.
         """
+        return self._watch_iterable_impl(
+            iterable,
+            step,
+            total,
+            label=label,
+            channel=channel,
+            mention_to=mention_to,
+            mention_level=mention_level,
+            mention_if_ends=mention_if_ends,
+            callsite_level=callsite_level,
+            callsite_context_before=callsite_context_before,
+            callsite_context_after=callsite_context_after,
+            verbose=verbose,
+            disable=disable,
+        )
+
+    def _watch_iterable_impl(
+        self,
+        iterable: Iterable[T],
+        step: int = 1,
+        total: int | None = None,
+        *,
+        label: str | None = None,
+        channel: str | None = None,
+        mention_to: str | None = None,
+        mention_level: LevelStr | None = None,
+        mention_if_ends: bool | None = None,
+        callsite_level: LevelStr | None = None,
+        callsite_context_before: int = 1,
+        callsite_context_after: int = 4,
+        verbose: bool | None = None,
+        disable: bool | None = None,
+        class_name: str | None = None,
+        object_id: int | None = None,
+    ) -> Iterable[T]:
         start = datetime.now()
-        iterable_object = f"{iterable.__class__.__name__} object at {hex(id(iterable))}"
+        iterable_object = f"{class_name or iterable.__class__.__name__} object at {object_id or hex(id(iterable))}"
         send_config = _SendConfig(
             channel=channel or self._default_channel,
             mention_to=mention_to or self._mention_to,
