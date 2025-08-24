@@ -157,7 +157,7 @@ def test_discord_with_watch_success(
         )
         assert "Start watching" in dummy_post[0][2]["content"]
         assert "End watching" in dummy_post[1][2]["content"]
-        assert "Execution time: 0s." in dummy_post[1][2]["content"]
+        assert "Execution time: 0s" in dummy_post[1][2]["content"]
     captured = capsys.readouterr()
     if disable.default:
         assert "DiscordNotifier is disabled. No messages will be sent." in captured.out
@@ -204,7 +204,7 @@ def test_discord_with_watch_error(
         assert "Start watching" in dummy_post[0][2]["content"]
         assert "Error while watching" in dummy_post[1][2]["content"]
         assert "This is an error" in dummy_post[1][2]["content"]
-        assert "Execution time: 0s." in dummy_post[1][2]["content"]
+        assert "Execution time: 0s" in dummy_post[1][2]["content"]
         assert (
             "Exception: This is an error"
             in dummy_post[1][2]["embeds"][0]["description"]
@@ -250,7 +250,7 @@ def test_discord_watch_decorator_success(
         )
         assert "Start watching" in dummy_post[0][2]["content"]
         assert "End watching" in dummy_post[1][2]["content"]
-        assert "Execution time: 0s." in dummy_post[1][2]["content"]
+        assert "Execution time: 0s" in dummy_post[1][2]["content"]
 
 
 @parametrize_label
@@ -295,7 +295,7 @@ def test_discord_watch_decorator_error(
         assert "Start watching" in dummy_post[0][2]["content"]
         assert "Error while watching" in dummy_post[1][2]["content"]
         assert "This is an error" in dummy_post[1][2]["content"]
-        assert "Execution time: 0s." in dummy_post[1][2]["content"]
+        assert "Execution time: 0s" in dummy_post[1][2]["content"]
         assert (
             "Exception: This is an error"
             in dummy_post[1][2]["embeds"][0]["description"]

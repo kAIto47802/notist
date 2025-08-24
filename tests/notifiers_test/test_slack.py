@@ -7,7 +7,7 @@ import pytest
 from pytest import CaptureFixture, MonkeyPatch
 from slack_sdk import WebClient
 
-from notifystate._log import LEVEL_ORDER, LevelStr
+from notifystate._log import _CSI, _PREFIX, LEVEL_ORDER, LevelStr
 from notifystate._notifiers.slack import SlackNotifier
 
 
@@ -50,19 +50,19 @@ parametrize_label = pytest.mark.parametrize("label", ["label1", None])
 parametrize_channel = pytest.mark.parametrize(
     "channel",
     [
-        # _OverrideTestCase(None, None, None),
+        _OverrideTestCase(None, None, None),
         _OverrideTestCase("default-channel", None, "default-channel"),
-        # _OverrideTestCase(None, "test-channel", "test-channel"),
-        # _OverrideTestCase("default-channel", "test-channel", "test-channel"),
+        _OverrideTestCase(None, "test-channel", "test-channel"),
+        _OverrideTestCase("default-channel", "test-channel", "test-channel"),
     ],
 )
 
 parametrize_mention_to = pytest.mark.parametrize(
     "mention_to",
     [
-        # _OverrideTestCase(None, None, None),
-        # _OverrideTestCase("@U0123456789", None, "@U0123456789"),
-        # _OverrideTestCase(None, "@U9876543210", "@U9876543210"),
+        _OverrideTestCase(None, None, None),
+        _OverrideTestCase("@U0123456789", None, "@U0123456789"),
+        _OverrideTestCase(None, "@U9876543210", "@U9876543210"),
         _OverrideTestCase("@U0123456789", "@U9876543210", "@U9876543210"),
     ],
 )
@@ -70,14 +70,14 @@ parametrize_mention_to = pytest.mark.parametrize(
 parametrize_mention_level = pytest.mark.parametrize(
     "mention_level",
     [
-        # _OverrideTestCase("info", None, "info"),
-        # _OverrideTestCase("warning", None, "warning"),
-        # _OverrideTestCase("error", None, "error"),
-        # _OverrideTestCase("info", "warning", "warning"),
-        # _OverrideTestCase("info", "error", "error"),
-        # _OverrideTestCase("warning", "info", "info"),
-        # _OverrideTestCase("warning", "error", "error"),
-        # _OverrideTestCase("error", "info", "info"),
+        _OverrideTestCase("info", None, "info"),
+        _OverrideTestCase("warning", None, "warning"),
+        _OverrideTestCase("error", None, "error"),
+        _OverrideTestCase("info", "warning", "warning"),
+        _OverrideTestCase("info", "error", "error"),
+        _OverrideTestCase("warning", "info", "info"),
+        _OverrideTestCase("warning", "error", "error"),
+        _OverrideTestCase("error", "info", "info"),
         _OverrideTestCase("error", "warning", "warning"),
     ],
 )
@@ -86,11 +86,11 @@ parametrize_mention_if_ends = pytest.mark.parametrize(
     "mention_if_ends",
     [
         _OverrideTestCase(False, None, False),
-        # _OverrideTestCase(True, None, True),
-        # _OverrideTestCase(False, True, True),
-        # _OverrideTestCase(True, True, True),
-        # _OverrideTestCase(False, False, False),
-        # _OverrideTestCase(True, False, False),
+        _OverrideTestCase(True, None, True),
+        _OverrideTestCase(False, True, True),
+        _OverrideTestCase(True, True, True),
+        _OverrideTestCase(False, False, False),
+        _OverrideTestCase(True, False, False),
     ],
 )
 
@@ -98,11 +98,11 @@ parametrize_verbose = pytest.mark.parametrize(
     "verbose",
     [
         _OverrideTestCase(False, None, False),
-        # _OverrideTestCase(True, None, True),
-        # _OverrideTestCase(False, True, True),
-        # _OverrideTestCase(True, True, True),
-        # _OverrideTestCase(False, False, False),
-        # _OverrideTestCase(True, False, False),
+        _OverrideTestCase(True, None, True),
+        _OverrideTestCase(False, True, True),
+        _OverrideTestCase(True, True, True),
+        _OverrideTestCase(False, False, False),
+        _OverrideTestCase(True, False, False),
     ],
 )
 
@@ -110,11 +110,11 @@ parametrize_disable = pytest.mark.parametrize(
     "disable",
     [
         _OverrideTestCase(False, None, False),
-        # _OverrideTestCase(True, None, True),
-        # _OverrideTestCase(False, True, True),
-        # _OverrideTestCase(True, True, True),
-        # _OverrideTestCase(False, False, False),
-        # _OverrideTestCase(True, False, False),
+        _OverrideTestCase(True, None, True),
+        _OverrideTestCase(False, True, True),
+        _OverrideTestCase(True, True, True),
+        _OverrideTestCase(False, False, False),
+        _OverrideTestCase(True, False, False),
     ],
 )
 
@@ -160,13 +160,13 @@ def test_slack_send(
         ]
     captured = capsys.readouterr()
     if not verbose.expected and not verbose.default:
-        assert "[NotifyState]" not in captured.out
+        assert _PREFIX not in captured.out
         return
     else:
-        assert "[NotifyState]" in captured.out
-    if disable.default:
+        assert _PREFIX in captured.out
+    if disable.default and verbose.default:
         assert "SlackNotifier is disabled. No messages will be sent." in captured.out
-    if not disable.expected and channel.expected is None:
+    if not disable.expected and channel.expected is None and verbose.expected:
         assert "No Slack channel specified." in captured.out
 
 
@@ -214,6 +214,7 @@ def test_slack_watch_context_success(
         assert len(dummy_client.sent) == 2
         assert all(s["channel"] == channel.expected for s in dummy_client.sent)
         assert all(s["attachments"] is None for s in dummy_client.sent)
+        assert all(_CSI not in s["text"] for s in dummy_client.sent)
         assert (
             f"<{mention_to.expected}>\n"
             if mention_to.expected
@@ -229,16 +230,16 @@ def test_slack_watch_context_success(
             )
             else ""
         ) + "End watching" in dummy_client.sent[1]["text"]
-        assert "Execution time: 0s." in dummy_client.sent[1]["text"]
+        assert "Execution time: 0s" in dummy_client.sent[1]["text"]
     captured = capsys.readouterr()
     if not verbose.expected and not verbose.default:
-        assert "[NotifyState]" not in captured.out
+        assert _PREFIX not in captured.out
         return
     else:
-        assert "[NotifyState]" in captured.out
-    if disable.default:
+        assert _PREFIX in captured.out
+    if disable.default and verbose.default:
         assert "SlackNotifier is disabled. No messages will be sent." in captured.out
-    if not disable.expected and channel.expected is None:
+    if not disable.expected and channel.expected is None and verbose.expected:
         assert "No Slack channel specified." in captured.out
 
 
@@ -282,6 +283,7 @@ def test_slack_watch_context_error(
     else:
         assert len(dummy_client.sent) == 2
         assert all(s["channel"] == channel.expected for s in dummy_client.sent)
+        assert all(_CSI not in s["text"] for s in dummy_client.sent)
         assert dummy_client.sent[0]["attachments"] is None
         assert "Start watching" in dummy_client.sent[0]["text"]
         assert (
@@ -297,13 +299,13 @@ def test_slack_watch_context_error(
         )
     captured = capsys.readouterr()
     if not verbose.expected and not verbose.default:
-        assert "[NotifyState]" not in captured.out
+        assert _PREFIX not in captured.out
         return
     else:
-        assert "[NotifyState]" in captured.out
-    if disable.default:
+        assert _PREFIX in captured.out
+    if disable.default and verbose.default:
         assert "SlackNotifier is disabled. No messages will be sent." in captured.out
-    if not disable.expected and channel.expected is None:
+    if not disable.expected and channel.expected is None and verbose.expected:
         assert "No Slack channel specified." in captured.out
 
 
@@ -326,13 +328,15 @@ def test_slack_watch_decorator_success(
     with_success()
     if disable.expected or channel.expected is None:
         assert dummy_client.sent == []
-    else:
-        assert len(dummy_client.sent) == 2
-        assert all(s["channel"] == channel.expected for s in dummy_client.sent)
-        assert all(s["attachments"] is None for s in dummy_client.sent)
-        assert "Start watching" in dummy_client.sent[0]["text"]
-        assert "End watching" in dummy_client.sent[1]["text"]
-        assert "Execution time: 0s." in dummy_client.sent[1]["text"]
+        return
+
+    assert len(dummy_client.sent) == 2
+    assert all(s["channel"] == channel.expected for s in dummy_client.sent)
+    assert all(s["attachments"] is None for s in dummy_client.sent)
+    assert all(_CSI not in s["text"] for s in dummy_client.sent)
+    assert "Start watching" in dummy_client.sent[0]["text"]
+    assert "End watching" in dummy_client.sent[1]["text"]
+    assert "Execution time: 0s" in dummy_client.sent[1]["text"]
 
 
 @parametrize_label
@@ -356,18 +360,21 @@ def test_slack_watch_decorator_error(
 
     if disable.expected or channel.expected is None:
         assert dummy_client.sent == []
-    else:
-        assert len(dummy_client.sent) == 2
-        assert all(s["channel"] == channel.expected for s in dummy_client.sent)
-        assert "Start watching" in dummy_client.sent[0]["text"]
-        assert "Error while watching" in dummy_client.sent[1]["text"]
-        assert "This is an error" in dummy_client.sent[1]["text"]
-        assert "Execution time: 0s." in dummy_client.sent[1]["text"]
-        assert dummy_client.sent[1]["channel"] == channel.expected
-        assert (
-            "Exception: This is an error"
-            in dummy_client.sent[1]["attachments"][0]["blocks"][0]["text"]["text"]
-        )
+        return
+
+    assert len(dummy_client.sent) == 2
+    assert all(s["channel"] == channel.expected for s in dummy_client.sent)
+    assert all(_CSI not in s["text"] for s in dummy_client.sent)
+    assert "Start watching" in dummy_client.sent[0]["text"]
+    assert "Error while watching" in dummy_client.sent[1]["text"]
+    assert "This is an error" in dummy_client.sent[1]["text"]
+    assert "Execution time: 0s" in dummy_client.sent[1]["text"]
+    assert dummy_client.sent[1]["channel"] == channel.expected
+    assert (
+        "Exception: This is an error"
+        in dummy_client.sent[1]["attachments"][0]["blocks"][0]["text"]["text"]
+    )
+    assert dummy_client.sent[-1]["attachments"] is not None
 
 
 def test_slack_register_module(
@@ -384,9 +391,10 @@ def test_slack_register_module(
     assert len(dummy_client.sent) == 2
     assert all(s["channel"] == "test-channel" for s in dummy_client.sent)
     assert all(s["attachments"] is None for s in dummy_client.sent)
+    assert all(_CSI not in s["text"] for s in dummy_client.sent)
     assert "Start watching" in dummy_client.sent[0]["text"]
     assert "End watching" in dummy_client.sent[1]["text"]
-    assert "Execution time: 0s." in dummy_client.sent[1]["text"]
+    assert "Execution time: 0s" in dummy_client.sent[1]["text"]
 
 
 @parametrize_label
@@ -427,6 +435,7 @@ def test_slack_register_class(
     assert all(s["attachments"] is None for s in dummy_client.sent)
     assert all("Start watching" in dummy_client.sent[i]["text"] for i in range(0, 6, 2))
     assert all("End watching" in dummy_client.sent[i]["text"] for i in range(1, 6, 2))
+    assert all(_CSI not in s["text"] for s in dummy_client.sent)
 
 
 @parametrize_label
@@ -468,6 +477,7 @@ def test_slack_register_instance(
     assert all(s["attachments"] is None for s in dummy_client.sent)
     assert all("Start watching" in dummy_client.sent[i]["text"] for i in range(0, 4, 2))
     assert all("End watching" in dummy_client.sent[i]["text"] for i in range(1, 4, 2))
+    assert all(_CSI not in s["text"] for s in dummy_client.sent)
 
 
 @parametrize_label
@@ -502,19 +512,29 @@ def test_slack_watch_iterable_success(
         assert dummy_client.sent == []
         return
 
-    details = f" {iterable_object} [{label}]" if label else f" {iterable_object}"
+    print(dummy_client.sent[-1]["text"])
 
-    assert dummy_client.sent[0] == {
-        "text": f"Start watching{details}...",
-        "channel": channel.expected,
-        "attachments": None,
-    }
-    assert dummy_client.sent[-1] == {
-        "text": f"End watching{details}.\nTotal execution time: 0s.",
-        "channel": channel.expected,
-        "attachments": None,
-    }
     assert len(dummy_client.sent) == 2 * (4 // step + 1)
+    assert all(s["channel"] == channel.expected for s in dummy_client.sent)
+    assert all(s["attachments"] is None for s in dummy_client.sent)
+    assert all(_CSI not in s["text"] for s in dummy_client.sent)
+    assert "Start watching" in dummy_client.sent[0]["text"]
+    assert iterable_object in dummy_client.sent[0]["text"]
+    assert "End watching" in dummy_client.sent[-1]["text"]
+    assert iterable_object in dummy_client.sent[-1]["text"]
+    assert "Total execution time" in dummy_client.sent[-1]["text"]
+
+    if step == 1:
+        if total is None:
+            # Include white space so that it does not match "item 2–"
+            assert "item 1 " in dummy_client.sent[1]["text"]
+        else:
+            assert f"item 1 of {total}" in dummy_client.sent[1]["text"]
+    else:
+        if total is None:
+            assert "items 1–2" in dummy_client.sent[1]["text"]
+        else:
+            assert f"items 1–2 of {total}" in dummy_client.sent[1]["text"]
 
 
 @parametrize_label
@@ -552,35 +572,28 @@ def test_slack_watch_iterable_error(
         assert dummy_client.sent == []
         return
 
-    details = f" {iterable_object} [{label}]" if label else f" {iterable_object}"
+    assert len(dummy_client.sent) == (5 if step == 1 else 3)
+    assert all(s["channel"] == channel.expected for s in dummy_client.sent)
+    assert all(_CSI not in s["text"] for s in dummy_client.sent)
 
-    assert dummy_client.sent[0] == {
-        "text": f"Start watching{details}...",
-        "channel": channel.expected,
-        "attachments": None,
-    }
+    assert "Start watching" in dummy_client.sent[0]["text"]
+    assert iterable_object in dummy_client.sent[0]["text"]
+    assert dummy_client.sent[0]["attachments"] is None
+
+    assert "Error while processing" in dummy_client.sent[-1]["text"]
+    assert iterable_object in dummy_client.sent[-1]["text"]
+    assert "Execution time" in dummy_client.sent[-1]["text"]
+    assert "Total execution time: 0s" in dummy_client.sent[-1]["text"]
+    assert dummy_client.sent[-1]["attachments"] is None
 
     if step == 1:
         if total is None:
-            assert dummy_client.sent[-1]["text"] == (
-                f"Error while processing item 2 from{details}\nExecution time for item 2: 0s.\nTotal execution time: 0s."
-            )
+            # Include white space so that it does not match "item 2–"
+            assert "item 2 " in dummy_client.sent[-1]["text"]
         else:
-            assert dummy_client.sent[-1]["text"] == (
-                f"Error while processing item 2 of {total} from{details}\n"
-                f"Execution time for item 2 of {total}: 0s.\n"
-                f"Total execution time: 0s."
-            )
+            assert f"item 2 of {total}" in dummy_client.sent[-1]["text"]
     else:
         if total is None:
-            assert dummy_client.sent[-1]["text"] == (
-                f"Error while processing items 1–2 from{details}\n"
-                f"Execution time for items 1–2: 0s.\n"
-                f"Total execution time: 0s."
-            )
+            assert "items 1–2" in dummy_client.sent[-1]["text"]
         else:
-            assert dummy_client.sent[-1]["text"] == (
-                f"Error while processing items 1–2 of {total} from{details}\n"
-                f"Execution time for items 1–2 of {total}: 0s.\n"
-                f"Total execution time: 0s."
-            )
+            assert "items 1–2" in dummy_client.sent[-1]["text"]

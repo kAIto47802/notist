@@ -73,13 +73,13 @@ class DiscordNotifier(BaseNotifier):
 
     def _do_send(
         self,
-        data: str,
+        message: str,
         send_config: SendConfig,
         tb: str | None = None,
         level: LevelStr = "info",
     ) -> None:
         channel_id = send_config.channel or self._default_channel
-        if not channel_id and self._verbose:
+        if not channel_id and send_config.verbose:
             _log.error(
                 "No Discord channel ID specified.\nSkipping sending message to Discord."
             )
@@ -91,9 +91,11 @@ class DiscordNotifier(BaseNotifier):
         mention_to = send_config.mention_to or self._mention_to
         mention_level = send_config.mention_level or self._mention_level
         text = (
-            f"<{mention_to}>\n{data}"
-            if mention_to and LEVEL_ORDER[level] >= LEVEL_ORDER[mention_level]
-            else data
+            f"<{mention_to}>\n{message}"
+            if mention_to
+            and LEVEL_ORDER[level] >= LEVEL_ORDER[mention_level]
+            or (send_config.mention_if_ends and "End" in message)
+            else message
         )
         payload: dict[str, Any] = {
             "content": text,

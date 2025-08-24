@@ -214,7 +214,7 @@ class BaseNotifier(ABC):
 
     def _send(
         self,
-        data: str,
+        message: str,
         send_config: SendConfig,
         tb: str | None = None,
         level: LevelStr = "info",
@@ -222,21 +222,21 @@ class BaseNotifier(ABC):
     ) -> None:
         try:
             if not send_config.disable:
-                self._do_send(prepare_for_message(data), send_config, tb, level)
-            if self._verbose:
+                self._do_send(prepare_for_message(message), send_config, tb, level)
+            if send_config.verbose:
                 {
                     "info": _log.info,
                     "warning": _log.warn,
                     "error": _log.error,
-                }[level](f"{prefix}{data}")
+                }[level](f"{prefix}{message}")
         except Exception as e:
-            if self._verbose:
+            if send_config.verbose:
                 _log.error(f"Error sending to {self._platform}: {e}")
 
     @abstractmethod
     def _do_send(
         self,
-        data: str,
+        message: str,
         send_config: SendConfig,
         tb: str | None = None,
         level: LevelStr = "info",

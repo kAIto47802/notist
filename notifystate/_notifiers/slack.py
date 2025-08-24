@@ -72,14 +72,14 @@ class SlackNotifier(BaseNotifier):
 
     def _do_send(
         self,
-        data: str,
+        message: str,
         send_config: SendConfig,
         tb: str | None = None,
         level: LevelStr = "info",
     ) -> None:
         channel = send_config.channel or self._default_channel
         if channel is None:
-            if self._verbose:
+            if send_config.verbose:
                 _log.error(
                     "No Slack channel specified.\nSkipping sending message to Slack."
                 )
@@ -87,9 +87,11 @@ class SlackNotifier(BaseNotifier):
         mention_to = send_config.mention_to or self._mention_to
         mention_level = send_config.mention_level or self._mention_level
         text = (
-            f"<{mention_to}>\n{data}"
-            if mention_to and LEVEL_ORDER[level] >= LEVEL_ORDER[mention_level]
-            else data
+            f"<{mention_to}>\n{message}"
+            if mention_to
+            and LEVEL_ORDER[level] >= LEVEL_ORDER[mention_level]
+            or (send_config.mention_if_ends and "End" in message)
+            else message
         )
         self._client.chat_postMessage(
             text=text,
