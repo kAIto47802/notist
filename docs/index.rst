@@ -44,15 +44,15 @@ For more detailed usage, please refer to the :doc:`api` or the :doc:`quickstart`
 Watch Your Functions and Blocks of Code
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can use the :func:`~notifystate._core.watch` helper either as a function decorator or as a context manager around a block of code:
+You can use the :func:`~notist._core.watch` helper either as a function decorator or as a context manager around a block of code:
 
 **Use as a decorator to monitor a function:**
 
 .. code-block:: python
 
-   import notifystate
+   import notist
 
-   @notifystate.watch(send_to="slack", channel="my-channel")
+   @notist.watch(send_to="slack", channel="my-channel")
    def long_task():
        # This function will be monitored
        # Your long-running code here
@@ -65,9 +65,9 @@ You can use the :func:`~notifystate._core.watch` helper either as a function dec
 
 .. code-block:: python
 
-   import notifystate
+   import notist
 
-   with notifystate.watch(send_to="slack", channel="my-channel"):
+   with notist.watch(send_to="slack", channel="my-channel"):
        # Code inside this block will be monitored
        # Your long-running code here
        ...
@@ -99,24 +99,24 @@ This code example send the following notifications:
       >   File "/home/kaito47802/.pyenv/versions/3.11.0/lib/python3.11/contextlib.py", line 81, in inner
       >     return func(*args, **kwds)
       >            ^^^^^^^^^^^^^^^^^^^
-      >   File "/home/kaito47802/workspace/notifystate/test.py", line 10, in with_error
+      >   File "/home/kaito47802/workspace/notist/test.py", line 10, in with_error
       >     raise Exception("This is an error")
       > Exception: This is an error
 
 Register an Existing Function or Method to be Monitored
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can also register an existing function or method to be monitored using the :func:`~notifystate._core.register` function.
+You can also register an existing function or method to be monitored using the :func:`~notist._core.register` function.
 
 **Monitor existing functions from libraries:**
 
 .. code-block:: python
 
-   import notifystate
+   import notist
    import requests
 
    # Register the `get` function from the `requests` library
-   notifystate.register(requests, "get")
+   notist.register(requests, "get")
 
    # Now any time you call `requests.get`, it will be monitored
    response = requests.get("https://example.com/largefile.zip")
@@ -125,11 +125,11 @@ You can also register an existing function or method to be monitored using the :
 
 .. code-block:: python
 
-   import notifystate
+   import notist
    from transformers import Trainer
 
    # Register the `train` method of the `Trainer` class
-   notifystate.register(Trainer, "train")
+   notist.register(Trainer, "train")
 
    # Now any time you call `trainer.train()`, it will be monitored
    trainer = Trainer(model=...)
@@ -139,14 +139,15 @@ You can also register an existing function or method to be monitored using the :
 
 .. code-block:: python
 
-   import notifystate
+   import notist
    from transformers import Trainer
 
    # Create a Trainer instance
    trainer = Trainer(model=...)
 
    # Register the `train` method of the `trainer` instance
-   notifystate.register(trainer, "train")
+   # This will not affect other instances of Trainer
+   notist.register(trainer, "train")
 
    # Now any time you call `trainer.train()`, it will be monitored
    trainer.train()

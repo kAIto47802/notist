@@ -7,7 +7,7 @@ import pytest
 import requests
 from pytest import CaptureFixture, MonkeyPatch
 
-from notifystate._notifiers.discord import DiscordNotifier
+from notist._notifiers.discord import DiscordNotifier
 
 # NOTE: Python 3.12+ (PEP 695) supports type statement.
 # After dropping Python 3.11 support, update this to use that instead.

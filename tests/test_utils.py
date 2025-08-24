@@ -4,7 +4,7 @@ from datetime import timedelta
 
 import pytest
 
-from notifystate._utils import format_timedelta
+from notist._utils import format_timedelta
 
 
 @pytest.mark.parametrize(

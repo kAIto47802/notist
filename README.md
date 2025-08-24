@@ -57,14 +57,14 @@ You can receive notifications when your script:
 
 #### Watch Your Functions and Blocks of Code
 
-You can use the `notifystate.watch` helper either as a function decorator or as a context manager around a block of code:
+You can use the `notist.watch` helper either as a function decorator or as a context manager around a block of code:
 
 **Use as a decorator to monitor a function:**
 
 ```python
-import notifystate
+import notist
 
-@notifystate.watch(send_to="slack", channel="my-channel")
+@notist.watch(send_to="slack", channel="my-channel")
 def long_task():
     # This function will be monitored
     # Your long-running code here
@@ -76,9 +76,9 @@ def long_task():
 **Or use as a context manager to monitor a block of code:**
 
 ```python
-import notifystate
+import notist
 
-with notifystate.watch(send_to="slack", channel="my-channel"):
+with notist.watch(send_to="slack", channel="my-channel"):
     # Code inside this block will be monitored
     # Your long-running code here
     ...
@@ -108,23 +108,23 @@ This code example send the following notifications:
    >   File "/home/kaito47802/.pyenv/versions/3.11.0/lib/python3.11/contextlib.py", line 81, in inner
    >     return func(*args, **kwds)
    >            ^^^^^^^^^^^^^^^^^^^
-   >   File "/home/kaito47802/workspace/notifystate/test.py", line 10, in with_error
+   >   File "/home/kaito47802/workspace/notist/test.py", line 10, in with_error
    >     raise Exception("This is an error")
    > Exception: This is an error
    ```
 
 #### Register an Existing Function or Method to be Monitored
 
-You can also register an existing function or method to be monitored using the `notifystate.register` function.
+You can also register an existing function or method to be monitored using the `notist.register` function.
 
 **Monitor existing functions from libraries:**
 
 ```python
-import notifystate
+import notist
 import requests
 
 # Register the `get` function from the `requests` library
-notifystate.register(requests, "get", send_to="slack")
+notist.register(requests, "get", send_to="slack")
 
 # Now any time you call `requests.get`, it will be monitored
 response = requests.get("https://example.com/largefile.zip")
@@ -133,11 +133,11 @@ response = requests.get("https://example.com/largefile.zip")
 **Monitor existing methods of classes:**
 
 ```python
-import notifystate
+import notist
 from transformers import Trainer
 
 # Register the `train` method of the `Trainer` class
-notifystate.register(Trainer, "train", send_to="slack")
+notist.register(Trainer, "train", send_to="slack")
 
 # Now any time you call `trainer.train()`, it will be monitored
 trainer = Trainer(model=...)
@@ -147,7 +147,7 @@ trainer.train()
 **Monitor existing methods of specific class instances:**
 
 ```python
-import notifystate
+import notist
 from transformers import Trainer
 
 # Create a Trainer instance
@@ -155,7 +155,7 @@ trainer = Trainer(model=...)
 
 # Register the `train` method of the `trainer` instance
 # This will not affect other instances of Trainer
-notifystate.register(trainer, "train", send_to="slack")
+notist.register(trainer, "train", send_to="slack")
 
 # Now any time you call `trainer.train()`, it will be monitored
 trainer.train()

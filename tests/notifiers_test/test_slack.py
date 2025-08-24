@@ -7,8 +7,8 @@ import pytest
 from pytest import CaptureFixture, MonkeyPatch
 from slack_sdk import WebClient
 
-from notifystate._log import _CSI, _PREFIX, LEVEL_ORDER, LevelStr
-from notifystate._notifiers.slack import SlackNotifier
+from notist._log import _CSI, _PREFIX, LEVEL_ORDER, LevelStr
+from notist._notifiers.slack import SlackNotifier
 
 
 class DummyClient:

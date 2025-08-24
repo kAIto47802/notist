@@ -34,15 +34,15 @@ For more detailed usage, please refer to the :doc:`api`.
 Watch Your Function or Block of Code
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Wrap any function or block of code with the :func:`~notifystate._core.watch` function to get automatic start/stop/error alerts:
+Wrap any function or block of code with the :func:`~notist._core.watch` function to get automatic start/stop/error alerts:
 
 **Use as a decorator to monitor a function**:
 
 .. code-block:: python
 
-   import notifystate
+   import notist
 
-   @notifystate.watch(send_to="slack")
+   @notist.watch(send_to="slack")
    def long_task():
        # This function will be monitored
        # Your long-running code here
@@ -52,9 +52,9 @@ Wrap any function or block of code with the :func:`~notifystate._core.watch` fun
 
 .. code-block:: python
 
-   import notifystate
+   import notist
 
-   with notifystate.watch(send_to="slack"):
+   with notist.watch(send_to="slack"):
        # Code inside this block will be monitored
        # Your long-running code here
        ...
@@ -62,19 +62,19 @@ Wrap any function or block of code with the :func:`~notifystate._core.watch` fun
 Register an Existing Function or Method to be Monitored
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can also register an existing function or method to be monitored using the :func:`~notifystate._core.register` function.
-This function corresponds to applying the :func:`~notifystate._core.watch` decorator to an existing function or method.
+You can also register an existing function or method to be monitored using the :func:`~notist._core.register` function.
+This function corresponds to applying the :func:`~notist._core.watch` decorator to an existing function or method.
 
 If you want to monitor existing functions from libraries:
 
 
 .. code-block:: python
 
-   import notifystate
+   import notist
    import requests
 
    # Register the `get` function from the `requests` library
-   notifystate.register(requests, "get", send_to="slack")
+   notist.register(requests, "get", send_to="slack")
 
    # Now any time you call `requests.get`, it will be monitored
    response = requests.get("https://example.com/largefile.zip")
@@ -83,11 +83,11 @@ If you want to monitor existing methods of classes:
 
 .. code-block:: python
 
-   import notifystate
+   import notist
    from transformers import Trainer
 
    # Register the `train` method of the `Trainer` class
-   notifystate.register(Trainer, "train", send_to="slack")
+   notist.register(Trainer, "train", send_to="slack")
 
    # Now any time you call `trainer.train()`, it will be monitored
    trainer = Trainer(model=...)
@@ -97,14 +97,15 @@ If you want to monitor existing methods of specific class instances:
 
 .. code-block:: python
 
-   import notifystate
+   import notist
    from transformers import Trainer
 
    # Create a Trainer instance
    trainer = Trainer(model=...)
 
    # Register the `train` method of the `trainer` instance
-   notifystate.register(trainer, "train", send_to="slack")
+   # This will not affect other instances of Trainer
+   notist.register(trainer, "train", send_to="slack")
 
    # Now any time you call `trainer.train()`, it will be monitored
    trainer.train()
@@ -113,35 +114,35 @@ If you want to monitor existing methods of specific class instances:
 Send a One-Off Notification
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can also send notifications with the :func:`~notifystate._core.send` function at any point in your code, not just at the start or end of a task:
+You can also send notifications with the :func:`~notist._core.send` function at any point in your code, not just at the start or end of a task:
 
 .. code-block:: python
 
-   import notifystate
+   import notist
 
    # Immediately send "Job finished!" to your Slack channel
-   notifystate.send("Job finished!", send_to="slack")
+   notist.send("Job finished!", send_to="slack")
 
    # You can also send any Python data (it will be stringified)
-   notifystate.send(data, send_to="slack")
+   notist.send(data, send_to="slack")
 
 
 Configuring Defaults
 ^^^^^^^^^^^^^^^^^^^^
 
-Rather than specifying ``send_to`` and other options every time, you can initialize once with the :func:`~notifystate._core.init` function:
+Rather than specifying ``send_to`` and other options every time, you can initialize once with the :func:`~notist._core.init` function:
 
 .. code-block:: python
 
-   import notifystate
+   import notist
 
    # Set up Slack notifiers with defaults
-   notifystate.init(send_to="slack", channel="my-channel", mention_to="@U012345678")
+   notist.init(send_to="slack", channel="my-channel", mention_to="@U012345678")
 
    # Now you only need to call send or watch without repeating options
-   notifystate.send("All systems go!")
+   notist.send("All systems go!")
 
-   with notifystate.watch():
+   with notist.watch():
        # This will use the defaults set in init
        ...
 
@@ -164,14 +165,14 @@ Once set, you can omit those parameters:
 
 .. code-block:: python
 
-   import notifystate
+   import notist
 
    # Will use SLACK_CHANNEL and SLACK_BOT_TOKEN
-   notifystate.init(send_to="slack")
+   notist.init(send_to="slack")
 
-   notifystate.send("Automatic notification!")
+   notist.send("Automatic notification!")
 
-   with notifystate.watch():
+   with notist.watch():
        ...
 
 
@@ -187,7 +188,7 @@ Instead of the procedural API, you can also create a notifier instance and call 
 
 .. code-block:: python
 
-   from notifystate import SlackNotifier
+   from notist import SlackNotifier
 
    # Create a SlackNotifier with defaults
    slack = SlackNotifier(

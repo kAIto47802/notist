@@ -23,7 +23,7 @@ _DOC_ADDITIONS = {
 
             .. code-block:: python
 
-               from notifystate import SlackNotifier
+               from notist import SlackNotifier
 
                # Create a SlackNotifier with defaults
                slack = SlackNotifier(

@@ -25,7 +25,7 @@ _DOC_ADDITIONS = {
 
             .. code-block:: python
 
-               from notifystate import DiscordNotifier
+               from notist import DiscordNotifier
 
                # Create a DiscordNotifier with defaults
                discord = DiscordNotifier(

@@ -149,8 +149,8 @@ def init(
 ) -> None:
     """
     Initialize the notifier with default settings.
-    This settings can be overridden at each call of :func:`~notifystate.register`,
-    :func:`~notifystate.send`, and :func:`~notifystate.watch`.
+    This settings can be overridden at each call of :func:`~notist.register`,
+    :func:`~notist.send`, and :func:`~notist.watch`.
     Alternatively, you can skip initialization with this function and provide all settings directly through these functions.
 
     Args:
@@ -178,17 +178,17 @@ def init(
        (the original Python script will continue running without interruption).
 
     .. note::
-       The destination (`send_to`) must be set, either in this :func:`~notifystate.init` function
-       or as an argument to the :func:`~notifystate.register`, :func:`~notifystate.send`, and :func:`~notifystate.watch`.
+       The destination (`send_to`) must be set, either in this :func:`~notist.init` function
+       or as an argument to the :func:`~notist.register`, :func:`~notist.send`, and :func:`~notist.watch`.
 
     Example:
 
         .. code-block:: python
 
-           import notifystate
+           import notist
 
            # Set up Slack notifiers with defaults
-           notifystate.init(send_to="slack", channel="my-channel", mention_to="@U012345678")
+           notist.init(send_to="slack", channel="my-channel", mention_to="@U012345678")
     """
     global _notifier
     assert isinstance(send_to, str)
@@ -237,10 +237,10 @@ def send(
         .. code-block:: python
 
            # Immediately send "Job finished!" to your Slack channel
-           notifystate.send("Job finished!", send_to="slack")
+           notist.send("Job finished!", send_to="slack")
 
            # You can also send any Python data (it will be stringified)
-           notifystate.send(data, send_to="slack")
+           notist.send(data, send_to="slack")
     """
     if send_to is None:
         _warn_not_set_send_to()
@@ -297,7 +297,7 @@ def watch(
 
         .. code-block:: python
 
-           @notifystate.watch(send_to="slack")
+           @notist.watch(send_to="slack")
            def long_task():
                # This function will be monitored
                # Your long-running code here
@@ -307,7 +307,7 @@ def watch(
 
         .. code-block:: python
 
-           with notifystate.watch(send_to="slack"):
+           with notist.watch(send_to="slack"):
                # Code inside this block will be monitored
                # Your long-running code here
                ...
@@ -379,7 +379,7 @@ def register(
            import requests
 
            # Register the `get` function from the `requests` library
-           notifystate.register(requests, "get", send_to="slack")
+           notist.register(requests, "get", send_to="slack")
 
            # Now any time you call `requests.get`, it will be monitored
            response = requests.get("https://example.com/largefile.zip")
@@ -391,7 +391,7 @@ def register(
            from transformers import Trainer
 
            # Register the `train` method of the `Trainer` class
-           notifystate.register(Trainer, "train", send_to="slack")
+           notist.register(Trainer, "train", send_to="slack")
 
            # Now any time you call `trainer.train()`, it will be monitored
            trainer = Trainer(model=...)
@@ -407,7 +407,7 @@ def register(
            trainer = Trainer(model=...)
 
            # Register the `train` method of the `trainer` instance
-           notifystate.register(trainer, "train", send_to="slack")
+           notist.register(trainer, "train", send_to="slack")
 
            # Now any time you call `trainer.train()`, it will be monitored
            trainer.train()
@@ -463,6 +463,6 @@ def _init_if_needed(
 def _warn_not_set_send_to() -> None:
     _log.warn(
         "No destination specified. "
-        "Please specify `send_to` parameter or initialize notifier with `notifystate.init()`. "
+        "Please specify `send_to` parameter or initialize notifier with `notist.init()`. "
         "No notifications will be sent."
     )
