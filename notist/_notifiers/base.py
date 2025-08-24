@@ -1,26 +1,62 @@
 from __future__ import annotations
 
 import os
+import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Protocol, TypeVar
 
 import notist._log as _log
 from notist._log import Glyph as _G
 from notist._log import LevelStr, fg256, prepare_for_message
 from notist._utils import format_timedelta
-from notist._watch import ContextManagerDecorator, IterableWatch, Watch
+from notist._watch import IterableWatch, Watch
+
+if sys.version_info >= (3, 10):
+    from typing import ParamSpec
+else:
+    from typing_extensions import ParamSpec
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from types import ModuleType
-    from typing import Any
+    from types import ModuleType, TracebackType
+    from typing import Any, Callable
+
+
+# NOTE: Python 3.12+ (PEP 695) supports inline type parameter syntax.
+# After dropping Python 3.11 support, update this to use that instead.
+# See:
+#   - https://peps.python.org/pep-0695/
+#   - https://docs.python.org/3/reference/compound_stmts.html#type-params
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+# This protocol guarantees to static checkers (e.g. mypy) that any implementing
+# object have  `__enter__`, `__exit__` and `__call__`.
+# Otherwise, users applying these contexts would get mypy errors because the type
+# system wouldn't know these methods exist.
+class ContextManagerDecorator(Protocol[P, R]):
+    """Protocol for objects that can be used as context managers and decorators."""
+
+    def __enter__(self) -> Self: ...
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None: ...
+    def __call__(self, fn: Callable[P, R]) -> Callable[P, R]: ...
 
 
 @dataclass
-class SendConfig:
+class _SendConfig:
     channel: str | None = None
     mention_to: str | None = None
     mention_level: LevelStr = "error"
@@ -101,6 +137,17 @@ DOC_ADDITIONS_BASE = {
 
                # Now any time you call `trainer.train()`, it will be monitored
                trainer.train()
+        """,
+    "watch_iterable": lambda cls: f"""
+        Example:
+
+            .. code-block:: python
+
+                # Monitor progress of processing a long-running for loop
+                for batch in {cls._platform.lower()}.watch_iterable(train_dataloader, step=10):
+                    # This loop will be monitored, and you'll receive notifications every 10 iterations.
+                    # If an error occurs inside this loop, you'll be notified immediately.
+                    ...
         """,
 }
 
@@ -202,7 +249,7 @@ class BaseNotifier(ABC):
         """
         self._send(
             str(data),
-            SendConfig(
+            _SendConfig(
                 channel=channel or self._default_channel,
                 mention_to=mention_to or self._mention_to,
                 mention_level="info" if mention_to or self._mention_to else "error",
@@ -215,7 +262,7 @@ class BaseNotifier(ABC):
     def _send(
         self,
         message: str,
-        send_config: SendConfig,
+        send_config: _SendConfig,
         tb: str | None = None,
         level: LevelStr = "info",
         prefix: str = "",
@@ -237,7 +284,7 @@ class BaseNotifier(ABC):
     def _do_send(
         self,
         message: str,
-        send_config: SendConfig,
+        send_config: _SendConfig,
         tb: str | None = None,
         level: LevelStr = "info",
     ) -> None:
@@ -276,7 +323,7 @@ class BaseNotifier(ABC):
         Returns:
             An an object that can serve as both a context manager and a decorator.
         """
-        send_config = SendConfig(
+        send_config = _SendConfig(
             channel=channel or self._default_channel,
             mention_to=mention_to or self._mention_to,
             mention_level=mention_level or self._mention_level,
@@ -386,12 +433,15 @@ class BaseNotifier(ABC):
             mention_to: Override the default entity to mention on notification.
             mention_level: Override the default mention threshold level.
             mention_if_ends: Override the default setting for whether to mention at the end of the watch.
+            callsite_level: Override the default call-site source snippet threshold level.
+            callsite_context_before: Number of lines of context to include before the call site.
+            callsite_context_after: Number of lines of context to include after the call site.
             verbose: Override the default verbosity setting.
             disable: Override the default disable flag.
         """
         start = datetime.now()
         iterable_object = f"{iterable.__class__.__name__} object at {hex(id(iterable))}"
-        send_config = SendConfig(
+        send_config = _SendConfig(
             channel=channel or self._default_channel,
             mention_to=mention_to or self._mention_to,
             mention_level=mention_level or self._mention_level,
