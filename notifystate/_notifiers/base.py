@@ -20,13 +20,14 @@ else:
     pass
 
 import notifystate._log as _log
-from notifystate._log import LevelStr
+from notifystate._log import Glyph as _G
+from notifystate._log import LevelStr, fg256, prepare_for_message
 from notifystate._utils import format_timedelta
 from notifystate._watch import ContextManagerDecorator, IterableWatch, Watch
 
 
 @dataclass
-class _SendConfig:
+class SendConfig:
     channel: str | None = None
     mention_to: str | None = None
     mention_level: LevelStr = "error"
@@ -207,8 +208,8 @@ class BaseNotifier(ABC):
             disable: Override the default disable flag.
         """
         self._send(
-            data,
-            _SendConfig(
+            str(data),
+            SendConfig(
                 channel=channel or self._default_channel,
                 mention_to=mention_to or self._mention_to,
                 mention_level="info" if mention_to or self._mention_to else "error",
@@ -220,15 +221,15 @@ class BaseNotifier(ABC):
 
     def _send(
         self,
-        data: Any,
-        send_config: _SendConfig,
+        data: str,
+        send_config: SendConfig,
         tb: str | None = None,
         level: LevelStr = "info",
         prefix: str = "",
     ) -> None:
         try:
             if not send_config.disable:
-                self._do_send(data, send_config, tb, level)
+                self._do_send(prepare_for_message(data), send_config, tb, level)
             if self._verbose:
                 {
                     "info": _log.info,
@@ -242,8 +243,8 @@ class BaseNotifier(ABC):
     @abstractmethod
     def _do_send(
         self,
-        data: Any,
-        send_config: _SendConfig,
+        data: str,
+        send_config: SendConfig,
         tb: str | None = None,
         level: LevelStr = "info",
     ) -> None:
@@ -282,7 +283,7 @@ class BaseNotifier(ABC):
         Returns:
             An an object that can serve as both a context manager and a decorator.
         """
-        send_config = _SendConfig(
+        send_config = SendConfig(
             channel=channel or self._default_channel,
             mention_to=mention_to or self._mention_to,
             mention_level=mention_level or self._mention_level,
@@ -374,6 +375,9 @@ class BaseNotifier(ABC):
         mention_to: str | None = None,
         mention_level: LevelStr | None = None,
         mention_if_ends: bool | None = None,
+        callsite_level: LevelStr | None = None,
+        callsite_context_before: int = 1,
+        callsite_context_after: int = 4,
         verbose: bool | None = None,
         disable: bool | None = None,
     ) -> Iterable[T]:
@@ -393,10 +397,8 @@ class BaseNotifier(ABC):
             disable: Override the default disable flag.
         """
         start = datetime.now()
-        iterable_object = (
-            f"<{iterable.__class__.__name__} object at {hex(id(iterable))}>"
-        )
-        send_config = _SendConfig(
+        iterable_object = f"{iterable.__class__.__name__} object at {hex(id(iterable))}"
+        send_config = SendConfig(
             channel=channel or self._default_channel,
             mention_to=mention_to or self._mention_to,
             mention_level=mention_level or self._mention_level,
@@ -406,10 +408,6 @@ class BaseNotifier(ABC):
             verbose=verbose if verbose is not None else self._verbose,
             disable=disable if disable is not None else self._disable,
         )
-        details = f" {iterable_object} [{label}]" if label else f" {iterable_object}"
-        message = f"Start watching{details}..."
-        self._send(message, send_config)
-
         if step < 1:
             step = 1
             _log.warn(
@@ -419,10 +417,17 @@ class BaseNotifier(ABC):
         iterable_watch = IterableWatch(
             step,
             total,
-            details,
+            iterable_object,
             start,
             partial(self._send, send_config=send_config),
+            label,
+            callsite_level or self._default_callsite_level,
+            callsite_context_before,
+            callsite_context_after,
         )
+
+        message = f"Start watching{iterable_watch.details()}"
+        self._send(message, send_config)
 
         for item in iterable:
             with iterable_watch:
@@ -431,7 +436,8 @@ class BaseNotifier(ABC):
 
         end = datetime.now()
         message = (
-            f"End watching{details}.\n"
-            f"Total execution time: {format_timedelta(end - start)}."
+            f"End watching{iterable_watch.details()}\n"
+            f"{fg256(8)} {_G.CBULLET} "
+            f"Total execution time: {format_timedelta(end - start)}"
         )
         self._send(message, send_config)

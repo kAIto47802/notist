@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from typing import Any
-
 from slack_sdk import WebClient
 
 import notifystate._log as _log
-from notifystate._log import _RESET, LEVEL_ORDER, LevelStr, fg256
+from notifystate._log import LEVEL_ORDER, RESET, LevelStr, fg256
 from notifystate._notifiers.base import (
     DOC_ADDITIONS_BASE,
     BaseNotifier,
-    _SendConfig,
+    SendConfig,
 )
 from notifystate._utils import extend_method_docstring
 
@@ -59,7 +57,7 @@ class SlackNotifier(BaseNotifier):
         if not self._disable and self._verbose:
             if self._default_channel:
                 _log.info(
-                    f"SlackNotifier initialized with default channel: {fg256(33)}{self._default_channel}{_RESET}"
+                    f"SlackNotifier initialized with default channel: {fg256(33)}{self._default_channel}{RESET}"
                 )
             else:
                 _log.warn(
@@ -68,8 +66,8 @@ class SlackNotifier(BaseNotifier):
 
     def _do_send(
         self,
-        data: Any,
-        send_config: _SendConfig,
+        data: str,
+        send_config: SendConfig,
         tb: str | None = None,
         level: LevelStr = "info",
     ) -> None:
@@ -84,7 +82,7 @@ class SlackNotifier(BaseNotifier):
         text = (
             f"<{mention_to}>\n{data}"
             if mention_to and LEVEL_ORDER[level] >= LEVEL_ORDER[mention_level]
-            else str(data)
+            else data
         )
         self._client.chat_postMessage(
             text=text,

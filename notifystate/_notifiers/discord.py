@@ -9,7 +9,7 @@ from notifystate._log import LEVEL_ORDER, LevelStr
 from notifystate._notifiers.base import (
     DOC_ADDITIONS_BASE,
     BaseNotifier,
-    _SendConfig,
+    SendConfig,
 )
 from notifystate._utils import extend_method_docstring
 
@@ -67,8 +67,8 @@ class DiscordNotifier(BaseNotifier):
 
     def _do_send(
         self,
-        data: Any,
-        send_config: _SendConfig,
+        data: str,
+        send_config: SendConfig,
         tb: str | None = None,
         level: LevelStr = "info",
     ) -> None:
@@ -87,7 +87,7 @@ class DiscordNotifier(BaseNotifier):
         text = (
             f"<{mention_to}>\n{data}"
             if mention_to and LEVEL_ORDER[level] >= LEVEL_ORDER[mention_level]
-            else str(data)
+            else data
         )
         payload: dict[str, Any] = {
             "content": text,
