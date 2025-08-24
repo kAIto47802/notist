@@ -45,9 +45,10 @@ _DESTINATIONS_MAP: dict[_DESTINATIONS, type[BaseNotifier]] = {
 # NOTE: PEP 604 (`X | Y`) union syntax requires Python 3.10+.
 # For Python < 3.10 (e.g. 3.9), we need to use `typing.Union[X, Y]`.
 # After dropping Python 3.9 support, we can remove using `typing.Union`.
+T = TypeVar("T")
 P = ParamSpec("P")
 if sys.version_info >= (3, 10):
-    R = ContextManagerDecorator | None
+    R = ContextManagerDecorator | Iterable | None
 else:
     from typing import Union
 
@@ -58,6 +59,8 @@ else:
 def _allow_multi_dest(
     fn: Callable[P, ContextManagerDecorator],
 ) -> Callable[P, ContextManagerDecorator]: ...
+@overload
+def _allow_multi_dest(fn: Callable[P, Iterable[T]]) -> Callable[P, Iterable[T]]: ...
 @overload
 def _allow_multi_dest(fn: Callable[P, None]) -> Callable[P, None]: ...
 
@@ -432,12 +435,8 @@ def register(
     )
 
 
-T = TypeVar("T")
-
-
 @_allow_multi_dest
 def watch_iterable(
-    self,
     iterable: Iterable[T],
     step: int = 1,
     total: int | None = None,
@@ -486,7 +485,7 @@ def watch_iterable(
     """
     if send_to is None:
         _warn_not_set_send_to()
-        return iterable
+        yield from iterable
     assert isinstance(send_to, str)
     kwargs = dict(
         channel=channel,
