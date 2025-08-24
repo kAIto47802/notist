@@ -6,7 +6,7 @@
 import os
 import sys
 
-import notifystate
+import notist
 
 sys.path.insert(0, os.path.abspath(".."))
 
@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.abspath(".."))
 project = "NotifyState"
 copyright = "2025, Kaito Baba"
 author = "Kaito Baba"
-release = notifystate.__version__
+release = notist.__version__
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
