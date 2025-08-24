@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import itertools
 import sys
+from collections.abc import Generator
 from contextlib import AbstractContextManager, ContextDecorator
 from functools import wraps
 from typing import TYPE_CHECKING, Iterable, Literal, TypeVar, cast, overload
@@ -65,6 +67,35 @@ def _allow_multi_dest(fn: Callable[P, Iterable[T]]) -> Callable[P, Iterable[T]]:
 def _allow_multi_dest(fn: Callable[P, None]) -> Callable[P, None]: ...
 
 
+# def _allow_multi_dest(fn: Callable[P, R]) -> Callable[P, R]:
+#     @wraps(fn)
+#     def wrapper(
+#         *args: P.args,
+#         **kwargs: P.kwargs,
+#     ) -> R:
+#         send_to = kwargs.get("send_to")
+#         if send_to is None and _notifier:
+#             send_to = list(_notifier.keys())
+#         if isinstance(send_to, Iterable) and not isinstance(send_to, str):
+#             res = []
+#             for dest in send_to:
+#                 new_kwargs = kwargs.copy()
+#                 new_kwargs["send_to"] = dest
+#                 res.append(fn(*args, **new_kwargs))  # type: ignore
+#             if all(isinstance(r, AbstractContextManager) for r in res):
+#                 return _combine_contexts(cast(list[ContextManagerDecorator], res))
+#             elif all(r is None for r in res):
+#                 return None
+#             else:
+#                 raise ValueError(
+#                     "Cannot mix context decorators and non-context decorators."
+#                 )
+#         else:
+#             return fn(*args, **kwargs)
+
+#     return wrapper
+
+
 def _allow_multi_dest(fn: Callable[P, R]) -> Callable[P, R]:
     @wraps(fn)
     def wrapper(
@@ -73,15 +104,25 @@ def _allow_multi_dest(fn: Callable[P, R]) -> Callable[P, R]:
     ) -> R:
         send_to = kwargs.get("send_to")
         if send_to is None and _notifier:
+            # send_to = ls if len(ls := list(_notifier.keys())) > 1 else ls[0]
             send_to = list(_notifier.keys())
+        iterable = next(iter(v for k, v in kwargs.items() if k == "iterable"), None)
+        # print(kwargs)
         if isinstance(send_to, Iterable) and not isinstance(send_to, str):
             res = []
-            for dest in send_to:
+            for i, dest in enumerate(send_to):
                 new_kwargs = kwargs.copy()
                 new_kwargs["send_to"] = dest
+                if i and iterable is not None:
+                    new_kwargs["iterable"] = itertools.repeat(None)
+                    new_kwargs["class_name"] = iterable.__class__.__name__
+                    new_kwargs["object_id"] = hex(id(iterable))
                 res.append(fn(*args, **new_kwargs))  # type: ignore
+            print("#####", res)
             if all(isinstance(r, AbstractContextManager) for r in res):
                 return _combine_contexts(cast(list[ContextManagerDecorator], res))
+            elif all(isinstance(r, Generator) for r in res):
+                return map(lambda x: x[0], zip(*res))
             elif all(r is None for r in res):
                 return None
             else:
@@ -436,6 +477,52 @@ def register(
 
 
 @_allow_multi_dest
+def _watch_iterable_impl(
+    iterable: Iterable[T],
+    step: int = 1,
+    total: int | None = None,
+    *,
+    send_to: _DESTINATIONS | list[_DESTINATIONS] | None = None,
+    label: str | None = None,
+    channel: str | None = None,
+    mention_to: str | None = None,
+    mention_level: LevelStr | None = None,
+    mention_if_ends: bool | None = None,
+    callsite_level: LevelStr | None = None,
+    callsite_context_before: int = 1,
+    callsite_context_after: int = 4,
+    verbose: bool | None = None,
+    disable: bool | None = None,
+    class_name: str | None = None,
+    object_id: int | None = None,
+) -> Iterable[T]:
+    if send_to is None:
+        _warn_not_set_send_to()
+        return iterable
+    assert isinstance(send_to, str)
+    kwargs = dict(
+        channel=channel,
+        mention_to=mention_to,
+        mention_level=mention_level,
+        mention_if_ends=mention_if_ends,
+        callsite_level=callsite_level,
+        verbose=verbose,
+        disable=disable,
+    )
+    _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
+    return _notifier[send_to]._watch_iterable_impl(  # type: ignore
+        iterable,
+        step=step,
+        total=total,
+        label=label,
+        callsite_context_before=callsite_context_before,
+        callsite_context_after=callsite_context_after,
+        class_name=class_name,
+        object_id=object_id,
+        **kwargs,  # type: ignore
+    )
+
+
 def watch_iterable(
     iterable: Iterable[T],
     step: int = 1,
@@ -483,28 +570,21 @@ def watch_iterable(
                 # If an error occurs inside this loop, you'll be notified immediately.
                 ...
     """
-    if send_to is None:
-        _warn_not_set_send_to()
-        yield from iterable
-    assert isinstance(send_to, str)
-    kwargs = dict(
+    return _watch_iterable_impl(
+        iterable,
+        step,
+        total,
+        send_to=send_to,
+        label=label,
         channel=channel,
         mention_to=mention_to,
         mention_level=mention_level,
         mention_if_ends=mention_if_ends,
         callsite_level=callsite_level,
-        verbose=verbose,
-        disable=disable,
-    )
-    _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
-    yield from _notifier[send_to].watch_iterable(  # type: ignore
-        iterable,
-        step=step,
-        total=total,
-        label=label,
         callsite_context_before=callsite_context_before,
         callsite_context_after=callsite_context_after,
-        **kwargs,  # type: ignore
+        verbose=verbose,
+        disable=disable,
     )
 
 
