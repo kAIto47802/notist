@@ -17,9 +17,11 @@ else:
     from typing_extensions import Self
 
 import notifystate._log as _log
-from notifystate._notifiers.base import BaseNotifier, ContextManagerDecorator, _LevelStr
+from notifystate._log import LevelStr
+from notifystate._notifiers.base import BaseNotifier
 from notifystate._notifiers.discord import DiscordNotifier
 from notifystate._notifiers.slack import SlackNotifier
+from notifystate._watch import ContextManagerDecorator
 
 _notifier: dict[str, BaseNotifier] = {}
 
@@ -132,9 +134,9 @@ def init(
     send_to: _DESTINATIONS | list[_DESTINATIONS],
     channel: str | None = None,
     mention_to: str | None = None,
-    mention_level: _LevelStr = "error",
+    mention_level: LevelStr = "error",
     mention_if_ends: bool = True,
-    callsite_level: _LevelStr = "error",
+    callsite_level: LevelStr = "error",
     token: str | None = None,
     verbose: bool = True,
     disable: bool = False,
@@ -255,9 +257,9 @@ def watch(
     send_to: _DESTINATIONS | list[_DESTINATIONS] | None = None,
     channel: str | None = None,
     mention_to: str | None = None,
-    mention_level: _LevelStr | None = None,
+    mention_level: LevelStr | None = None,
     mention_if_ends: bool | None = None,
-    callsite_level: _LevelStr | None = None,
+    callsite_level: LevelStr | None = None,
     callsite_context_before: int = 1,
     callsite_context_after: int = 4,
     verbose: bool | None = None,
@@ -335,9 +337,9 @@ def register(
     label: str | None = None,
     channel: str | None = None,
     mention_to: str | None = None,
-    mention_level: _LevelStr | None = None,
+    mention_level: LevelStr | None = None,
     mention_if_ends: bool | None = None,
-    callsite_level: _LevelStr | None = None,
+    callsite_level: LevelStr | None = None,
     callsite_context_before: int = 1,
     callsite_context_after: int = 4,
     verbose: bool | None = None,
@@ -432,9 +434,9 @@ def _init_if_needed(
     send_to: _DESTINATIONS | list[_DESTINATIONS] = "slack",
     channel: str | None = None,
     mention_to: str | None = None,
-    mention_level: _LevelStr | None = None,
+    mention_level: LevelStr | None = None,
     mention_if_ends: bool | None = None,
-    callsite_level: _LevelStr | None = None,
+    callsite_level: LevelStr | None = None,
     verbose: bool | None = None,
     disable: bool | None = None,
 ) -> None:

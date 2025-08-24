@@ -1,29 +1,22 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 _PREFIX = "[NotifyState] "
 
-_CSI = "\x1b["
-_RESET = f"{_CSI}0m"
 
-
-def fg16(code: int) -> str:
-    return f"{_CSI}{code}m"
-
-
-def fg256(n: int) -> str:
-    return f"{_CSI}38;5;{n}m"
-
-
-_TL, _TR, _BL, _BR = "╭", "╮", "╰", "╯"
-_H, _V, _SEP_L, _SEP_R, _SEP_T, _SEP_B = "─", "│", "├", "┤", "┬", "┴"
-_BH = "━"
-_TDH, _BTDH, _QDH, _BQDH = "┄", "┅", "┈", "┉"
-_RARROW, _LARROW = "▶", "◀"
-_RARROWF, _LARROWF = "▷", "◁"
-_RARROWP = "❯"
-_BULLET, _WBULLET, _CBULLET = "•", "◦", "⦿"
+# NOTE: Python 3.12+ (PEP 695) supports type statement.
+# After dropping Python 3.11 support, update this to use that instead.
+# See:
+#   - https://peps.python.org/pep-0695/
+#   - https://docs.python.org/3/library/typing.html#type-aliases
+LevelStr = Literal["info", "warning", "error"]
+LEVEL_ORDER: dict[LevelStr, int] = {
+    "info": 0,
+    "warning": 1,
+    "error": 2,
+}
 
 
 def info(message: str, with_timestamp: bool = True) -> None:
@@ -71,3 +64,25 @@ def _print_with_prefix(
     )
     message = "\n".join([prefix + line for line in message.splitlines()])
     print(message)
+
+
+_CSI = "\x1b["
+_RESET = f"{_CSI}0m"
+
+
+def fg16(code: int) -> str:
+    return f"{_CSI}{code}m"
+
+
+def fg256(n: int) -> str:
+    return f"{_CSI}38;5;{n}m"
+
+
+_TL, _TR, _BL, _BR = "╭", "╮", "╰", "╯"
+_H, _V, _SEP_L, _SEP_R, _SEP_T, _SEP_B = "─", "│", "├", "┤", "┬", "┴"
+_BH = "━"
+_TDH, _BTDH, _QDH, _BQDH = "┄", "┅", "┈", "┉"
+_RARROW, _LARROW = "▶", "◀"
+_RARROWF, _LARROWF = "▷", "◁"
+_RARROWP = "❯"
+_BULLET, _WBULLET, _CBULLET = "•", "◦", "⦿"

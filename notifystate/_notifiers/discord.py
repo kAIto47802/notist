@@ -5,11 +5,10 @@ from typing import Any
 import requests
 
 import notifystate._log as _log
+from notifystate._log import LEVEL_ORDER, LevelStr
 from notifystate._notifiers.base import (
-    _DOC_ADDITIONS_BASE,
-    _LEVEL_ORDER,
+    DOC_ADDITIONS_BASE,
     BaseNotifier,
-    _LevelStr,
     _SendConfig,
 )
 from notifystate._utils import extend_method_docstring
@@ -31,7 +30,7 @@ _DOC_ADDITIONS = {
 }
 
 
-@extend_method_docstring(_DOC_ADDITIONS | _DOC_ADDITIONS_BASE)
+@extend_method_docstring(_DOC_ADDITIONS | DOC_ADDITIONS_BASE)
 class DiscordNotifier(BaseNotifier):
     _platform = "Discord"
 
@@ -39,9 +38,9 @@ class DiscordNotifier(BaseNotifier):
         self,
         channel: str | None = None,
         mention_to: str | None = None,
-        mention_level: _LevelStr = "error",
+        mention_level: LevelStr = "error",
         mention_if_ends: bool = True,
-        callsite_level: _LevelStr = "error",
+        callsite_level: LevelStr = "error",
         token: str | None = None,
         verbose: bool = True,
         disable: bool = False,
@@ -71,7 +70,7 @@ class DiscordNotifier(BaseNotifier):
         data: Any,
         send_config: _SendConfig,
         tb: str | None = None,
-        level: _LevelStr = "info",
+        level: LevelStr = "info",
     ) -> None:
         channel_id = send_config.channel or self._default_channel
         if not channel_id and self._verbose:
@@ -87,7 +86,7 @@ class DiscordNotifier(BaseNotifier):
         mention_level = send_config.mention_level or self._mention_level
         text = (
             f"<{mention_to}>\n{data}"
-            if mention_to and _LEVEL_ORDER[level] >= _LEVEL_ORDER[mention_level]
+            if mention_to and LEVEL_ORDER[level] >= LEVEL_ORDER[mention_level]
             else str(data)
         )
         payload: dict[str, Any] = {

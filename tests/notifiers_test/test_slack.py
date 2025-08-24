@@ -7,7 +7,7 @@ import pytest
 from pytest import CaptureFixture, MonkeyPatch
 from slack_sdk import WebClient
 
-from notifystate._notifiers.base import _LEVEL_ORDER, _LevelStr
+from notifystate._log import LEVEL_ORDER, LevelStr
 from notifystate._notifiers.slack import SlackNotifier
 
 
@@ -183,7 +183,7 @@ def test_slack_watch_context_success(
     label: str | None,
     channel: _OverrideTestCase[str | None, str | None, str | None],
     mention_to: _OverrideTestCase[str | None, str | None, str | None],
-    mention_level: _OverrideTestCase[_LevelStr, _LevelStr | None, _LevelStr],
+    mention_level: _OverrideTestCase[LevelStr, LevelStr | None, LevelStr],
     mention_if_ends: _OverrideTestCase[bool, bool | None, bool],
     verbose: _OverrideTestCase[bool, bool | None, bool],
     disable: _OverrideTestCase[bool, bool | None, bool],
@@ -217,14 +217,14 @@ def test_slack_watch_context_success(
         assert (
             f"<{mention_to.expected}>\n"
             if mention_to.expected
-            and _LEVEL_ORDER[mention_level.expected] <= _LEVEL_ORDER["info"]
+            and LEVEL_ORDER[mention_level.expected] <= LEVEL_ORDER["info"]
             else ""
         ) + "Start watching" in dummy_client.sent[0]["text"]
         assert (
             f"<{mention_to.expected}>\n"
             if mention_to.expected
             and (
-                _LEVEL_ORDER[mention_level.expected] <= _LEVEL_ORDER["info"]
+                LEVEL_ORDER[mention_level.expected] <= LEVEL_ORDER["info"]
                 or mention_if_ends.expected
             )
             else ""
@@ -254,7 +254,7 @@ def test_slack_watch_context_error(
     label: str | None,
     channel: _OverrideTestCase[str | None, str | None, str | None],
     mention_to: _OverrideTestCase[str | None, str | None, str | None],
-    mention_level: _OverrideTestCase[_LevelStr, _LevelStr | None, _LevelStr],
+    mention_level: _OverrideTestCase[LevelStr, LevelStr | None, LevelStr],
     verbose: _OverrideTestCase[bool, bool | None, bool],
     disable: _OverrideTestCase[bool, bool | None, bool],
 ) -> None:
@@ -287,7 +287,7 @@ def test_slack_watch_context_error(
         assert (
             f"<{mention_to.expected}>\n"
             if mention_to.expected
-            and _LEVEL_ORDER[mention_level.expected] <= _LEVEL_ORDER["error"]
+            and LEVEL_ORDER[mention_level.expected] <= LEVEL_ORDER["error"]
             else ""
         ) + "Error while watching" in dummy_client.sent[1]["text"]
         assert dummy_client.sent[1]["channel"] == channel.expected
