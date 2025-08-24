@@ -25,6 +25,18 @@ else:
     from typing_extensions import Self
 
 import notifystate._log as _log
+from notifystate._log import (
+    _BL,
+    _CBULLET,
+    _H,
+    _RARROWF,
+    _RARROWP,
+    _RESET,
+    _TDH,
+    _TL,
+    _V,
+    fg256,
+)
 from notifystate._utils import format_timedelta
 
 # NOTE: Python 3.12+ (PEP 695) supports type statement.
@@ -502,7 +514,11 @@ class _Watch(ContextDecorator, AbstractContextManager):
     def __enter__(self) -> Self:
         self._start = datetime.now()
 
-        f = (f0 := inspect.currentframe()) and (f1 := f0.f_back) and f1.f_back
+        f = (
+            ((f0 := inspect.currentframe()) and (f1 := f0.f_back) and f1.f_back)
+            if self._is_fn
+            else (f0 := inspect.currentframe()) and f0.f_back
+        )
         filename = f and f.f_code.co_filename
         fnname = f and f.f_code.co_name
         lineno = f and f.f_lineno
@@ -517,11 +533,12 @@ class _Watch(ContextDecorator, AbstractContextManager):
             if filename and lineno is not None
             else None
         )
+        module_fname = f"`{module}.{fnname}`" if fnname != "<module>" else f"`{module}`"
         if self._is_fn:
-            self._called_from = f"`{module}.{fnname}` @ {filename}:{lineno}"
+            self._called_from = f"{module_fname} @ {filename}:{lineno}"
         else:
             self._called_from = f"{filename}:{lineno}"
-            self._target = f"code block in `{module}.{fnname}`"
+            self._target = f"code block in {module_fname}"
 
         message = f"Start watching{self._details()}"
         self._send(message)
@@ -535,12 +552,16 @@ class _Watch(ContextDecorator, AbstractContextManager):
     ) -> None:
         assert self._start
         end = datetime.now()
-        et_msg = f"Execution time: {format_timedelta(end - self._start)}"
+        et_msg_raw = f"Execution time: {format_timedelta(end - self._start)}"
+        et_msg = fg256(8) + " " + _CBULLET + " " + et_msg_raw + _RESET
         exc_only = "".join(traceback.format_exception_only(exc_type, exc_val)).strip()
         if exc_type:
             tb = "".join(traceback.format_exception(exc_type, exc_val, exc_tb))
             error_msg = (
-                f"Error while watching{self._details('error')}: {exc_only}\n{et_msg}."
+                f"Error while watching{self._details('error')}\n"
+                + (fg256(45) + _BL + _H + _RARROWP + _RESET + " ")
+                + (fg256(197) + exc_only + _RESET + "\n")
+                + et_msg
             )
             self._send(error_msg, tb=tb, level="error")
         else:
@@ -550,29 +571,50 @@ class _Watch(ContextDecorator, AbstractContextManager):
     def _details(self, level: _LevelStr = "info") -> str:
         assert self._called_from is not None
         target = (
-            f" <{self._target}> [label: {self._label}]"
+            f" {fg256(45)}<{self._target}> [label: {self._label}]{_RESET}"
             if self._label
-            else f" <{self._target}>"
+            else f" {fg256(45)}<{self._target}>{_RESET}"
         )
-        w = self._called_lines and len(str(self._called_lines[-1][0]))
         called_lines = (
             _LEVEL_ORDER[self._callsite_level] <= _LEVEL_ORDER[level]
-            and self._called_lines
-            and w
-            and "\n".join(
-                [f"  | {i:>{w}d} > {line}" for i, line in self._called_lines]
-            ).rstrip()
-        )
+        ) and self._get_called_lines_str(level == "error")
         if self._is_fn:
             assert self._defined_at is not None
-            defined_at = f"  | Defined at: {self._defined_at}"
-            called_from = f"  | Called from: {self._called_from}"
+            defined_at = f" {fg256(8)}{_RARROWF} Defined at: {fg256(12)}{self._defined_at}{_RESET}"
+            called_from = f" {fg256(8)}{_RARROWF} Called from: {fg256(12)}{self._called_from}{_RESET}"
             return "\n".join(
                 filter(None, [target, defined_at, called_from, called_lines])
             )
         else:
-            called_from = f"  | at: {self._called_from}"
+            called_from = (
+                f" {fg256(8)}{_RARROWF} at: {fg256(12)}{self._called_from}{_RESET}"
+            )
             return "\n".join(filter(None, [target, called_from, called_lines]))
+
+    def _get_called_lines_str(self, with_arrow: bool) -> str | None:
+        if not self._called_lines:
+            return None
+        w = len(str(self._called_lines[-1][0]))
+        called_lines_ls = [
+            f"  {fg256(20)}{i:>{w}d} {fg256(57)}{_V}{_RESET} {line}"
+            for i, line in self._called_lines
+        ]
+        wnum = len(line := self._called_lines[self._callsite_context_before][1]) - (
+            snum := len(line.lstrip())
+        )
+        underline = (
+            fg256(45) + _TL + _H * (3 + wnum) + _TDH * 2 + " " + _H * snum + _RESET
+            if with_arrow
+            else fg256(45) + " " * 7 + " " * wnum + _H * snum + _RESET
+        )
+        return "\n".join(
+            called_lines_ls[: (idx := self._callsite_context_before + 1)]
+            + [underline]
+            + [
+                fg256(45) + _V + _RESET + l[1:] if with_arrow else l
+                for l in called_lines_ls[idx:]
+            ]
+        )
 
     def __call__(self, fn: Callable) -> Any:
         self._is_fn = True

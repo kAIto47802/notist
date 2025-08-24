@@ -5,6 +5,7 @@ from typing import Any
 from slack_sdk import WebClient
 
 import notifystate._log as _log
+from notifystate._log import _RESET, fg256
 from notifystate._notifiers.base import (
     _DOC_ADDITIONS_BASE,
     _LEVEL_ORDER,
@@ -60,7 +61,7 @@ class SlackNotifier(BaseNotifier):
         if not self._disable and self._verbose:
             if self._default_channel:
                 _log.info(
-                    f"SlackNotifier initialized with default channel: {self._default_channel}"
+                    f"SlackNotifier initialized with default channel: {fg256(33)}{self._default_channel}{_RESET}"
                 )
             else:
                 _log.warn(
