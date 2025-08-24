@@ -15,4 +15,4 @@ __all__ = [
     "watch",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.1.0dev"
