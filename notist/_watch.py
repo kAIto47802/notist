@@ -317,8 +317,8 @@ def _get_called_lines_str(
             called_lines_ls[: (idx := callsite_context_before + 1)]
             + [underline]
             + [
-                f"{fg256(45)}{_G.V}{RESET}{l[1:]}" if message else l
-                for l in called_lines_ls[idx:]
+                f"{fg256(45)}{_G.V}{RESET}{line[1:]}" if message else line
+                for line in called_lines_ls[idx:]
             ]
             + (
                 [
