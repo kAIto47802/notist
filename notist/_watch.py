@@ -7,7 +7,7 @@ import sys
 import traceback
 from contextlib import AbstractContextManager, ContextDecorator
 from datetime import datetime
-from typing import TYPE_CHECKING, Protocol, TypeVar
+from typing import TYPE_CHECKING
 
 from notist._log import (
     LEVEL_ORDER,
@@ -19,46 +19,15 @@ from notist._log import Glyph as _G
 from notist._log import SpecialToken as _S
 from notist._utils import format_timedelta
 
-if TYPE_CHECKING:
-    from collections.abc import Callable
-    from types import TracebackType
-    from typing import Any
-
-
-if sys.version_info >= (3, 10):
-    from typing import ParamSpec
-else:
-    from typing_extensions import ParamSpec
 if sys.version_info >= (3, 11):
     from typing import Self
 else:
     from typing_extensions import Self
 
-
-# NOTE: Python 3.12+ (PEP 695) supports inline type parameter syntax.
-# After dropping Python 3.11 support, update this to use that instead.
-# See:
-#   - https://peps.python.org/pep-0695/
-#   - https://docs.python.org/3/reference/compound_stmts.html#type-params
-P = ParamSpec("P")
-R = TypeVar("R")
-
-
-# This protocol guarantees to static checkers (e.g. mypy) that any implementing
-# object have  `__enter__`, `__exit__` and `__call__`.
-# Otherwise, users applying these contexts would get mypy errors because the type
-# system wouldn't know these methods exist.
-class ContextManagerDecorator(Protocol[P, R]):
-    """Protocol for objects that can be used as context managers and decorators."""
-
-    def __enter__(self) -> Self: ...
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> None: ...
-    def __call__(self, fn: Callable[P, R]) -> Callable[P, R]: ...
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from types import TracebackType
+    from typing import Any
 
 
 class Watch(ContextDecorator, AbstractContextManager):

@@ -9,7 +9,7 @@ from notist._log import LEVEL_ORDER
 from notist._notifiers.base import (
     DOC_ADDITIONS_BASE,
     BaseNotifier,
-    SendConfig,
+    _SendConfig,
 )
 from notist._utils import extend_method_docstring
 
@@ -74,7 +74,7 @@ class DiscordNotifier(BaseNotifier):
     def _do_send(
         self,
         message: str,
-        send_config: SendConfig,
+        send_config: _SendConfig,
         tb: str | None = None,
         level: LevelStr = "info",
     ) -> None:

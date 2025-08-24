@@ -6,10 +6,9 @@ from functools import wraps
 from typing import TYPE_CHECKING, Iterable, Literal, TypeVar, cast, overload
 
 import notist._log as _log
-from notist._notifiers.base import BaseNotifier
+from notist._notifiers.base import BaseNotifier, ContextManagerDecorator
 from notist._notifiers.discord import DiscordNotifier
 from notist._notifiers.slack import SlackNotifier
-from notist._watch import ContextManagerDecorator
 
 if sys.version_info >= (3, 10):
     from typing import ParamSpec
@@ -111,9 +110,6 @@ def _combine_contexts(
                 ctx.__exit__(exc_type, exc_value, traceback)
 
     return _Combined()  # type: ignore
-
-
-T = TypeVar("T")
 
 
 class _PhantomContextManagerDecorator(ContextDecorator, AbstractContextManager):
@@ -429,6 +425,83 @@ def register(
     _notifier[send_to].register(
         target,
         name,
+        label=label,
+        callsite_context_before=callsite_context_before,
+        callsite_context_after=callsite_context_after,
+        **kwargs,  # type: ignore
+    )
+
+
+T = TypeVar("T")
+
+
+@_allow_multi_dest
+def watch_iterable(
+    self,
+    iterable: Iterable[T],
+    step: int = 1,
+    total: int | None = None,
+    *,
+    send_to: _DESTINATIONS | list[_DESTINATIONS] | None = None,
+    label: str | None = None,
+    channel: str | None = None,
+    mention_to: str | None = None,
+    mention_level: LevelStr | None = None,
+    mention_if_ends: bool | None = None,
+    callsite_level: LevelStr | None = None,
+    callsite_context_before: int = 1,
+    callsite_context_after: int = 4,
+    verbose: bool | None = None,
+    disable: bool | None = None,
+) -> Iterable[T]:
+    """
+    A generator that yields items from an iterable while sending notifications about the progress.
+    This is useful for monitoring long-running tasks that process items from an iterable.
+
+    Args:
+        iterable: The iterable to watch.
+        step: The number of items to process before sending a progress notification.
+        total: The total number of items in the iterable. If not provided, it will not be included in the progress messages.
+        send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
+        label: Optional label for the watch context. This label will be included in both notification messages and log entries.
+        mention_to: Override the default entity to mention on notification.
+        mention_level: Override the default mention threshold level.
+        mention_if_ends: Override the default setting for whether to mention at the end of the watch.
+        callsite_level: Override the default call-site source snippet threshold level.
+        callsite_context_before: Number of lines of context to include before the call site.
+        callsite_context_after: Number of lines of context to include after the call site.
+        verbose: Override the default verbosity setting.
+        disable: Override the default disable flag.
+
+
+    Example:
+
+        .. code-block:: python
+
+            # Monitor progress of processing a long-running for loop
+            for batch in notist.watch_iterable(train_dataloader, step=10):
+                # This loop will be monitored, and you'll receive notifications every 10 iterations.
+                # If an error occurs inside this loop, you'll be notified immediately.
+                ...
+    """
+    if send_to is None:
+        _warn_not_set_send_to()
+        return iterable
+    assert isinstance(send_to, str)
+    kwargs = dict(
+        channel=channel,
+        mention_to=mention_to,
+        mention_level=mention_level,
+        mention_if_ends=mention_if_ends,
+        callsite_level=callsite_level,
+        verbose=verbose,
+        disable=disable,
+    )
+    _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
+    yield from _notifier[send_to].watch_iterable(  # type: ignore
+        iterable,
+        step=step,
+        total=total,
         label=label,
         callsite_context_before=callsite_context_before,
         callsite_context_after=callsite_context_after,
