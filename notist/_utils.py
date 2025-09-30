@@ -8,7 +8,11 @@ from typing import TYPE_CHECKING, Any, TypeVar
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-
+# NOTE: Python 3.12+ (PEP 695) supports inline type parameter syntax.
+# After dropping Python 3.11 support, update this to use that instead.
+# See:
+#   - https://peps.python.org/pep-0695/
+#   - https://docs.python.org/3/reference/compound_stmts.html#type-params
 T = TypeVar("T", bound=type[Any])
 
 
