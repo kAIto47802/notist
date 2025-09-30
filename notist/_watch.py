@@ -3,7 +3,6 @@ from __future__ import annotations
 import functools
 import inspect
 import linecache
-import sys
 import traceback
 from contextlib import AbstractContextManager, ContextDecorator
 from datetime import datetime
@@ -19,15 +18,16 @@ from notist._log import Glyph as _G
 from notist._log import SpecialToken as _S
 from notist._utils import format_timedelta
 
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing_extensions import Self
-
 if TYPE_CHECKING:
+    import sys
     from collections.abc import Callable
     from types import TracebackType
     from typing import Any
+
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        from typing_extensions import Self
 
 
 class Watch(ContextDecorator, AbstractContextManager):
