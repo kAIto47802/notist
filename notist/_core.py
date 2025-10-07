@@ -79,7 +79,7 @@ def _allow_multi_dest(fn: Callable[P, R]) -> Callable[P, R]:
         send_to = kwargs.get("send_to")
         if send_to is None and _notifiers:
             send_to = list(_notifiers.keys())
-        iterable = next(iter(v for k, v in kwargs.items() if k == "iterable"), None)
+        iterable = kwargs.get("iterable")
         if isinstance(send_to, Iterable) and not isinstance(send_to, str):
             res = []
             for i, dest in enumerate(send_to):
@@ -91,7 +91,9 @@ def _allow_multi_dest(fn: Callable[P, R]) -> Callable[P, R]:
                     new_kwargs["object_id"] = hex(id(iterable))
                 res.append(fn(*args, **new_kwargs))  # type: ignore
             if all(isinstance(r, AbstractContextManager) for r in res):
-                return _combine_contexts(cast(list[ContextManagerDecorator], res))
+                return _combine_contexts_or_iterable(
+                    cast(list[ContextManagerDecorator], res)
+                )
             elif all(isinstance(r, Generator) for r in res):
                 return map(lambda x: x[0], zip(*res))
             elif all(r is None for r in res):
@@ -106,7 +108,7 @@ def _allow_multi_dest(fn: Callable[P, R]) -> Callable[P, R]:
     return wrapper
 
 
-def _combine_contexts(
+def _combine_contexts_or_iterable(
     contexts: list[ContextManagerDecorator],
 ) -> ContextManagerDecorator:
     class _Combined(ContextDecorator, AbstractContextManager):
@@ -123,6 +125,9 @@ def _combine_contexts(
         ) -> None:
             for ctx in reversed(contexts):
                 ctx.__exit__(exc_type, exc_value, traceback)
+
+        def __iter__(self) -> Iterable:
+            return map(lambda x: x[0], zip(*contexts))
 
     return _Combined()  # type: ignore
 

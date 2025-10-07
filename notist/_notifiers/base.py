@@ -4,14 +4,11 @@ import os
 import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime
 from functools import partial
 from typing import TYPE_CHECKING, Protocol, TypeVar
 
 import notist._log as _log
-from notist._log import Glyph as _G
-from notist._log import LevelStr, fg256, prepare_for_message
-from notist._utils import format_timedelta
+from notist._log import LevelStr, prepare_for_message
 from notist._watch import IterableWatch, Watch
 
 if sys.version_info >= (3, 10):
@@ -151,6 +148,11 @@ DOC_ADDITIONS_BASE = {
         """,
 }
 
+# NOTE: Python 3.12+ (PEP 695) supports inline type parameter syntax.
+# After dropping Python 3.11 support, update this to use that instead.
+# See:
+#   - https://peps.python.org/pep-0695/
+#   - https://docs.python.org/3/reference/compound_stmts.html#type-params
 T = TypeVar("T")
 
 
@@ -474,8 +476,6 @@ class BaseNotifier(ABC):
         class_name: str | None = None,
         object_id: int | None = None,
     ) -> Iterable[T]:
-        start = datetime.now()
-        iterable_object = f"{class_name or iterable.__class__.__name__} object at {object_id or hex(id(iterable))}"
         send_config = _SendConfig(
             channel=channel or self._default_channel,
             mention_to=mention_to or self._mention_to,
@@ -488,34 +488,20 @@ class BaseNotifier(ABC):
         )
         if step < 1:
             step = 1
-            _log.warn(
-                f"Step must be at least 1. Setting step to 1 for {self._platform}Notifier."
-            )
+            if send_config.verbose:
+                _log.warn(
+                    f"Step must be at least 1. Setting step to 1 for {self._platform}Notifier."
+                )
 
-        iterable_watch = IterableWatch(
+        return IterableWatch(
+            iterable,
             step,
             total,
-            iterable_object,
-            start,
             partial(self._send, send_config=send_config),
             label,
             callsite_level or self._default_callsite_level,
             callsite_context_before,
             callsite_context_after,
+            class_name,
+            object_id,
         )
-
-        message = f"Start watching{iterable_watch.details()}"
-        self._send(message, send_config)
-
-        for item in iterable:
-            with iterable_watch:
-                yield item
-        iterable_watch.send_final_message_if_needed()
-
-        end = datetime.now()
-        message = (
-            f"End watching{iterable_watch.details()}\n"
-            f"{fg256(8)} {_G.CBULLET} "
-            f"Total execution time: {format_timedelta(end - start)}"
-        )
-        self._send(message, send_config)

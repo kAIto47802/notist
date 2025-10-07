@@ -4,9 +4,10 @@ import functools
 import inspect
 import linecache
 import traceback
+from collections.abc import Iterator
 from contextlib import AbstractContextManager, ContextDecorator
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 from notist._log import (
     LEVEL_ORDER,
@@ -20,7 +21,7 @@ from notist._utils import format_timedelta
 
 if TYPE_CHECKING:
     import sys
-    from collections.abc import Callable
+    from collections.abc import Callable, Generator, Iterable
     from types import TracebackType
     from typing import Any
 
@@ -145,28 +146,38 @@ class Watch(ContextDecorator, AbstractContextManager):
         return functools.wraps(fn)(wrapped)
 
 
-class IterableWatch(AbstractContextManager):
+# NOTE: Python 3.12+ (PEP 695) supports inline type parameter syntax.
+# After dropping Python 3.11 support, update this to use that instead.
+# See:
+#   - https://peps.python.org/pep-0695/
+#   - https://docs.python.org/3/reference/compound_stmts.html#type-params
+T = TypeVar("T")
+
+
+class IterableWatch(AbstractContextManager, Generic[T]):
     def __init__(
         self,
+        iterable: Iterable[T],
         step: int,
         total: int | None,
-        iterable_object: str,
-        start: datetime,
         send_fn: Callable[..., None],
         label: str | None,
         callsite_level: LevelStr = "error",
         callsite_context_before: int = 1,
         callsite_context_after: int = 4,
+        class_name: str | None = None,
+        object_id: int | None = None,
     ) -> None:
+        self._iterable = iterable
         self._step = step
         self._total = total
-        self._iterable_object = iterable_object
-        self._start = start
         self._send = send_fn
         self._label = label
         self._callsite_level = callsite_level
         self._callsite_context_before = callsite_context_before
         self._callsite_context_after = callsite_context_after
+        self._iterable_object_str = f"{class_name or iterable.__class__.__name__} object at {object_id or hex(id(iterable))}"
+        self._start: datetime | None = datetime.now()
         self._count: int | None = None
         self._prev_start: datetime | None = None
         self._cur_range_start: int | None = None
@@ -183,20 +194,6 @@ class IterableWatch(AbstractContextManager):
         )
 
     def __enter__(self) -> Self:
-        self._count = 0 if self._count is None else self._count + 1
-        assert self._count is not None
-        if self._count % self._step:
-            return self
-        self._cur_range_start = self._count + 1
-        self._cur_range_end = min(self._count + self._step, self._total or 1 << 30)
-        self._prev_start = datetime.now()
-        message = (
-            "Processing "
-            + self._item_message
-            + (f"of {self._total} " if self._total is not None else "")
-            + f"from{self.details()}"
-        )
-        self._send(message)
         return self
 
     def __exit__(
@@ -206,27 +203,91 @@ class IterableWatch(AbstractContextManager):
         exc_tb: TracebackType | None,
     ) -> None:
         assert self._count is not None
-        if exc_type:
-            message = (
-                "Error while processing "
-                + self._item_message
-                + (f"of {self._total} " if self._total is not None else "")
-                + "from"
-                + self.details("error", "An error occurred in this block!")
-                + "\n"
-                + self._et_message
-            )
-            self._send(message, level="error")
+        if not exc_type:
             return
-        if (self._count + 1) % self._step:
+        tb = "".join(traceback.format_exception(exc_type, exc_val, exc_tb))
+        exc_only = "".join(traceback.format_exception_only(exc_type, exc_val)).strip()
+        message = (
+            "Error while processing "
+            + self._item_message
+            + (f"of {self._total} " if self._total is not None else "")
+            + "from"
+            + self._details("error", exc_only)
+            + "\n"
+            + self._et_message
+        )
+        self._send(message, tb=tb, level="error")
+
+    def __iter__(self) -> Iterator[T]:
+        return self._gen()
+
+    def _gen(self) -> Generator[T, None, None]:
+        self._on_iter_start()
+        try:
+            for item in self._iterable:
+                self._on_step_start()
+                try:
+                    yield item
+                finally:
+                    self._on_step_end()
+        finally:
+            self._on_iter_end()
+
+    def _send_end_message(self) -> None:
+        self._send(
+            "Processed "
+            + self._item_message
+            + (f"of {self._total} " if self._total is not None else "")
+            + f"from{self._details()}\n"
+            + self._et_message
+        )
+
+    def _on_iter_start(self) -> None:
+        if self._count is not None:
+            return
+        self._start = datetime.now()
+        self._send(f"Start watching{self._details()}")
+
+    def _on_iter_end(self) -> None:
+        assert self._count is not None
+        if not (self._count + 1) % self._step:
+            return
+        self._cur_range_end = self._count + 1
+        self._send_end_message()
+
+        assert self._start is not None
+        end = datetime.now()
+        self._send(
+            f"End watching{self._details()}\n"
+            f"{fg256(8)} {_G.CBULLET} "
+            f"Total execution time: {format_timedelta(end - self._start)}"
+        )
+
+    def _on_step_start(self) -> None:
+        self._count = 0 if self._count is None else self._count + 1
+        assert self._count is not None
+        if self._count % self._step:
+            return
+        self._cur_range_start = self._count + 1
+        self._cur_range_end = min(self._count + self._step, self._total or 1 << 30)
+        self._prev_start = datetime.now()
+        self._send(
+            "Processing "
+            + self._item_message
+            + (f"of {self._total} " if self._total is not None else "")
+            + f"from{self._details()}"
+        )
+
+    def _on_step_end(self) -> None:
+        if self._count is None or (self._count + 1) % self._step:
             return
         self._send_end_message()
 
-    def details(self, level: LevelStr = "info", message: str | None = None) -> str:
+    def _details(self, level: LevelStr = "info", message: str | None = None) -> str:
         target = (
-            f" {fg256(45)}{_S.BT_MSG}<{self._iterable_object}>{_S.BT_MSG} [label: {self._label}]{RESET}"
+            f" {fg256(45)}{_S.BT_MSG}<{self._iterable_object_str}>{_S.BT_MSG} [label: {self._label}]{RESET}"
             if self._label
-            else f" {fg256(45)}{_S.BT_MSG}<{self._iterable_object}>{_S.BT_MSG}{RESET}"
+            else f" {fg256(45)}{_S.BT_MSG}<{self._iterable_object_str}>{_S.BT_MSG}{RESET}"
         )
         called_from = (
             f" {fg256(8)}{_G.RARROWF} in: {fg256(12)}{self._called_from}{RESET}"
@@ -244,27 +305,11 @@ class IterableWatch(AbstractContextManager):
         )
         return "\n".join(filter(None, [target, called_from, called_lines]))
 
-    def _send_end_message(self) -> None:
-        message = (
-            "Processed "
-            + self._item_message
-            + (f"of {self._total} " if self._total is not None else "")
-            + f"from{self.details()}\n"
-            + self._et_message
-        )
-        self._send(message)
-
-    def send_final_message_if_needed(self) -> None:
-        assert self._count is not None
-        if not (self._count + 1) % self._step:
-            return
-        self._cur_range_end = self._count + 1
-        self._send_end_message()
-
     @property
     def _et_message(self) -> str:
         end = datetime.now()
         assert self._prev_start is not None
+        assert self._start is not None
         return (
             f"{fg256(8)} {_G.CBULLET} Execution time for "
             + self._item_message.rstrip()
