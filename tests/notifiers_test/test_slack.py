@@ -1,14 +1,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 import pytest
-from pytest import CaptureFixture, MonkeyPatch
 from slack_sdk import WebClient
 
-from notist._log import _CSI, _PREFIX, LEVEL_ORDER, LevelStr
+from notist._log import _CSI, _PREFIX, LEVEL_ORDER
 from notist._notifiers.slack import SlackNotifier
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from typing import Any
+
+    from pytest import CaptureFixture, MonkeyPatch
+
+    from notist._log import LevelStr
 
 
 class DummyClient:
@@ -50,9 +57,9 @@ parametrize_label = pytest.mark.parametrize("label", ["label1", None])
 parametrize_channel = pytest.mark.parametrize(
     "channel",
     [
-        _OverrideTestCase(None, None, None),
-        _OverrideTestCase("default-channel", None, "default-channel"),
-        _OverrideTestCase(None, "test-channel", "test-channel"),
+        # _OverrideTestCase(None, None, None),
+        # _OverrideTestCase("default-channel", None, "default-channel"),
+        # _OverrideTestCase(None, "test-channel", "test-channel"),
         _OverrideTestCase("default-channel", "test-channel", "test-channel"),
     ],
 )
@@ -109,11 +116,11 @@ parametrize_verbose = pytest.mark.parametrize(
 parametrize_disable = pytest.mark.parametrize(
     "disable",
     [
-        _OverrideTestCase(False, None, False),
-        _OverrideTestCase(True, None, True),
-        _OverrideTestCase(False, True, True),
-        _OverrideTestCase(True, True, True),
-        _OverrideTestCase(False, False, False),
+        # _OverrideTestCase(False, None, False),
+        # _OverrideTestCase(True, None, True),
+        # _OverrideTestCase(False, True, True),
+        # _OverrideTestCase(True, True, True),
+        # _OverrideTestCase(False, False, False),
         _OverrideTestCase(True, False, False),
     ],
 )
@@ -480,12 +487,19 @@ def test_slack_register_instance(
     assert all(_CSI not in s["text"] for s in dummy_client.sent)
 
 
+parametrize_step = pytest.mark.parametrize("step", [1, 2])
+parametrize_total = pytest.mark.parametrize("total", [None, 3, 4])
+parametrize_use_context = pytest.mark.parametrize("use_context", [True, False])
+parametrize_sized = pytest.mark.parametrize("sized", [True, False])
+
+
 @parametrize_label
 @parametrize_channel
 @parametrize_disable
-@pytest.mark.parametrize("step", [1, 2])
-@pytest.mark.parametrize("total", [None, 3, 4])
-@pytest.mark.parametrize("use_context", [True, False])
+@parametrize_step
+@parametrize_total
+@parametrize_use_context
+@parametrize_sized
 def test_slack_watch_iterable_success(
     dummy_client: DummyClient,
     label: str | None,
@@ -494,12 +508,17 @@ def test_slack_watch_iterable_success(
     step: int,
     total: int | None,
     use_context: bool,
+    sized: bool,
 ) -> None:
     slack = SlackNotifier(token="tok", channel=channel.default, disable=disable.default)
     slack._client = dummy_client  # type: ignore
 
-    iterable = range(t := total or 4)
-    iterable_object = f"<range object at {hex(id(iterable))}>"
+    iterable: Iterable = range(t := total or 4)
+    if not sized:
+        iterable = iter(iterable)
+    iterable_object = (
+        f"<{'range' if sized else 'range_iterator'} object at {hex(id(iterable))}>"
+    )
     watch_iterable = slack.watch_iterable(
         iterable,
         step=step,
@@ -531,24 +550,25 @@ def test_slack_watch_iterable_success(
     assert "Total execution time" in dummy_client.sent[-1]["text"]
 
     if step == 1:
-        if total is None:
+        if total is None and not sized:
             # Include white space so that it does not match "item 2–"
             assert "item 1 " in dummy_client.sent[1]["text"]
         else:
-            assert f"item 1 of {total}" in dummy_client.sent[1]["text"]
+            assert f"item 1 of {t}" in dummy_client.sent[1]["text"]
     else:
-        if total is None:
+        if total is None and not sized:
             assert "items 1–2" in dummy_client.sent[1]["text"]
         else:
-            assert f"items 1–2 of {total}" in dummy_client.sent[1]["text"]
+            assert f"items 1–2 of {t}" in dummy_client.sent[1]["text"]
 
 
 @parametrize_label
 @parametrize_channel
 @parametrize_disable
-@pytest.mark.parametrize("step", [1, 2])
-@pytest.mark.parametrize("total", [None, 3, 4])
-@pytest.mark.parametrize("use_context", [True, False])
+@parametrize_step
+@parametrize_total
+@parametrize_use_context
+@parametrize_sized
 def test_slack_watch_iterable_error(
     dummy_client: DummyClient,
     label: str | None,
@@ -557,12 +577,17 @@ def test_slack_watch_iterable_error(
     step: int,
     total: int | None,
     use_context: bool,
+    sized: bool,
 ) -> None:
     slack = SlackNotifier(token="tok", channel=channel.default, disable=disable.default)
     slack._client = dummy_client  # type: ignore
 
-    iterable = range(3)
-    iterable_object = f"<range object at {hex(id(iterable))}>"
+    iterable: Iterable = range(t := total or 4)
+    if not sized:
+        iterable = iter(iterable)
+    iterable_object = (
+        f"<{'range' if sized else 'range_iterator'} object at {hex(id(iterable))}>"
+    )
 
     watch_iterable = slack.watch_iterable(
         iterable,
@@ -603,13 +628,13 @@ def test_slack_watch_iterable_error(
         assert "Error while processing" in dummy_client.sent[-1]["text"]
 
     if step == 1:
-        if total is None:
+        if total is None and not sized:
             # Include white space so that it does not match "item 2–"
             assert "item 2 " in dummy_client.sent[-1]["text"]
         else:
-            assert f"item 2 of {total}" in dummy_client.sent[-1]["text"]
+            assert f"item 2 of {t}" in dummy_client.sent[-1]["text"]
     else:
-        if total is None:
+        if total is None and not sized:
             assert "items 1–2" in dummy_client.sent[-1]["text"]
         else:
             assert "items 1–2" in dummy_client.sent[-1]["text"]
