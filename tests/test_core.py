@@ -14,6 +14,8 @@ if TYPE_CHECKING:
 
     from pytest import CaptureFixture, MonkeyPatch
 
+    from notist._notifiers.base import BaseNotifier
+
     from .notifiers_test.test_discord import Sent
     from .notifiers_test.test_slack import DummyClient
 
@@ -90,7 +92,7 @@ def test_init(
     monkeypatch: MonkeyPatch,
     destination: _DESTINATIONS | list[_DESTINATIONS],
 ) -> None:
-    dummy_notifiers = {}
+    dummy_notifiers: dict[str, BaseNotifier] = {}
     monkeypatch.setattr(notist._core, "_notifiers", dummy_notifiers)
     notist.init(send_to=destination, token="tok")
     if isinstance(destination, str):
@@ -108,7 +110,7 @@ def test_send(
     dummy_post: Sent,
     destination: _DESTINATIONS | list[_DESTINATIONS],
 ) -> None:
-    dummy_notifiers = {}
+    dummy_notifiers: dict[str, BaseNotifier] = {}
     monkeypatch.setattr(notist._core, "_notifiers", dummy_notifiers)
     notist.init(send_to=destination, token="tok", channel="chan")
     if isinstance(destination, str):
