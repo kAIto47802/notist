@@ -3,18 +3,19 @@ from __future__ import annotations
 from contextlib import ContextDecorator
 from typing import TYPE_CHECKING
 
-from notifiers_test.test_discord import dummy_post  # noqa: F401
-from notifiers_test.test_slack import dummy_client  # noqa: F401
-from pytest import MonkeyPatch
-
 import notist._core
+
+from .notifiers_test.test_discord import dummy_post  # noqa: F401
+from .notifiers_test.test_slack import dummy_client  # noqa: F401
 
 if TYPE_CHECKING:
     import sys
     from typing import Any
 
-    from notifiers_test.test_discord import Sent
-    from notifiers_test.test_slack import DummyClient
+    from pytest import CaptureFixture, MonkeyPatch
+
+    from .notifiers_test.test_discord import Sent
+    from .notifiers_test.test_slack import DummyClient
 
     if sys.version_info >= (3, 11):
         from typing import Self
@@ -102,6 +103,7 @@ def test_init(
 @parametrize_destination
 def test_send(
     monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture[str],
     dummy_client: DummyClient,
     dummy_post: Sent,
     destination: _DESTINATIONS | list[_DESTINATIONS],
@@ -114,7 +116,6 @@ def test_send(
     if "slack" in dummy_notifiers:
         dummy_notifiers["slack"]._client = dummy_client  # type: ignore
     notist.send("msg")
-    print(destination)
     if "slack" in destination:
         assert len(dummy_client.sent) == 1
         assert dummy_client.sent[0]["text"] == "msg"
@@ -125,3 +126,10 @@ def test_send(
         assert dummy_post[0][2]["content"] == "msg"
     else:
         assert len(dummy_post) == 0
+
+    captured = capsys.readouterr()
+    if "slack" == destination or "slack" in destination:
+        assert "SlackNotifier initialized" in captured.out
+    if "discord" == destination or "discord" in destination:
+        assert "DiscordNotifier initialized" in captured.out
+    assert captured.out.count("msg") == 1
