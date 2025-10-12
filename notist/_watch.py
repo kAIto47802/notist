@@ -66,18 +66,12 @@ class Watch(ContextDecorator, AbstractContextManager):
     def __enter__(self) -> Self:
         self._start = datetime.now()
 
-        f = (
-            (
-                (f0 := inspect.currentframe())
-                and (f1 := f0.f_back)
-                and (f2 := f1.f_back)
-                and f2.f_back
-            )
-            if self._is_fn and self._combined
-            else ((f0 := inspect.currentframe()) and (f1 := f0.f_back) and f1.f_back)
-            if self._is_fn or self._combined
-            else (f0 := inspect.currentframe()) and f0.f_back
-        )
+        f = (f0 := inspect.currentframe()) and f0.f_back
+        if self._is_fn:
+            f = f and f.f_back
+        if self._combined:
+            f = f and f.f_back
+
         self._filename = f and f.f_code.co_filename
         fnname = f and f.f_code.co_name
         self._lineno = f and f.f_lineno
@@ -191,19 +185,14 @@ class IterableWatch(AbstractContextManager, Generic[T]):
         self._prev_start: datetime | None = None
         self._cur_range_start: int | None = None
         self._cur_range_end: int | None = None
+        self._filename: str | None = None
+        self._lineno: int | None = None
+        self._called_from: str | None = None
         self._combined: bool = False
-
-        f = (f0 := inspect.currentframe()) and (f1 := f0.f_back) and f1.f_back
-        self._filename = f and f.f_code.co_filename
-        fnname = f and f.f_code.co_name
-        self._lineno = f and f.f_lineno
-        module = f and f.f_globals.get("__name__", "<unknown>")
-        module_fname = f"{module}.{fnname}" if fnname != "<module>" else f"{module}"
-        self._called_from = (
-            f"{_S.BT_ALW}{module_fname}{_S.BT_ALW} @ {self._filename}:{self._lineno}"
-        )
+        self._is_context = False
 
     def __enter__(self) -> Self:
+        self._is_context = True
         return self
 
     def __exit__(
@@ -253,8 +242,7 @@ class IterableWatch(AbstractContextManager, Generic[T]):
         )
 
     def _on_iter_start(self) -> None:
-        if self._count is not None:
-            return
+        self._set_callsite_info()
         self._start = datetime.now()
         self._send(f"Start watching{self._details()}")
 
@@ -292,6 +280,21 @@ class IterableWatch(AbstractContextManager, Generic[T]):
         if self._count is None or (self._count + 1) % self._step:
             return
         self._send_end_message()
+
+    def _set_callsite_info(self) -> None:
+        f = (f0 := inspect.currentframe()) and (f1 := f0.f_back) and f1.f_back
+        if not self._is_context:
+            f = f and f.f_back
+        if self._combined:
+            f = f and f.f_back
+        self._filename = f and f.f_code.co_filename
+        fnname = f and f.f_code.co_name
+        self._lineno = f and f.f_lineno
+        module = f and f.f_globals.get("__name__", "<unknown>")
+        module_fname = f"{module}.{fnname}" if fnname != "<module>" else f"{module}"
+        self._called_from = (
+            f"{_S.BT_ALW}{module_fname}{_S.BT_ALW} @ {self._filename}:{self._lineno}"
+        )
 
     def _details(self, level: LevelStr = "info", message: str | None = None) -> str:
         target = (
