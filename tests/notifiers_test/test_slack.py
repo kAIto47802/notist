@@ -484,7 +484,8 @@ def test_slack_register_instance(
 @parametrize_channel
 @parametrize_disable
 @pytest.mark.parametrize("step", [1, 2])
-@pytest.mark.parametrize("total", [None, 3])
+@pytest.mark.parametrize("total", [None, 3, 4])
+@pytest.mark.parametrize("use_context", [True, False])
 def test_slack_watch_iterable_success(
     dummy_client: DummyClient,
     label: str | None,
@@ -492,36 +493,41 @@ def test_slack_watch_iterable_success(
     disable: _OverrideTestCase[bool, bool | None, bool],
     step: int,
     total: int | None,
+    use_context: bool,
 ) -> None:
     slack = SlackNotifier(token="tok", channel=channel.default, disable=disable.default)
     slack._client = dummy_client  # type: ignore
 
-    iterable = range(4)
+    iterable = range(t := total or 4)
     iterable_object = f"<range object at {hex(id(iterable))}>"
-    for _ in slack.watch_iterable(
+    watch_iterable = slack.watch_iterable(
         iterable,
         step=step,
         total=total,
         label=label,
         channel=channel.override,
         disable=disable.override,
-    ):
-        pass
+    )
+    if use_context:
+        with watch_iterable as it:
+            for _ in it:
+                pass
+    else:
+        for _ in watch_iterable:
+            pass
 
     if disable.expected or channel.expected is None:
         assert dummy_client.sent == []
         return
 
-    print(dummy_client.sent[-1]["text"])
-
-    assert len(dummy_client.sent) == 2 * (4 // step + 1)
+    assert (  # start/end * (process + watch)
+        len(dummy_client.sent) == 2 * ((t - 1) // step + 1 + 1)
+    )
     assert all(s["channel"] == channel.expected for s in dummy_client.sent)
     assert all(s["attachments"] is None for s in dummy_client.sent)
     assert all(_CSI not in s["text"] for s in dummy_client.sent)
+    assert all(iterable_object in s["text"] for s in dummy_client.sent)
     assert "Start watching" in dummy_client.sent[0]["text"]
-    assert iterable_object in dummy_client.sent[0]["text"]
-    assert "End watching" in dummy_client.sent[-1]["text"]
-    assert iterable_object in dummy_client.sent[-1]["text"]
     assert "Total execution time" in dummy_client.sent[-1]["text"]
 
     if step == 1:
@@ -541,7 +547,8 @@ def test_slack_watch_iterable_success(
 @parametrize_channel
 @parametrize_disable
 @pytest.mark.parametrize("step", [1, 2])
-@pytest.mark.parametrize("total", [None, 3])
+@pytest.mark.parametrize("total", [None, 3, 4])
+@pytest.mark.parametrize("use_context", [True, False])
 def test_slack_watch_iterable_error(
     dummy_client: DummyClient,
     label: str | None,
@@ -549,6 +556,7 @@ def test_slack_watch_iterable_error(
     disable: _OverrideTestCase[bool, bool | None, bool],
     step: int,
     total: int | None,
+    use_context: bool,
 ) -> None:
     slack = SlackNotifier(token="tok", channel=channel.default, disable=disable.default)
     slack._client = dummy_client  # type: ignore
@@ -556,35 +564,43 @@ def test_slack_watch_iterable_error(
     iterable = range(3)
     iterable_object = f"<range object at {hex(id(iterable))}>"
 
+    watch_iterable = slack.watch_iterable(
+        iterable,
+        step=step,
+        total=total,
+        label=label,
+        channel=channel.override,
+        disable=disable.override,
+    )
     with pytest.raises(Exception):
-        for item in slack.watch_iterable(
-            iterable,
-            step=step,
-            total=total,
-            label=label,
-            channel=channel.override,
-            disable=disable.override,
-        ):
-            if item == 1:
-                raise Exception("This is an error.")
+        if use_context:
+            with watch_iterable as it:
+                for item in it:
+                    if item == 1:
+                        raise Exception("This is an error.")
+        else:
+            for item in watch_iterable:
+                if item == 1:
+                    raise Exception("This is an error.")
 
     if disable.expected or channel.expected is None:
         assert dummy_client.sent == []
         return
 
-    assert len(dummy_client.sent) == (5 if step == 1 else 3)
+    assert (  # start/end * (process + watch) - last end message + error
+        len(dummy_client.sent) == 2 * (2 // step + 1) - 2 + use_context
+    )
     assert all(s["channel"] == channel.expected for s in dummy_client.sent)
     assert all(_CSI not in s["text"] for s in dummy_client.sent)
+    assert all(iterable_object in s["text"] for s in dummy_client.sent)
 
     assert "Start watching" in dummy_client.sent[0]["text"]
-    assert iterable_object in dummy_client.sent[0]["text"]
     assert dummy_client.sent[0]["attachments"] is None
 
-    assert "Error while processing" in dummy_client.sent[-1]["text"]
-    assert iterable_object in dummy_client.sent[-1]["text"]
-    assert "Execution time" in dummy_client.sent[-1]["text"]
-    assert "Total execution time: 0s" in dummy_client.sent[-1]["text"]
-    assert dummy_client.sent[-1]["attachments"] is None
+    assert (dummy_client.sent[-1]["attachments"] is not None) == use_context
+    if use_context:
+        assert "Total execution time" in dummy_client.sent[-1]["text"]
+        assert "Error while processing" in dummy_client.sent[-1]["text"]
 
     if step == 1:
         if total is None:
