@@ -57,9 +57,9 @@ parametrize_label = pytest.mark.parametrize("label", ["label1", None])
 parametrize_channel = pytest.mark.parametrize(
     "channel",
     [
-        # _OverrideTestCase(None, None, None),
-        # _OverrideTestCase("default-channel", None, "default-channel"),
-        # _OverrideTestCase(None, "test-channel", "test-channel"),
+        _OverrideTestCase(None, None, None),
+        _OverrideTestCase("default-channel", None, "default-channel"),
+        _OverrideTestCase(None, "test-channel", "test-channel"),
         _OverrideTestCase("default-channel", "test-channel", "test-channel"),
     ],
 )
@@ -116,11 +116,11 @@ parametrize_verbose = pytest.mark.parametrize(
 parametrize_disable = pytest.mark.parametrize(
     "disable",
     [
-        # _OverrideTestCase(False, None, False),
-        # _OverrideTestCase(True, None, True),
-        # _OverrideTestCase(False, True, True),
-        # _OverrideTestCase(True, True, True),
-        # _OverrideTestCase(False, False, False),
+        _OverrideTestCase(False, None, False),
+        _OverrideTestCase(True, None, True),
+        _OverrideTestCase(False, True, True),
+        _OverrideTestCase(True, True, True),
+        _OverrideTestCase(False, False, False),
         _OverrideTestCase(True, False, False),
     ],
 )
