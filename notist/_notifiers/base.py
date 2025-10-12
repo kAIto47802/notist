@@ -21,7 +21,7 @@ else:
     from typing_extensions import Self
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Iterator
     from types import ModuleType, TracebackType
     from typing import Any, Callable
 
@@ -64,7 +64,7 @@ class ContextManagerIterator(Protocol[T_co]):
         exc_val: BaseException | None,
         tb: TracebackType | None,
     ) -> None: ...
-    def __iter__(self) -> Iterable[T_co]: ...
+    def __iter__(self) -> Iterator[T_co]: ...
 
 
 @dataclass
