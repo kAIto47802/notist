@@ -1,19 +1,25 @@
 from __future__ import annotations
 
-import sys
 from contextlib import ContextDecorator
-from typing import Any
+from typing import TYPE_CHECKING
 
-from notifiers_test.test_discord import Sent, dummy_post  # noqa: F401
-from notifiers_test.test_slack import DummyClient, dummy_client  # noqa: F401
+from notifiers_test.test_discord import dummy_post  # noqa: F401
+from notifiers_test.test_slack import dummy_client  # noqa: F401
 from pytest import MonkeyPatch
 
 import notist._core
 
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing_extensions import Self
+if TYPE_CHECKING:
+    import sys
+    from typing import Any
+
+    from notifiers_test.test_discord import Sent
+    from notifiers_test.test_slack import DummyClient
+
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        from typing_extensions import Self
 
 import pytest
 
