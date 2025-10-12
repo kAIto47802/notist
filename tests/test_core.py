@@ -106,8 +106,8 @@ def test_init(
 def test_send(
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture[str],
-    dummy_client: DummyClient,
-    dummy_post: Sent,
+    dummy_client: DummyClient,  # noqa
+    dummy_post: Sent,  # noqa
     destination: _DESTINATIONS | list[_DESTINATIONS],
 ) -> None:
     dummy_notifiers: dict[str, BaseNotifier] = {}
