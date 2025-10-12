@@ -7,7 +7,7 @@ import traceback
 from collections.abc import Iterator
 from contextlib import AbstractContextManager, ContextDecorator
 from datetime import datetime
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar
 
 from notist._log import (
     LEVEL_ORDER,
@@ -23,12 +23,21 @@ if TYPE_CHECKING:
     import sys
     from collections.abc import Callable, Generator, Iterable
     from types import TracebackType
-    from typing import Any
 
     if sys.version_info >= (3, 11):
         from typing import Self
     else:
         from typing_extensions import Self
+
+
+# NOTE: Python 3.12+ (PEP 695) supports inline type parameter syntax.
+# After dropping Python 3.11 support, update this to use that instead.
+# See:
+#   - https://peps.python.org/pep-0695/
+#   - https://docs.python.org/3/reference/compound_stmts.html#type-params
+P = ParamSpec("P")
+R = TypeVar("R")
+T = TypeVar("T")
 
 
 class Watch(ContextDecorator, AbstractContextManager):
@@ -52,13 +61,21 @@ class Watch(ContextDecorator, AbstractContextManager):
         self._is_fn = False
         self._filename: str | None = None
         self._lineno: int | None = None
+        self._combined: bool = False
 
     def __enter__(self) -> Self:
         self._start = datetime.now()
 
         f = (
-            ((f0 := inspect.currentframe()) and (f1 := f0.f_back) and f1.f_back)
-            if self._is_fn
+            (
+                (f0 := inspect.currentframe())
+                and (f1 := f0.f_back)
+                and (f2 := f1.f_back)
+                and f2.f_back
+            )
+            if self._is_fn and self._combined
+            else ((f0 := inspect.currentframe()) and (f1 := f0.f_back) and f1.f_back)
+            if self._is_fn or self._combined
             else (f0 := inspect.currentframe()) and f0.f_back
         )
         self._filename = f and f.f_code.co_filename
@@ -85,7 +102,7 @@ class Watch(ContextDecorator, AbstractContextManager):
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
+        tb: TracebackType | None,
     ) -> None:
         assert self._start
         end = datetime.now()
@@ -93,11 +110,11 @@ class Watch(ContextDecorator, AbstractContextManager):
         et_msg = fg256(8) + " " + _G.CBULLET + " " + et_msg_raw + RESET
         exc_only = "".join(traceback.format_exception_only(exc_type, exc_val)).strip()
         if exc_type:
-            tb = "".join(traceback.format_exception(exc_type, exc_val, exc_tb))
+            tb_str = "".join(traceback.format_exception(exc_type, exc_val, tb))
             error_msg = (
                 f"Error while watching{self._details('error', exc_only)}\n{et_msg}"
             )
-            self._send(error_msg, tb=tb, level="error")
+            self._send(error_msg, tb=tb_str, level="error")
         else:
             msg = f"End watching{self._details()}\n{et_msg}"
             self._send(msg)
@@ -133,7 +150,7 @@ class Watch(ContextDecorator, AbstractContextManager):
             )
             return "\n".join(filter(None, [target, called_from, called_lines]))
 
-    def __call__(self, fn: Callable) -> Any:
+    def __call__(self, fn: Callable[P, R]) -> Callable[P, R]:
         self._is_fn = True
         filename = inspect.getsourcefile(fn) or fn.__code__.co_filename
         lineno = fn.__code__.co_firstlineno
@@ -144,14 +161,6 @@ class Watch(ContextDecorator, AbstractContextManager):
 
         wrapped = super().__call__(fn)
         return functools.wraps(fn)(wrapped)
-
-
-# NOTE: Python 3.12+ (PEP 695) supports inline type parameter syntax.
-# After dropping Python 3.11 support, update this to use that instead.
-# See:
-#   - https://peps.python.org/pep-0695/
-#   - https://docs.python.org/3/reference/compound_stmts.html#type-params
-T = TypeVar("T")
 
 
 class IterableWatch(AbstractContextManager, Generic[T]):
@@ -182,6 +191,7 @@ class IterableWatch(AbstractContextManager, Generic[T]):
         self._prev_start: datetime | None = None
         self._cur_range_start: int | None = None
         self._cur_range_end: int | None = None
+        self._combined: bool = False
 
         f = (f0 := inspect.currentframe()) and (f1 := f0.f_back) and f1.f_back
         self._filename = f and f.f_code.co_filename
@@ -200,12 +210,12 @@ class IterableWatch(AbstractContextManager, Generic[T]):
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
+        tb: TracebackType | None,
     ) -> None:
         assert self._count is not None
         if not exc_type:
             return
-        tb = "".join(traceback.format_exception(exc_type, exc_val, exc_tb))
+        tb_str = "".join(traceback.format_exception(exc_type, exc_val, tb))
         exc_only = "".join(traceback.format_exception_only(exc_type, exc_val)).strip()
         message = (
             "Error while processing "
@@ -216,7 +226,7 @@ class IterableWatch(AbstractContextManager, Generic[T]):
             + "\n"
             + self._et_message
         )
-        self._send(message, tb=tb, level="error")
+        self._send(message, tb=tb_str, level="error")
 
     def __iter__(self) -> Iterator[T]:
         return self._gen()
