@@ -103,6 +103,8 @@ def _allow_multi_dest(fn: Callable[P, R]) -> Callable[P, R]:
                     new_kwargs["iterable"] = itertools.repeat(None)
                     new_kwargs["class_name"] = iterable.__class__.__name__
                     new_kwargs["object_id"] = hex(id(iterable))
+                if i:
+                    new_kwargs["verbose"] = 1
                 res.append(fn(*args, **new_kwargs))  # type: ignore
             if _are_all_combinable(res):
                 return _combine_contexts(res)
@@ -232,7 +234,7 @@ def init(
     mention_if_ends: bool = True,
     callsite_level: LevelStr = "error",
     token: str | None = None,
-    verbose: bool = True,
+    verbose: bool | int = True,
     disable: bool = False,
 ) -> None:
     """
@@ -255,7 +257,10 @@ def init(
             API token or authentication key. If not provided, it will look for an environment variable named
             `{platform}_BOT_TOKEN` where `{platform}` is the notifier's platform name in uppercase
             (e.g., `SLACK_BOT_TOKEN` for Slack).
-        verbose: If obj:`True`, log internal state changes.
+        verbose:
+            If obj:`True`, log messages to console.
+            If set to 1, only logs during initialization.
+            If set to 2 or higher, behaves the same as obj:`True`.
         disable:
             If :obj:`True`, disable sending all notifications. This is useful for parallel runs or testing
             where you want to avoid sending actual notifications.
@@ -341,6 +346,7 @@ def send(
         disable=disable,
     )
     _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
+    _update_verbose(kwargs)
     _notifiers[send_to].send(data, **kwargs)  # type: ignore
 
 
@@ -414,6 +420,7 @@ def watch(
         disable=disable,
     )
     _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
+    _update_verbose(kwargs)
     return _notifiers[send_to].watch(
         label,
         callsite_context_before=callsite_context_before,
@@ -514,6 +521,7 @@ def register(
         disable=disable,
     )
     _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
+    _update_verbose(kwargs)
     _notifiers[send_to].register(
         target,
         name,
@@ -558,6 +566,7 @@ def _watch_iterable_impl(
         disable=disable,
     )
     _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
+    _update_verbose(kwargs)
     return _notifiers[send_to]._watch_iterable_impl(  # type: ignore
         iterable,
         step=step,
@@ -658,6 +667,12 @@ def _init_if_needed(
         disable=disable,
     )
     init(send_to=send_to, **{k: v for k, v in kwargs.items() if v is not None})  # type: ignore
+
+
+def _update_verbose(kwargs: dict[str, Any]) -> None:
+    kwargs["verbose"] = (verbose := kwargs["verbose"]) and (
+        verbose if isinstance(verbose, bool) else verbose >= 2
+    )
 
 
 def _warn_not_set_send_to() -> None:
