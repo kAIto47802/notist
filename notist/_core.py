@@ -5,10 +5,22 @@ import sys
 from collections.abc import Generator
 from contextlib import AbstractContextManager, ContextDecorator
 from functools import wraps
-from typing import TYPE_CHECKING, Iterable, Literal, TypeVar, cast, overload
+from typing import (
+    TYPE_CHECKING,
+    Iterable,
+    Literal,
+    Protocol,
+    TypeVar,
+    overload,
+    runtime_checkable,
+)
 
 import notist._log as _log
-from notist._notifiers.base import BaseNotifier, ContextManagerDecorator
+from notist._notifiers.base import (
+    BaseNotifier,
+    ContextManagerDecorator,
+    ContextManagerIterator,
+)
 from notist._notifiers.discord import DiscordNotifier
 from notist._notifiers.slack import SlackNotifier
 
@@ -18,9 +30,9 @@ else:
     from typing_extensions import ParamSpec
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
     from types import ModuleType, TracebackType
-    from typing import Any
+    from typing import Any, TypeGuard
 
     from notist._log import LevelStr
 
@@ -53,7 +65,7 @@ P = ParamSpec("P")
 #   - https://peps.python.org/pep-0604/
 #   - https://docs.python.org/3/library/stdtypes.html#types-union
 if sys.version_info >= (3, 10):
-    R = ContextManagerDecorator | Iterable | None
+    R = ContextManagerDecorator | ContextManagerIterator | None
 else:
     from typing import Union
 
@@ -65,7 +77,9 @@ def _allow_multi_dest(
     fn: Callable[P, ContextManagerDecorator],
 ) -> Callable[P, ContextManagerDecorator]: ...
 @overload
-def _allow_multi_dest(fn: Callable[P, Iterable[T]]) -> Callable[P, Iterable[T]]: ...
+def _allow_multi_dest(
+    fn: Callable[P, ContextManagerIterator[T]],
+) -> Callable[P, ContextManagerIterator[T]]: ...
 @overload
 def _allow_multi_dest(fn: Callable[P, None]) -> Callable[P, None]: ...
 
@@ -90,46 +104,83 @@ def _allow_multi_dest(fn: Callable[P, R]) -> Callable[P, R]:
                     new_kwargs["class_name"] = iterable.__class__.__name__
                     new_kwargs["object_id"] = hex(id(iterable))
                 res.append(fn(*args, **new_kwargs))  # type: ignore
-            if all(isinstance(r, AbstractContextManager) for r in res):
-                return _combine_contexts_or_iterable(
-                    cast(list[ContextManagerDecorator], res)
-                )
-            elif all(isinstance(r, Generator) for r in res):
-                return map(lambda x: x[0], zip(*res))
+            if _are_all_combinable(res):
+                return _combine_contexts(res)
             elif all(r is None for r in res):
                 return None
             else:
-                raise ValueError(
-                    "Cannot mix context decorators and non-context decorators."
-                )
+                raise ValueError("Cannot mix.")
         else:
             return fn(*args, **kwargs)
 
     return wrapper
 
 
-def _combine_contexts_or_iterable(
-    contexts: list[ContextManagerDecorator],
-) -> ContextManagerDecorator:
-    class _Combined(ContextDecorator, AbstractContextManager):
+@runtime_checkable
+class _CanBeCombined(Protocol):
+    _combined: bool
+
+    def __enter__(self) -> Self: ...
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None: ...
+
+
+def _combine_contexts(
+    contexts: Sequence[_CanBeCombined],
+) -> ContextManagerDecorator | ContextManagerIterator:
+    class _CombinedBase(AbstractContextManager):
         def __enter__(self) -> Self:
             for ctx in contexts:
+                ctx._combined = True
                 ctx.__enter__()
             return self
 
         def __exit__(
             self,
             exc_type: type[BaseException] | None,
-            exc_value: BaseException | None,
-            traceback: TracebackType | None,
+            exc_val: BaseException | None,
+            tb: TracebackType | None,
         ) -> None:
             for ctx in reversed(contexts):
-                ctx.__exit__(exc_type, exc_value, traceback)
+                ctx.__exit__(exc_type, exc_val, tb)
 
-        def __iter__(self) -> Iterable:
-            return map(lambda x: x[0], zip(*contexts))
+    combined_cls: type[_CombinedBase]
+    if _are_all_callable(contexts):
 
-    return _Combined()  # type: ignore
+        class _CombinedContextManagerDecorator(ContextDecorator, _CombinedBase):
+            def __call__(self, fn: Callable[P, R]) -> Callable[P, R]:
+                for ctx in contexts:
+                    ctx(fn)
+                wrapped = super().__call__(fn)
+                return wraps(fn)(wrapped)
+
+        combined_cls = _CombinedContextManagerDecorator
+    elif all(hasattr(ctx, "__iter__") for ctx in contexts):
+
+        class _CombinedContextManagerIterator(_CombinedBase):
+            def __iter__(self) -> Iterable:
+                return map(lambda x: x[0], zip(*contexts))
+
+        combined_cls = _CombinedContextManagerIterator
+    else:
+        raise ValueError("Cannot mix context decorators and context iterators.")
+
+    return combined_cls()
+
+
+def _are_all_callable(contexts: Sequence[object]) -> TypeGuard[Sequence[Callable]]:
+    return all(callable(ctx) for ctx in contexts)
+
+
+def _are_all_combinable(
+    contexts: Sequence[object],
+) -> TypeGuard[Sequence[_CanBeCombined]]:
+    return all(isinstance(ctx, _CanBeCombined) for ctx in contexts)
 
 
 class _PhantomContextManagerDecorator(ContextDecorator, AbstractContextManager):
@@ -141,13 +192,34 @@ class _PhantomContextManagerDecorator(ContextDecorator, AbstractContextManager):
     def __exit__(
         self,
         exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
+        exc_val: BaseException | None,
+        tb: TracebackType | None,
     ) -> None:
         pass
 
     def __call__(self, fn: Callable) -> Any:
         return fn
+
+
+class _PhantomContextManagerIterator(Iterable[T], AbstractContextManager):
+    """A no-op context manager iterator that does nothing."""
+
+    def __init__(self, iterable: Iterable[T]) -> None:
+        self._iterable = iterable
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
+        pass
+
+    def __iter__(self) -> Generator[T, None, None]:
+        yield from self._iterable
 
 
 @_allow_multi_dest
@@ -471,10 +543,10 @@ def _watch_iterable_impl(
     disable: bool | None = None,
     class_name: str | None = None,
     object_id: int | None = None,
-) -> Iterable[T]:
+) -> ContextManagerIterator[T]:
     if send_to is None:
         _warn_not_set_send_to()
-        return iterable
+        return _PhantomContextManagerIterator(iterable)
     assert isinstance(send_to, str)
     kwargs = dict(
         channel=channel,
@@ -515,7 +587,7 @@ def watch_iterable(
     callsite_context_after: int = 4,
     verbose: bool | None = None,
     disable: bool | None = None,
-) -> Iterable[T]:
+) -> ContextManagerIterator[T]:
     """
     A generator that yields items from an iterable while sending notifications about the progress.
     This is useful for monitoring long-running tasks that process items from an iterable.

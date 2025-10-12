@@ -33,6 +33,8 @@ if TYPE_CHECKING:
 #   - https://docs.python.org/3/reference/compound_stmts.html#type-params
 P = ParamSpec("P")
 R = TypeVar("R")
+T_co = TypeVar("T_co", covariant=True)
+T = TypeVar("T")
 
 
 # This protocol guarantees to static checkers (e.g. mypy) that any implementing
@@ -47,9 +49,22 @@ class ContextManagerDecorator(Protocol[P, R]):
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
+        tb: TracebackType | None,
     ) -> None: ...
     def __call__(self, fn: Callable[P, R]) -> Callable[P, R]: ...
+
+
+class ContextManagerIterator(Protocol[T_co]):
+    """Protocol for objects that can be used as context managers and iterators."""
+
+    def __enter__(self) -> Self: ...
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None: ...
+    def __iter__(self) -> Iterable[T_co]: ...
 
 
 @dataclass
@@ -147,13 +162,6 @@ DOC_ADDITIONS_BASE = {
                     ...
         """,
 }
-
-# NOTE: Python 3.12+ (PEP 695) supports inline type parameter syntax.
-# After dropping Python 3.11 support, update this to use that instead.
-# See:
-#   - https://peps.python.org/pep-0695/
-#   - https://docs.python.org/3/reference/compound_stmts.html#type-params
-T = TypeVar("T")
 
 
 class BaseNotifier(ABC):
@@ -422,7 +430,7 @@ class BaseNotifier(ABC):
         callsite_context_after: int = 4,
         verbose: bool | None = None,
         disable: bool | None = None,
-    ) -> Iterable[T]:
+    ) -> ContextManagerIterator[T]:
         """
         A generator that yields items from an iterable while sending notifications about the progress.
         This is useful for monitoring long-running tasks that process items from an iterable.
@@ -475,7 +483,7 @@ class BaseNotifier(ABC):
         disable: bool | None = None,
         class_name: str | None = None,
         object_id: int | None = None,
-    ) -> Iterable[T]:
+    ) -> ContextManagerIterator[T]:
         send_config = _SendConfig(
             channel=channel or self._default_channel,
             mention_to=mention_to or self._mention_to,
