@@ -4,9 +4,9 @@ import sys
 from contextlib import ContextDecorator
 from typing import Any
 
+from notifiers_test.test_discord import Sent, dummy_post  # noqa: F401
+from notifiers_test.test_slack import DummyClient, dummy_client  # noqa: F401
 from pytest import MonkeyPatch
-from test_discord import Sent, dummy_post  # noqa: F401
-from test_slack import DummyClient, dummy_client  # noqa: F401
 
 import notist._core
 
