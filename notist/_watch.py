@@ -4,10 +4,10 @@ import functools
 import inspect
 import linecache
 import traceback
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import AbstractContextManager, ContextDecorator
 from datetime import datetime
-from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast
 
 from notist._log import (
     LEVEL_ORDER,
@@ -21,7 +21,7 @@ from notist._utils import format_timedelta
 
 if TYPE_CHECKING:
     import sys
-    from collections.abc import Callable, Generator, Iterable
+    from collections.abc import Generator, Iterable
     from types import TracebackType
 
     if sys.version_info >= (3, 11):
@@ -35,9 +35,8 @@ if TYPE_CHECKING:
 # See:
 #   - https://peps.python.org/pep-0695/
 #   - https://docs.python.org/3/reference/compound_stmts.html#type-params
-P = ParamSpec("P")
-R = TypeVar("R")
 T = TypeVar("T")
+_F = TypeVar("_F", bound=Callable[..., Any])
 
 
 class Watch(ContextDecorator, AbstractContextManager):
@@ -144,7 +143,7 @@ class Watch(ContextDecorator, AbstractContextManager):
             )
             return "\n".join(filter(None, [target, called_from, called_lines]))
 
-    def __call__(self, fn: Callable[P, R]) -> Callable[P, R]:
+    def __call__(self, fn: _F) -> _F:
         self._is_fn = True
         filename = inspect.getsourcefile(fn) or fn.__code__.co_filename
         lineno = fn.__code__.co_firstlineno
@@ -154,7 +153,7 @@ class Watch(ContextDecorator, AbstractContextManager):
         self._defined_at = f"{filename}:{lineno}"
 
         wrapped = super().__call__(fn)
-        return functools.wraps(fn)(wrapped)
+        return cast(_F, functools.wraps(fn)(wrapped))
 
 
 class IterableWatch(AbstractContextManager, Generic[T]):

@@ -5,7 +5,7 @@ import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from functools import partial
-from typing import TYPE_CHECKING, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeVar
 
 import notist._log as _log
 from notist._log import LevelStr, prepare_for_message
@@ -23,7 +23,6 @@ else:
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
     from types import ModuleType, TracebackType
-    from typing import Any, Callable
 
 
 # NOTE: Python 3.12+ (PEP 695) supports inline type parameter syntax.
@@ -35,13 +34,14 @@ P = ParamSpec("P")
 R = TypeVar("R")
 T_co = TypeVar("T_co", covariant=True)
 T = TypeVar("T")
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 # This protocol guarantees to static checkers (e.g. mypy) that any implementing
 # object have  `__enter__`, `__exit__` and `__call__`.
 # Otherwise, users applying these contexts would get mypy errors because the type
 # system wouldn't know these methods exist.
-class ContextManagerDecorator(Protocol[P, R]):
+class ContextManagerDecorator(Protocol[F]):
     """Protocol for objects that can be used as context managers and decorators."""
 
     def __enter__(self) -> Self: ...
@@ -50,8 +50,9 @@ class ContextManagerDecorator(Protocol[P, R]):
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         tb: TracebackType | None,
+        /,
     ) -> None: ...
-    def __call__(self, fn: Callable[P, R]) -> Callable[P, R]: ...
+    def __call__(self, fn: F) -> F: ...
 
 
 class ContextManagerIterator(Protocol[T_co]):
@@ -63,6 +64,7 @@ class ContextManagerIterator(Protocol[T_co]):
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         tb: TracebackType | None,
+        /,
     ) -> None: ...
     def __iter__(self) -> Iterator[T_co]: ...
 
