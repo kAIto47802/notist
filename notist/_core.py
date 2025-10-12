@@ -1,16 +1,19 @@
 from __future__ import annotations
 
+import contextlib
 import itertools
 import sys
-from collections.abc import Generator
+from collections.abc import Callable
 from contextlib import AbstractContextManager, ContextDecorator
 from functools import wraps
 from typing import (
     TYPE_CHECKING,
+    Any,
     Iterable,
     Literal,
     Protocol,
     TypeVar,
+    cast,
     overload,
     runtime_checkable,
 )
@@ -30,11 +33,15 @@ else:
     from typing_extensions import ParamSpec
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Generator, Iterator, Sequence
     from types import ModuleType, TracebackType
-    from typing import Any, TypeGuard
 
     from notist._log import LevelStr
+
+    if sys.version_info >= (3, 10):
+        from typing import TypeGuard
+    else:
+        from typing_extensions import TypeGuard
 
     if sys.version_info >= (3, 11):
         from typing import Self
@@ -57,7 +64,9 @@ _DESTINATIONS_MAP: dict[_DESTINATIONS, type[BaseNotifier]] = {
 #   - https://peps.python.org/pep-0695/
 #   - https://docs.python.org/3/reference/compound_stmts.html#type-params
 T = TypeVar("T")
-P = ParamSpec("P")
+_T = TypeVar("_T")
+_P = ParamSpec("_P")
+_F = TypeVar("_F", bound=Callable[..., Any])
 
 # NOTE: Python 3.10+ (PEP 604) supports writing union types with `X | Y`.
 # After dropping Python 3.9 support, we can remove using `typing.Union`.
@@ -65,31 +74,31 @@ P = ParamSpec("P")
 #   - https://peps.python.org/pep-0604/
 #   - https://docs.python.org/3/library/stdtypes.html#types-union
 if sys.version_info >= (3, 10):
-    R = ContextManagerDecorator | ContextManagerIterator | None
+    _R = ContextManagerDecorator | ContextManagerIterator | None
 else:
     from typing import Union
 
-    R = Union[ContextManagerDecorator, None]
+    _R = Union[ContextManagerDecorator, None]
 
 
 @overload
 def _allow_multi_dest(
-    fn: Callable[P, ContextManagerDecorator],
-) -> Callable[P, ContextManagerDecorator]: ...
+    fn: Callable[_P, ContextManagerDecorator],
+) -> Callable[_P, ContextManagerDecorator]: ...
 @overload
 def _allow_multi_dest(
-    fn: Callable[P, ContextManagerIterator[T]],
-) -> Callable[P, ContextManagerIterator[T]]: ...
+    fn: Callable[_P, ContextManagerIterator[_T]],
+) -> Callable[_P, ContextManagerIterator[_T]]: ...
 @overload
-def _allow_multi_dest(fn: Callable[P, None]) -> Callable[P, None]: ...
+def _allow_multi_dest(fn: Callable[_P, None]) -> Callable[_P, None]: ...
 
 
-def _allow_multi_dest(fn: Callable[P, R]) -> Callable[P, R]:
+def _allow_multi_dest(fn: Callable[_P, _R]) -> Callable[_P, _R]:
     @wraps(fn)
     def wrapper(
-        *args: P.args,
-        **kwargs: P.kwargs,
-    ) -> R:
+        *args: _P.args,
+        **kwargs: _P.kwargs,
+    ) -> _R:
         send_to = kwargs.get("send_to")
         if send_to is None and _notifiers:
             send_to = list(_notifiers.keys())
@@ -119,7 +128,7 @@ def _allow_multi_dest(fn: Callable[P, R]) -> Callable[P, R]:
 
 
 @runtime_checkable
-class _CanBeCombined(Protocol):
+class _Combinable(Protocol):
     _combined: bool
 
     def __enter__(self) -> Self: ...
@@ -133,7 +142,7 @@ class _CanBeCombined(Protocol):
 
 
 def _combine_contexts(
-    contexts: Sequence[_CanBeCombined],
+    contexts: Sequence[_Combinable],
 ) -> ContextManagerDecorator | ContextManagerIterator:
     class _CombinedBase(AbstractContextManager):
         def __enter__(self) -> Self:
@@ -152,20 +161,22 @@ def _combine_contexts(
                 ctx.__exit__(exc_type, exc_val, tb)
 
     combined_cls: type[_CombinedBase]
-    if _are_all_callable(contexts):
+    # cannot use TypeGuard here
+    if all(callable(ctx) for ctx in contexts):
 
         class _CombinedContextManagerDecorator(ContextDecorator, _CombinedBase):
-            def __call__(self, fn: Callable[P, R]) -> Callable[P, R]:
+            def __call__(self, fn: _F) -> _F:
+                wrapped = fn
                 for ctx in contexts:
-                    ctx(fn)
-                wrapped = super().__call__(fn)
-                return wraps(fn)(wrapped)
+                    assert callable(ctx)
+                    wrapped = ctx(fn)
+                return cast(_F, wraps(fn)(wrapped))
 
         combined_cls = _CombinedContextManagerDecorator
     elif all(hasattr(ctx, "__iter__") for ctx in contexts):
 
         class _CombinedContextManagerIterator(_CombinedBase):
-            def __iter__(self) -> Iterable:
+            def __iter__(self) -> Iterator:
                 return map(lambda x: x[0], zip(*contexts))
 
         combined_cls = _CombinedContextManagerIterator
@@ -175,52 +186,26 @@ def _combine_contexts(
     return combined_cls()
 
 
-def _are_all_callable(contexts: Sequence[object]) -> TypeGuard[Sequence[Callable]]:
-    return all(callable(ctx) for ctx in contexts)
-
-
 def _are_all_combinable(
     contexts: Sequence[object],
-) -> TypeGuard[Sequence[_CanBeCombined]]:
-    return all(isinstance(ctx, _CanBeCombined) for ctx in contexts)
+) -> TypeGuard[Sequence[_Combinable]]:
+    return all(isinstance(ctx, _Combinable) for ctx in contexts)
 
 
-class _PhantomContextManagerDecorator(ContextDecorator, AbstractContextManager):
+class _PhantomContextManagerDecorator(ContextDecorator, contextlib.nullcontext):
     """A no-op context manager decorator that does nothing."""
-
-    def __enter__(self) -> Self:
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        tb: TracebackType | None,
-    ) -> None:
-        pass
 
     def __call__(self, fn: Callable) -> Any:
         return fn
 
 
-class _PhantomContextManagerIterator(Iterable[T], AbstractContextManager):
+class _PhantomContextManagerIterator(Iterable[_T], contextlib.nullcontext):
     """A no-op context manager iterator that does nothing."""
 
-    def __init__(self, iterable: Iterable[T]) -> None:
+    def __init__(self, iterable: Iterable[_T]) -> None:
         self._iterable = iterable
 
-    def __enter__(self) -> Self:
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        tb: TracebackType | None,
-    ) -> None:
-        pass
-
-    def __iter__(self) -> Generator[T, None, None]:
+    def __iter__(self) -> Generator[_T, None, None]:
         yield from self._iterable
 
 
