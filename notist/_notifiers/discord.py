@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 import requests
 
 import notist._log as _log
-from notist._log import LEVEL_ORDER
+from notist._log import LEVEL_ORDER, RESET, fg256
 from notist._notifiers.base import (
     DOC_ADDITIONS_BASE,
     BaseNotifier,
@@ -61,10 +61,10 @@ class DiscordNotifier(BaseNotifier):
             verbose,
             disable,
         )
-        if not self._disable and self._verbose:
+        if not self._disable and verbose:
             if self._default_channel:
                 _log.info(
-                    f"DiscordNotifier initialized with channel ID: {self._default_channel}"
+                    f"DiscordNotifier initialized with channel ID: {fg256(33)}{self._default_channel}{RESET}"
                 )
             else:
                 _log.warn(

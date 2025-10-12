@@ -183,7 +183,7 @@ class BaseNotifier(ABC):
         mention_if_ends: bool = True,
         callsite_level: LevelStr = "error",
         token: str | None = None,
-        verbose: bool = True,
+        verbose: bool | int = True,
         disable: bool = False,
     ) -> None:
         """
@@ -203,7 +203,10 @@ class BaseNotifier(ABC):
                 API token or authentication key. If not provided, it will look for an environment variable named
                 `{platform}_BOT_TOKEN` where `{platform}` is the notifier's platform name in uppercase
                 (e.g., `SLACK_BOT_TOKEN` for Slack).
-            verbose: If obj:`True`, log internal state changes.
+            verbose:
+                If obj:`True`, log messages to console.
+                If set to 1, only logs during initialization.
+                If set to 2 or higher, behaves the same as obj:`True`.
             disable:
                 If :obj:`True`, disable sending all notifications. This is useful for parallel runs or testing
                 where you want to avoid sending actual notifications.
@@ -213,12 +216,11 @@ class BaseNotifier(ABC):
            If not set, the notification will not be sent, and an error will be logged
            (the original Python script will continue running without interruption).
         """
-        self._verbose = verbose
         self._mention_to = mention_to or os.getenv(
             f"{self._platform.upper()}_MENTION_TO"
         )
         self._token = token or os.getenv(f"{self._platform.upper()}_BOT_TOKEN")
-        if not self._token and self._verbose:
+        if not self._token and verbose:
             _log.error(
                 f"Missing {self._platform} bot token. Please set the {self._platform.upper()}_BOT_TOKEN "
                 "environment variable or pass it as an argument."
@@ -231,10 +233,11 @@ class BaseNotifier(ABC):
             f"{self._platform.upper()}_CHANNEL"
         )
         self._disable = disable
-        if disable and self._verbose:
+        if disable and verbose:
             _log.info(
                 f"{self._platform}Notifier is disabled. No messages will be sent."
             )
+        self._verbose = verbose if isinstance(verbose, bool) else verbose >= 2
 
     def send(
         self,
