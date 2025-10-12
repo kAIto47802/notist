@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Generic, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast
 
 import pytest
 import requests
@@ -9,8 +9,6 @@ import requests
 from notist._notifiers.discord import DiscordNotifier
 
 if TYPE_CHECKING:
-    from typing import Any
-
     from pytest import CaptureFixture, MonkeyPatch
 
 # NOTE: Python 3.12+ (PEP 695) supports type statement.
