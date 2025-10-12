@@ -172,7 +172,9 @@ class IterableWatch(AbstractContextManager, Generic[T]):
     ) -> None:
         self._iterable = iterable
         self._step = step
-        self._total = total
+        self._total = (
+            len_fn() if (len_fn := getattr(iterable, "__len__", None)) else total
+        )
         self._send = send_fn
         self._label = label
         self._callsite_level = callsite_level
