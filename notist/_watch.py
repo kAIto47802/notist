@@ -221,15 +221,11 @@ class IterableWatch(AbstractContextManager, Generic[T]):
 
     def _gen(self) -> Generator[T, None, None]:
         self._on_iter_start()
-        try:
-            for item in self._iterable:
-                self._on_step_start()
-                try:
-                    yield item
-                finally:
-                    self._on_step_end()
-        finally:
-            self._on_iter_end()
+        for item in self._iterable:
+            self._on_step_start()
+            yield item
+            self._on_step_end()
+        self._on_iter_end()
 
     def _send_end_message(self) -> None:
         self._send(
@@ -247,10 +243,9 @@ class IterableWatch(AbstractContextManager, Generic[T]):
 
     def _on_iter_end(self) -> None:
         assert self._count is not None
-        if not (self._count + 1) % self._step:
-            return
-        self._cur_range_end = self._count + 1
-        self._send_end_message()
+        if (self._count + 1) % self._step:
+            self._cur_range_end = self._count + 1
+            self._send_end_message()
 
         assert self._start is not None
         end = datetime.now()
