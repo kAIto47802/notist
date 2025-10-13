@@ -4,10 +4,9 @@ import os
 import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeVar
 
-import notist._log as _log
+from notist import _log
 from notist._log import LevelStr, prepare_for_message
 from notist._watch import IterableWatch, Watch
 
@@ -69,7 +68,7 @@ class ContextManagerIterator(Protocol[T_co]):
     def __iter__(self) -> Iterator[T_co]: ...
 
 
-@dataclass
+@dataclass(frozen=True)
 class _SendConfig:
     channel: str | None = None
     mention_to: str | None = None
@@ -77,6 +76,21 @@ class _SendConfig:
     mention_if_ends: bool = True
     verbose: bool = True
     disable: bool = False
+
+
+@dataclass(frozen=True)
+class _SendFnPartial:
+    fn: Callable[[_SendConfig, str, str | None, LevelStr, str], None]
+    config: _SendConfig
+
+    def __call__(
+        self,
+        message: str,
+        tb: str | None = None,
+        level: LevelStr = "info",
+        prefix: str = "",
+    ) -> None:
+        self.fn(self.config, message, tb, level, prefix)
 
 
 DOC_ADDITIONS_BASE = {
@@ -278,7 +292,6 @@ class BaseNotifier(ABC):
             disable: Override the default disable flag.
         """
         self._send(
-            str(data),
             _SendConfig(
                 channel=channel or self._default_channel,
                 mention_to=mention_to or self._mention_to,
@@ -286,20 +299,21 @@ class BaseNotifier(ABC):
                 verbose=verbose if verbose is not None else self._verbose,
                 disable=disable if disable is not None else self._disable,
             ),
+            str(data),
             prefix="Send message: ",
         )
 
     def _send(
         self,
-        message: str,
         send_config: _SendConfig,
+        message: str,
         tb: str | None = None,
         level: LevelStr = "info",
         prefix: str = "",
     ) -> None:
         try:
             if not send_config.disable:
-                self._do_send(prepare_for_message(message), send_config, tb, level)
+                self._do_send(send_config, prepare_for_message(message), tb, level)
             if send_config.verbose:
                 {
                     "info": _log.info,
@@ -313,8 +327,8 @@ class BaseNotifier(ABC):
     @abstractmethod
     def _do_send(
         self,
-        message: str,
         send_config: _SendConfig,
+        message: str,
         tb: str | None = None,
         level: LevelStr = "info",
     ) -> None:
@@ -322,8 +336,9 @@ class BaseNotifier(ABC):
 
     def watch(
         self,
-        label: str | None = None,
+        params: str | list[str] | None = None,
         *,
+        label: str | None = None,
         channel: str | None = None,
         mention_to: str | None = None,
         mention_level: LevelStr | None = None,
@@ -364,7 +379,8 @@ class BaseNotifier(ABC):
             disable=disable if disable is not None else self._disable,
         )
         return Watch(
-            partial(self._send, send_config=send_config),
+            _SendFnPartial(self._send, send_config),
+            params,
             label,
             callsite_level or self._default_callsite_level,
             callsite_context_before,
@@ -525,7 +541,7 @@ class BaseNotifier(ABC):
             iterable,
             step,
             total,
-            partial(self._send, send_config=send_config),
+            _SendFnPartial(self._send, send_config),
             label,
             callsite_level or self._default_callsite_level,
             callsite_context_before,
