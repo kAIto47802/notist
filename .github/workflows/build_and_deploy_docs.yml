@@ -32,6 +32,7 @@ jobs:
 
       - name: Generate versions.json
         run: |
+          rm -f docs/_static/versions.json
           python docs/versions.py
 
       - name: Build docs (dev)
