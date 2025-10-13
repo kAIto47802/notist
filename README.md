@@ -175,7 +175,7 @@ notist.register(trainer, "train", send_to="slack")
 trainer.train()
 ```
 
-We also provide other features such as `send` and `watch_iterable`. See the documentation for details:
+We also provide other features such as `send` and `watch_iterable`. See the document for details:
 <a href="https://kaito47802.github.io/NotifyState/index.html">
   <img src="https://img.shields.io/badge/docs-latest-brightgreen?logo=read-the-docs" alt="Documentation" align="top"/>
 </a>
