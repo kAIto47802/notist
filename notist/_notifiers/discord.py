@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import requests
 
-import notist._log as _log
+from notist import _log
 from notist._log import LEVEL_ORDER, RESET, fg256
 from notist._notifiers.base import (
     DOC_ADDITIONS_BASE,
@@ -73,8 +73,8 @@ class DiscordNotifier(BaseNotifier):
 
     def _do_send(
         self,
-        message: str,
         send_config: _SendConfig,
+        message: str,
         tb: str | None = None,
         level: LevelStr = "info",
     ) -> None:
