@@ -22,18 +22,45 @@ jobs:
           python -m pip install -U pip
           pip install --progress-bar off -U .[docs]
 
-      - name: Build documentation
+      - name: Generate versions.json
         run: |
-          cd docs
-          make html
+          python docs/versions.py
+
+      - name: Build docs (dev)
+        run: |
+          rm -rf site && mkdir -p site
+          export DOC_VERSION_MATCH=dev
+          make -C docs clean html
+          mkdir -p site/dev
+          rsync -a docs/_build/html/ site/dev/
+          rm -rf docs/_build/
+
+      - name: Build docs (tagged)
+        run: |
+          LATEST_TAG=$(git tag --sort=v:refname | tail -n1)
+          for tag in $(git tag --list 'v*'); do
+            git checkout $tag
+            export DOC_VERSION_MATCH=$tag
+            make -C docs clean html
+            if [ "$tag" = "$LATEST_TAG" ]; then
+              rsync -a docs/_build/html/ site/
+            else
+              mkdir -p site/$tag
+              rsync -a docs/_build/html/ site/$tag/
+            fi
+            rm -rf docs/_build/
+          done
+          git checkout main
 
       - name: Upload documentation artifacts
         id: deployment
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./docs/_build/html
+          path: ./site
 
   deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
     environment:
       name: github-pages
       url: "${{ steps.deployment.outputs.page_url }}"
