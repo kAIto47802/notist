@@ -226,7 +226,8 @@ def init(
     Initialize the notifier with default settings.
     This settings can be overridden at each call of :func:`~notist._core.register`,
     :func:`~notist._core.send`, :func:`~notist._core.watch`, and :func:`~notist._core.watch_iterable`.
-    Alternatively, you can skip initialization with this function and provide all settings directly through these functions.
+    Alternatively, you can skip initialization with this function and provide all settings directly through
+    these functions.
 
     Args:
         send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
@@ -356,10 +357,17 @@ def watch(
 ) -> ContextManagerDecorator:
     """
     Return an object that can serve as both a context manager and a decorator to watch code execution.
-    This will automatically send notifications when the function or code block starts, ends, or raises an exception.
+    This will automatically send notifications when the function or code block starts, ends, or raises
+    an exception.
 
     Args:
-        label: Optional label for the watch context. This label will be included in both notification messages and log entries.
+        params:
+            Names of the function parameters whose values should be included in the message
+            when the decorated function is called.
+            This option is ignored when used as a context manager.
+        label:
+            Optional label for the watch context.
+            This label will be included in both notification messages and log entries.
         send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
         channel: Override the default channel for notifications.
         mention_to: Override the default entity to mention on notification.
@@ -444,8 +452,15 @@ def register(
     Args:
         target: The module, class, or class instance containing the function to be registered.
         name: The name of the function to be registered.
-        send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
-        label: Optional label for the watch context. This label will be included in both notification messages and log entries.
+        params:
+            Names of the function parameters whose values should be included in the message
+            when the registered function is called.
+            This option is ignored when used as a context manager.
+        send_to:
+            Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
+        label:
+            Optional label for the watch context.
+            This label will be included in both notification messages and log entries.
         channel: Override the default channel for notifications.
         mention_to: Override the default entity to mention on notification.
         mention_level: Override the default mention threshold level.
@@ -596,9 +611,14 @@ def watch_iterable(
     Args:
         iterable: The iterable to watch.
         step: The number of items to process before sending a progress notification.
-        total: The total number of items in the iterable. If not provided, it will not be included in the progress messages.
-        send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
-        label: Optional label for the watch context. This label will be included in both notification messages and log entries.
+        total:
+            The total number of items in the iterable.
+            If not provided, it will not be included in the progress messages.
+        send_to:
+            Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
+        label:
+            Optional label for the watch context.
+            This label will be included in both notification messages and log entries.
         mention_to: Override the default entity to mention on notification.
         mention_level: Override the default mention threshold level.
         mention_if_ends: Override the default setting for whether to mention at the end of the watch.
