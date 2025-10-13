@@ -391,6 +391,7 @@ class BaseNotifier(ABC):
         self,
         target: ModuleType | type[Any] | Any,
         name: str,
+        params: str | list[str] | None = None,
         *,
         label: str | None = None,
         channel: str | None = None,
@@ -430,6 +431,7 @@ class BaseNotifier(ABC):
                 )
             return
         patched = self.watch(
+            params=params,
             label=label,
             channel=channel,
             mention_to=mention_to,

@@ -423,6 +423,7 @@ def watch(
 def register(
     target: ModuleType | type[Any] | Any,
     name: str,
+    params: str | list[str] | None = None,
     *,
     send_to: _DESTINATIONS | list[_DESTINATIONS] | None = None,
     label: str | None = None,
@@ -515,6 +516,7 @@ def register(
     _notifiers[send_to].register(
         target,
         name,
+        params,
         label=label,
         callsite_context_before=callsite_context_before,
         callsite_context_after=callsite_context_after,
