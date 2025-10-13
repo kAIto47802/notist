@@ -1,14 +1,67 @@
-.wy-nav-content {
+.bd-article-container {
   max-width: 1200px;
 }
 
-.rst-content {
-  position: relative;
+h1 {
+  font-size: 2.1em;
 }
 
-.github-badge {
-  position: absolute;
-  top: 80px;
-  right: 0;
-  z-index: 1000;
+h2 {
+  font-size: 1.5em;
+  border-bottom: 2px solid var(--pst-color-primary-highlight);
+  padding-bottom: 0.3em;
+  margin: 2em auto 1em auto;
+}
+section.center-title > h1,
+div.section.center-title > h1,
+section.center-title > h2,
+div.section.center-title > h2,
+p.center-paragraph {
+  text-align: center;
+}
+
+section.center-title > h2,
+div.section.center-title > h2 {
+  width: 70%;
+}
+
+p.center-paragraph {
+  width: 82%;
+  margin: 0 auto;
+}
+
+div.badges {
+  margin: 0.5em auto;
+}
+
+h3 {
+  font-size: 1.4em;
+}
+
+h4 {
+  font-size: 1.3em;
+}
+
+.bd-header .search-button__button {
+  display: none !important;
+}
+
+@media (min-width: 960px) {
+  .bd-page-width {
+    max-width: 100rem;
+  }
+}
+
+.bd-content {
+  justify-content: flex-start !important;
+}
+.bd-article-container {
+  margin-left: 1rem;
+}
+.bd-content:not(:has(#pst-secondary-sidebar)) .bd-article-container {
+  margin-right: auto;
+}
+
+#pst-primary-sidebar {
+  width: 20%;
 }

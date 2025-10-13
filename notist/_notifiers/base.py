@@ -160,8 +160,20 @@ DOC_ADDITIONS_BASE = {
                 # Monitor progress of processing a long-running for loop
                 for batch in {cls._platform.lower()}.watch_iterable(train_dataloader, step=10):
                     # This loop will be monitored, and you'll receive notifications every 10 iterations.
-                    # If an error occurs inside this loop, you'll be notified immediately.
                     ...
+
+        .. note::
+           The above example does **not** catch exceptions automatically,
+           since exceptions raised inside the for loop cannot be caught by the iterator in Python.
+           If you also want to be notified when an error occurs, wrap your code in the monitoring context:
+
+           .. code-block:: python
+
+              with {cls._platform.lower()}.watch_iterable(train_dataloader, step=10) as it:
+                  for batch in it:
+                      # This loop will be monitored, and you'll receive notifications every 10 iterations.
+                      # If an error occurs inside this context, you'll be notified immediately.
+                      ...
         """,
 }
 
@@ -195,16 +207,19 @@ class BaseNotifier(ABC):
         Args:
             channel:
                 Default channel for notifications. If not provided, it will look for an environment variable
-                named `{platform}_CHANNEL` where `{platform}` is the notifier's platform name in uppercase
-                (e.g., `SLACK_CHANNEL` for Slack).
-            mention_to: Default entity to mention on notification.
+                named ``{platform}_CHANNEL`` where ``{platform}`` is the notifier's platform name in uppercase
+                (e.g., ``SLACK_CHANNEL`` for Slack).
+            mention_to:
+                Default user to mention in notification. If not provided, it will look for an environment variable
+                named ``{platform}_MENTION_TO`` where ``{platform}`` is the notifier's platform name in uppercase
+                (e.g., ``SLACK_MENTION_TO`` for Slack).
             mention_level: Minimum log level to trigger a mention.
             mention_if_ends: Whether to mention at the end of the watch.
             callsite_level: Minimum log level to emit the call-site source snippet.
             token:
                 API token or authentication key. If not provided, it will look for an environment variable named
-                `{platform}_BOT_TOKEN` where `{platform}` is the notifier's platform name in uppercase
-                (e.g., `SLACK_BOT_TOKEN` for Slack).
+                ``{platform}_BOT_TOKEN`` where ``{platform}`` is the notifier's platform name in uppercase
+                (e.g., ``SLACK_BOT_TOKEN`` for Slack).
             verbose:
                 If obj:`True`, log messages to console.
                 If set to 1, only logs during initialization.

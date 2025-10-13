@@ -49,7 +49,7 @@ test = ["pytest"]
 docs = [
     "sphinx",
     "sphinx-autodoc-typehints",
-    "sphinx-rtd-theme",
+    "pydata_sphinx_theme",
     "sphinx-copybutton",
 ]
 

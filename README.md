@@ -10,8 +10,8 @@
 </h1>
 
 <p align="center">
-  NotifyState is a lightweight Python package that lets you keep track of your scripts and functions by sending real-time notifications when they start, finish, or encounter errors.
-  Whether you're running long-running data jobs, background tasks, or simple scripts, NotifyState helps you stay informed without constantly checking your terminal.
+  NotifyState is a lightweight Python package that lets you keep track of your scripts by sending real-time notifications when they start, finish, or encounter errors.
+  When you're executing long-running jobs or background tasks, NotifyState helps you stay informed without constantly checking your terminal.
 </p>
 
 <div align="center">
@@ -42,10 +42,9 @@ For the detailed usage and quick start guide, please refer to the [documentation
 Get instant updates on the status of your scripts.
 You can receive notifications when your script:
 
-- Starts running
-- Completes successfully
-- Encounters an error
-- Or at any point you choose—trigger custom notifications anywhere in your code with any message you like
+- starts running;
+- completes successfully; or
+- encounters an error.
 
 
 <h3>
@@ -73,7 +72,7 @@ def long_task():
     raise Exception("This is an error")
 ```
 
-**Or use as a context manager to monitor a block of code:**
+**Use as a context manager to monitor a block of code:**
 
 ```python
 import notist
