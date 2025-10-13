@@ -44,3 +44,4 @@ pip-delete-this-directory.txt
 .mypy_cache
 
 docs/_build/
+docs/_static/versions.json
