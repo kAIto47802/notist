@@ -87,11 +87,14 @@ Wrap any function or block of code with the :func:`~notist._core.watch` function
 
 .. code-block:: python
 
-   @notist.watch()
-   def long_task():
+   # You can also specify params to include in the notification
+   # The values passed to these parameters are also reported
+   @notist.watch(params=["arg1", "arg2"])
+   def long_task(arg1: int, arg2: str, arg3: bool) -> None:
        # This function will be monitored
-       # Your long-running code here
+       # You can receive notifications when it starts, ends, or encounters an error
        ...
+       # Your long-running code here
 
 **Use as a context manager to monitor a block of code**:
 
@@ -99,8 +102,9 @@ Wrap any function or block of code with the :func:`~notist._core.watch` function
 
    with notist.watch():
        # Code inside this block will be monitored
-       # Your long-running code here
+       # You can receive notifications when it starts, ends, or encounters an error
        ...
+       # Your long-running code here
 
 
 Register an Existing Function or Method to be Monitored
