@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import functools
 import inspect
 import linecache
 import traceback
 from collections.abc import Callable, Iterator
 from contextlib import AbstractContextManager, ContextDecorator
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from notist._log import (
     LEVEL_ORDER,
@@ -152,8 +151,7 @@ class Watch(ContextDecorator, AbstractContextManager):
         self._target = f"function {_S.BT_ALW}{module}.{qualname}{_S.BT_ALW}"
         self._defined_at = f"{filename}:{lineno}"
 
-        wrapped = super().__call__(fn)
-        return cast(_F, functools.wraps(fn)(wrapped))
+        return super().__call__(fn)
 
 
 class IterableWatch(AbstractContextManager, Generic[T]):

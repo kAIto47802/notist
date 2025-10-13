@@ -13,7 +13,6 @@ from typing import (
     Literal,
     Protocol,
     TypeVar,
-    cast,
     overload,
     runtime_checkable,
 )
@@ -166,11 +165,10 @@ def _combine_contexts(
 
         class _CombinedContextManagerDecorator(ContextDecorator, _CombinedBase):
             def __call__(self, fn: _F) -> _F:
-                wrapped = fn
                 for ctx in contexts:
                     assert callable(ctx)
-                    wrapped = ctx(fn)
-                return cast(_F, wraps(fn)(wrapped))
+                    ctx(fn)
+                return super().__call__(fn)
 
         combined_cls = _CombinedContextManagerDecorator
     elif all(hasattr(ctx, "__iter__") for ctx in contexts):
