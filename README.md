@@ -63,13 +63,14 @@ You can use the `notist.watch` helper either as a function decorator or as a con
 ```python
 import notist
 
-@notist.watch(send_to="slack", channel="my-channel")
-def long_task():
+# You can also specify params to include in the notification
+# The values passed to these parameters are also reported
+@notist.watch(params=["arg1", "arg2"])
+def long_task(arg1: int, arg2: str, arg3: bool) -> None:
     # This function will be monitored
-    # Your long-running code here
+    # You can receive notifications when it starts, ends, or encounters an error
     ...
-    # An example where an error occurs during task execution:
-    raise Exception("This is an error")
+    # Your long-running code here
 ```
 
 **Use as a context manager to monitor a block of code:**
@@ -77,10 +78,11 @@ def long_task():
 ```python
 import notist
 
-with notist.watch(send_to="slack", channel="my-channel"):
+with notist.watch():
     # Code inside this block will be monitored
-    # Your long-running code here
+    # You can receive notifications when it starts, ends, or encounters an error
     ...
+    # Your long-running code here
 ```
 
 This code example send the following notifications:
@@ -138,7 +140,7 @@ import notist
 import requests
 
 # Register the `get` function from the `requests` library
-notist.register(requests, "get", send_to="slack")
+notist.register(requests, "get")
 
 # Now any time you call `requests.get`, it will be monitored
 response = requests.get("https://example.com/largefile.zip")
@@ -151,7 +153,7 @@ import notist
 from transformers import Trainer
 
 # Register the `train` method of the `Trainer` class
-notist.register(Trainer, "train", send_to="slack")
+notist.register(Trainer, "train")
 
 # Now any time you call `trainer.train()`, it will be monitored
 trainer = Trainer(model=...)
@@ -169,7 +171,7 @@ trainer = Trainer(model=...)
 
 # Register the `train` method of the `trainer` instance
 # This will not affect other instances of Trainer
-notist.register(trainer, "train", send_to="slack")
+notist.register(trainer, "train")
 
 # Now any time you call `trainer.train()`, it will be monitored
 trainer.train()

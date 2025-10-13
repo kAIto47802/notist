@@ -56,13 +56,14 @@ You can use the :func:`~notist._core.watch` helper either as a function decorato
 
    import notist
 
-   @notist.watch(send_to="slack", channel="my-channel")
-   def long_task():
+   # You can also specify params to include in the notification
+   # The values passed to these parameters are also reported
+   @notist.watch(params=["arg1", "arg2"])
+   def long_task(arg1: int, arg2: str, arg3: bool) -> None:
        # This function will be monitored
-       # Your long-running code here
+       # You can receive notifications when it starts, ends, or encounters an error
        ...
-       # An example where an error occurs during task execution:
-       raise Exception("This is an error")
+       # Your long-running code here
 
 
 **Use as a context manager to monitor a block of code:**
@@ -71,10 +72,11 @@ You can use the :func:`~notist._core.watch` helper either as a function decorato
 
    import notist
 
-   with notist.watch(send_to="slack", channel="my-channel"):
+   with notist.watch():
        # Code inside this block will be monitored
-       # Your long-running code here
+       # You can receive notifications when it starts, ends, or encounters an error
        ...
+       # Your long-running code here
 
 This code example send the following notifications:
 
