@@ -224,24 +224,27 @@ def init(
 ) -> None:
     """
     Initialize the notifier with default settings.
-    This settings can be overridden at each call of :func:`~notist.register`,
-    :func:`~notist.send`, and :func:`~notist.watch`.
+    This settings can be overridden at each call of :func:`~notist._core.register`,
+    :func:`~notist._core.send`, :func:`~notist._core.watch`, and :func:`~notist._core.watch_iterable`.
     Alternatively, you can skip initialization with this function and provide all settings directly through these functions.
 
     Args:
         send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
         channel:
             Default channel for notifications. If not provided, it will look for an environment variable
-            named `{platform}_CHANNEL` where `{platform}` is the notifier's platform name in uppercase
-            (e.g., `SLACK_CHANNEL` for Slack).
-        mention_to: Default entity to mention on notification.
+            named ``{platform}_CHANNEL`` where ``{platform}`` is the notifier's platform name in uppercase
+            (e.g., ``SLACK_CHANNEL`` for Slack).
+        mention_to:
+            Default user to mention in notification. If not provided, it will look for an environment variable
+            named ``{platform}_MENTION_TO`` where ``{platform}`` is the notifier's platform name in uppercase
+            (e.g., ``SLACK_MENTION_TO`` for Slack).
         mention_level: Minimum log level to trigger a mention.
         mention_if_ends: Whether to mention at the end of the watch.
         callsite_level: Minimum log level to emit the call-site source snippet.
         token:
             API token or authentication key. If not provided, it will look for an environment variable named
-            `{platform}_BOT_TOKEN` where `{platform}` is the notifier's platform name in uppercase
-            (e.g., `SLACK_BOT_TOKEN` for Slack).
+            ``{platform}_BOT_TOKEN`` where ``{platform}`` is the notifier's platform name in uppercase
+            (e.g., ``SLACK_BOT_TOKEN`` for Slack).
         verbose:
             If obj:`True`, log messages to console.
             If set to 1, only logs during initialization.
@@ -256,8 +259,8 @@ def init(
        (the original Python script will continue running without interruption).
 
     .. note::
-       The destination (`send_to`) must be set, either in this :func:`~notist.init` function
-       or as an argument to the :func:`~notist.register`, :func:`~notist.send`, and :func:`~notist.watch`.
+       The destination (``send_to``) must be set, either in this :func:`~notist._core.init` function
+       or as an argument to subsequent calls.
 
     Example:
 
@@ -315,10 +318,10 @@ def send(
         .. code-block:: python
 
            # Immediately send "Job finished!" to your Slack channel
-           notist.send("Job finished!", send_to="slack")
+           notist.send("Job finished!")
 
            # You can also send any Python data (it will be stringified)
-           notist.send(data, send_to="slack")
+           notist.send(data)
     """
     if send_to is None:
         _warn_not_set_send_to()
@@ -376,7 +379,7 @@ def watch(
 
         .. code-block:: python
 
-           @notist.watch(send_to="slack")
+           @notist.watch()
            def long_task():
                # This function will be monitored
                # Your long-running code here
@@ -386,7 +389,7 @@ def watch(
 
         .. code-block:: python
 
-           with notist.watch(send_to="slack"):
+           with notist.watch():
                # Code inside this block will be monitored
                # Your long-running code here
                ...
@@ -459,7 +462,7 @@ def register(
            import requests
 
            # Register the `get` function from the `requests` library
-           notist.register(requests, "get", send_to="slack")
+           notist.register(requests, "get")
 
            # Now any time you call `requests.get`, it will be monitored
            response = requests.get("https://example.com/largefile.zip")
@@ -471,7 +474,7 @@ def register(
            from transformers import Trainer
 
            # Register the `train` method of the `Trainer` class
-           notist.register(Trainer, "train", send_to="slack")
+           notist.register(Trainer, "train")
 
            # Now any time you call `trainer.train()`, it will be monitored
            trainer = Trainer(model=...)
@@ -487,7 +490,7 @@ def register(
            trainer = Trainer(model=...)
 
            # Register the `train` method of the `trainer` instance
-           notist.register(trainer, "train", send_to="slack")
+           notist.register(trainer, "train")
 
            # Now any time you call `trainer.train()`, it will be monitored
            trainer.train()
@@ -607,10 +610,23 @@ def watch_iterable(
         .. code-block:: python
 
             # Monitor progress of processing a long-running for loop
-            for batch in notist.watch_iterable(train_dataloader, step=10, send_to="slack"):
+            for batch in notist.watch_iterable(train_dataloader, step=10):
                 # This loop will be monitored, and you'll receive notifications every 10 iterations.
                 # If an error occurs inside this loop, you'll be notified immediately.
                 ...
+
+    .. note::
+       The above example does **not** catch exceptions automatically,
+       since exceptions raised inside the for loop cannot be caught by the iterator in Python.
+       If you also want to be notified when an error occurs, wrap your code in the monitoring context:
+
+       .. code-block:: python
+
+          with notist.watch_iterable(train_dataloader, step=10) as it:
+              for batch in it:
+                  # This loop will be monitored, and you'll receive notifications every 10 iterations.
+                  # If an error occurs inside this context, you'll be notified immediately.
+                  ...
     """
     return _watch_iterable_impl(
         iterable,

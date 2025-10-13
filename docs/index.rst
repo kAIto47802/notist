@@ -1,25 +1,30 @@
-.. NotifyState documentation master file, created by
-   sphinx-quickstart on Sun Jun  8 03:40:33 2025.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+:html_theme.sidebar_secondary.remove: true
+
+.. rst-class:: center-title
 
 NotifyState: A Simple Package to Send Notifications of Script Execution Status
 ==============================================================================
 
+.. rst-class:: center-paragraph
 
-NotifyState is a lightweight Python package that lets you keep track of your scripts and functions by sending real-time notifications when they start, finish, or encounter errors.
-Whether you're running long-running data jobs, background tasks, or simple scripts, NotifyState helps you stay informed without constantly checking your terminal.
+NotifyState is a lightweight Python package that lets you keep track of your scripts by sending real-time notifications when they start, finish, or encounter errors.
+When you're executing long-running jobs or background tasks, NotifyState helps you stay informed without constantly checking your terminal.
 
+.. raw:: html
 
-.. image:: https://img.shields.io/badge/-GitHub-181717.svg?logo=github&style=flat
-   :target: https://github.com/kAIto47802/NotifyState
-   :alt: GitHub
-.. image:: https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue
-   :target: https://www.python.org
-   :alt: Python
-.. image:: https://img.shields.io/badge/docs-latest-brightgreen?logo=read-the-docs
-   :target: https://kaito47802.github.io/NotifyState/index.html
-   :alt: Documentation
+   <div align="center" class="badges">
+     <a href="https://github.com/kAIto47802/NotifyState">
+       <img src="https://img.shields.io/badge/-GitHub-181717.svg?logo=github&style=flat" alt="GitHub">
+     </a>
+     <a href="https://www.python.org">
+       <img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue?style=flat" alt="Python">
+     </a>
+     <a href="https://kaito47802.github.io/NotifyState/index.html">
+       <img src="https://img.shields.io/badge/docs-latest-brightgreen?logo=read-the-docs&style=flat" alt="Documentation">
+     </a>
+   </div>
+
+.. rst-class:: center-title
 
 ✨ Key Features ✨
 ------------------
@@ -30,10 +35,9 @@ Whether you're running long-running data jobs, background tasks, or simple scrip
 Get instant updates on the status of your scripts.
 You can receive notifications when your script:
 
-- Starts running
-- Completes successfully
-- Encounters an error
-- Or at any point you choose—trigger custom notifications anywhere in your code with any message you like
+- starts running;
+- completes successfully; or
+- encounters an error.
 
 
 🛠️ Easy Integration with Simple API
@@ -61,7 +65,7 @@ You can use the :func:`~notist._core.watch` helper either as a function decorato
        raise Exception("This is an error")
 
 
-**Or use as a context manager to monitor a block of code:**
+**Use as a context manager to monitor a block of code:**
 
 .. code-block:: python
 
@@ -76,47 +80,48 @@ This code example send the following notifications:
 
 - When the function starts running:
 
-   .. code-block:: text
+  .. code-block:: text
 
-      Start watching <function `__main__.without_error`>
-       ▷ Defined at: /home/kaito47802/workspace/NotifyState/sample.py:21
-       ▷ Called from: `__main__` @ /home/kaito47802/workspace/NotifyState/sample.py:28
+     Start watching <function `__main__.without_error`>
+      ▷ Defined at: /home/kaito47802/workspace/NotifyState/sample.py:21
+      ▷ Called from: `__main__` @ /home/kaito47802/workspace/NotifyState/sample.py:28
 
 
 - When the function completes successfully:
 
-   .. code-block:: text
+  .. code-block:: text
 
-      End watching <function `__main__.without_error`>
-       ▷ Defined at: /home/kaito47802/workspace/NotifyState/sample.py:21
-       ▷ Called from: `__main__` @ /home/kaito47802/workspace/NotifyState/sample.py:28
-       ⦿ Execution time: 0s
+     End watching <function `__main__.without_error`>
+      ▷ Defined at: /home/kaito47802/workspace/NotifyState/sample.py:21
+      ▷ Called from: `__main__` @ /home/kaito47802/workspace/NotifyState/sample.py:28
+      ⦿ Execution time: 0s
 
 
 - When the function encounters an error:
 
-   .. code-block:: text
+  .. code-block:: text
 
-      @kAIto47802
-      Error while watching <function `__main__.with_error`>
-       ▷ Defined at: /home/kaito47802/workspace/NotifyState/sample.py:15
-       ▷ Called from: `__main__` @ /home/kaito47802/workspace/NotifyState/sample.py:30
-        29 │     print("Example function that raises an error")
-        30 │     with_error()
-      ╭───────┄┄ ────────────
-      │ 31 │     print("You will see a Slack notification for the error above")
-      │ 32 │     print(
-      │ 33 │         "You can use the watch() helper as a function decorator or as a context manager"
-      ╰─❯ Exception: This is an error
-       ⦿ Execution time: 0s
+     @kAIto47802
+     Error while watching <function `__main__.with_error`>
+      ▷ Defined at: /home/kaito47802/workspace/NotifyState/sample.py:15
+      ▷ Called from: `__main__` @ /home/kaito47802/workspace/NotifyState/sample.py:30
+       29 │     print("Example function that raises an error")
+       30 │     with_error()
+     ╭───────┄┄ ────────────
+     │ 31 │     print("You will see a Slack notification for the error above")
+     │ 32 │     print(
+     │ 33 │         "You can use the watch() helper as a function decorator or as a context manager"
+     ╰─❯ Exception: This is an error
+      ⦿ Execution time: 0s
 
-      > Traceback (most recent call last):
-      >  File "/home/kaito47802/.pyenv/versions/3.12.0/lib/python3.12/contextlib.py", line 81, in inner
-      >    return func(*args, **kwds)
-      >           ^^^^^^^^^^^^^^^^^^^
-      >  File "/home/kaito47802/workspace/NotifyState/sample.py", line 18, in with_error
-      >    raise Exception("This is an error")
-      > Exception: This is an error
+     > Traceback (most recent call last):
+     >  File "/home/kaito47802/.pyenv/versions/3.12.0/lib/python3.12/contextlib.py", line 81, in inner
+     >    return func(*args, **kwds)
+     >           ^^^^^^^^^^^^^^^^^^^
+     >  File "/home/kaito47802/workspace/NotifyState/sample.py", line 18, in with_error
+     >    raise Exception("This is an error")
+     > Exception: This is an error
+
 
 Register an Existing Function or Method to be Monitored
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -176,6 +181,8 @@ We also provide other features such as :func:`~notist._core.send` and :func:`~no
 Currently supports Slack and Discord. If you need another notifier, feel free to open an issue or a pull request on `GitHub <https://github.com/kAIto47802/NotifyState>`__!
 
 
+.. rst-class:: center-title
+
 📦 Installation 📦
 ------------------
 You can install NotifyState from our GitHub:
@@ -185,10 +192,11 @@ You can install NotifyState from our GitHub:
    pip install git+https://github.com/kAIto47802/NotifyState.git
 
 
+Contents
+--------
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
    quickstart
    api

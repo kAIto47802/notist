@@ -39,9 +39,33 @@ add_module_names = False
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = "sphinx_rtd_theme"
+# html_theme = "sphinx_rtd_theme"
+html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 html_css_files = ["css/custom.css"]
+html_title = f"{project} v{release} Document"
+html_last_updated_fmt = "%b %d, %Y"
+html_context = {"default_mode": "light"}
+
+html_theme_options = {
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/kaito47802/NotifyState",
+            "icon": "fa-brands fa-github",
+        },
+    ],
+    "collapse_navigation": True,
+    "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
+    "secondary_sidebar_items": ["page-toc"],
+}
+
+html_sidebars = {
+    "**": [
+        "search-field.html",
+        "sidebar-nav-bs.html",
+    ]
+}
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
