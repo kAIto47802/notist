@@ -17,7 +17,7 @@ from typing import (
     runtime_checkable,
 )
 
-import notist._log as _log
+from notist import _log
 from notist._notifiers.base import (
     BaseNotifier,
     ContextManagerDecorator,
@@ -163,12 +163,14 @@ def _combine_contexts(
     # cannot use TypeGuard here
     if all(callable(ctx) for ctx in contexts):
 
-        class _CombinedContextManagerDecorator(ContextDecorator, _CombinedBase):
+        class _CombinedContextManagerDecorator(_CombinedBase):
             def __call__(self, fn: _F) -> _F:
+                wrapped = fn
                 for ctx in contexts:
                     assert callable(ctx)
-                    ctx(fn)
-                return super().__call__(fn)
+                    ctx._combined = True
+                    wrapped = ctx(wrapped)
+                return wrapped
 
         combined_cls = _CombinedContextManagerDecorator
     elif all(hasattr(ctx, "__iter__") for ctx in contexts):
@@ -338,8 +340,9 @@ def send(
 
 @_allow_multi_dest
 def watch(
-    label: str | None = None,
+    params: str | list[str] | None = None,
     *,
+    label: str | None = None,
     send_to: _DESTINATIONS | list[_DESTINATIONS] | None = None,
     channel: str | None = None,
     mention_to: str | None = None,
@@ -408,7 +411,8 @@ def watch(
     _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
     _update_verbose(kwargs)
     return _notifiers[send_to].watch(
-        label,
+        params,
+        label=label,
         callsite_context_before=callsite_context_before,
         callsite_context_after=callsite_context_after,
         **kwargs,  # type: ignore

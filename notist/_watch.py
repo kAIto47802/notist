@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import functools
 import inspect
 import linecache
 import traceback
 from collections.abc import Callable, Iterator
 from contextlib import AbstractContextManager, ContextDecorator
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast
 
+from notist import _log
 from notist._log import (
     LEVEL_ORDER,
     RESET,
@@ -22,6 +24,8 @@ if TYPE_CHECKING:
     import sys
     from collections.abc import Generator, Iterable
     from types import TracebackType
+
+    from notist._notifiers.base import _SendFnPartial
 
     if sys.version_info >= (3, 11):
         from typing import Self
@@ -41,13 +45,16 @@ _F = TypeVar("_F", bound=Callable[..., Any])
 class Watch(ContextDecorator, AbstractContextManager):
     def __init__(
         self,
-        send_fn: Callable[..., None],
+        send_fn: _SendFnPartial,
+        params: str | list[str] | None = None,
         label: str | None = None,
         callsite_level: LevelStr = "error",
         callsite_context_before: int = 1,
         callsite_context_after: int = 4,
     ) -> None:
         self._send = send_fn
+        self._params = [params] if isinstance(params, str) else params or []
+        self._param_vals: dict[str, Any] | None = None
         self._start: datetime | None = None
         self._label = label
         self._callsite_level = callsite_level
@@ -63,6 +70,10 @@ class Watch(ContextDecorator, AbstractContextManager):
 
     def __enter__(self) -> Self:
         self._start = datetime.now()
+        if not self._is_fn and self._params and self._send.config.verbose:
+            _log.warn(
+                "Parameters can only be captured when used as a decorator on a function. Ignoring 'params' argument."
+            )
 
         f = (f0 := inspect.currentframe()) and f0.f_back
         if self._is_fn:
@@ -133,8 +144,12 @@ class Watch(ContextDecorator, AbstractContextManager):
             assert self._defined_at is not None
             defined_at = f" {fg256(8)}{_G.RARROWF} Defined at: {fg256(12)}{self._defined_at}{RESET}"
             called_from = f" {fg256(8)}{_G.RARROWF} Called from: {fg256(12)}{self._called_from}{RESET}"
+            params = (self._param_vals or None) and (
+                f"   {fg256(8)}{_G.RARROWF}{_G.RARROWF} With params: "
+                + ", ".join(f"{k}={v!r}" for k, v in self._param_vals.items())
+            )
             return "\n".join(
-                filter(None, [target, defined_at, called_from, called_lines])
+                filter(None, [target, defined_at, called_from, params, called_lines])
             )
         else:
             called_from = (
@@ -151,7 +166,21 @@ class Watch(ContextDecorator, AbstractContextManager):
         self._target = f"function {_S.BT_ALW}{module}.{qualname}{_S.BT_ALW}"
         self._defined_at = f"{filename}:{lineno}"
 
-        return super().__call__(fn)
+        @functools.wraps(fn)
+        def _wrapped(*args: Any, **kwargs: Any) -> Any:
+            bound = inspect.signature(fn).bind(*args, **kwargs)
+            bound.apply_defaults()
+            missing = [p for p in self._params if p not in bound.arguments]
+            if missing and self._send.config.verbose:
+                _log.warn(
+                    f"Parameters {missing} not found in function arguments. Skipping capturing their values."
+                )
+            self._param_vals = {
+                p: bound.arguments[p] for p in self._params if p in bound.arguments
+            }
+            return super(Watch, self).__call__(fn)(*args, **kwargs)
+
+        return cast(_F, _wrapped)
 
 
 class IterableWatch(AbstractContextManager, Generic[T]):
