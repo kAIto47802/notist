@@ -316,23 +316,30 @@ def test_slack_watch_context_error(
         assert "No Slack channel specified." in captured.out
 
 
+parametrize_params = pytest.mark.parametrize("params", ["arg1", ["arg1", "arg2"], None])
+
+
 @parametrize_label
 @parametrize_channel
 @parametrize_disable
+@parametrize_params
 def test_slack_watch_decorator_success(
     dummy_client: DummyClient,
     label: str | None,
     channel: _OverrideTestCase[str | None, str | None, str | None],
     disable: _OverrideTestCase[bool, bool | None, bool],
+    params: str | list[str] | None,
 ) -> None:
     slack = SlackNotifier(token="tok", channel=channel.default, disable=disable.default)
     slack._client = dummy_client  # type: ignore
 
-    @slack.watch(label=label, channel=channel.override, disable=disable.override)
-    def with_success() -> None:
+    @slack.watch(
+        params, label=label, channel=channel.override, disable=disable.override
+    )
+    def with_success(arg1: int, arg2: int) -> None:
         pass
 
-    with_success()
+    with_success(1, arg2=2)
     if disable.expected or channel.expected is None:
         assert dummy_client.sent == []
         return
@@ -344,26 +351,36 @@ def test_slack_watch_decorator_success(
     assert "Start watching" in dummy_client.sent[0]["text"]
     assert "End watching" in dummy_client.sent[1]["text"]
     assert "Execution time: 0s" in dummy_client.sent[1]["text"]
+    if params == "arg1":
+        assert all("arg1=1" in s["text"] for s in dummy_client.sent)
+        assert all("arg2" not in s["text"] for s in dummy_client.sent)
+    elif params == ["arg1", "arg2"]:
+        assert all("arg1=1" in s["text"] for s in dummy_client.sent)
+        assert all("arg2=2" in s["text"] for s in dummy_client.sent)
 
 
 @parametrize_label
 @parametrize_channel
 @parametrize_disable
+@parametrize_params
 def test_slack_watch_decorator_error(
     dummy_client: DummyClient,
     label: str | None,
     channel: _OverrideTestCase[str | None, str | None, str | None],
     disable: _OverrideTestCase[bool, bool | None, bool],
+    params: str | list[str] | None,
 ) -> None:
     slack = SlackNotifier(token="tok", channel=channel.default, disable=disable.default)
     slack._client = dummy_client  # type: ignore
 
-    @slack.watch(label=label, channel=channel.override, disable=disable.override)
-    def with_error() -> None:
+    @slack.watch(
+        params, label=label, channel=channel.override, disable=disable.override
+    )
+    def with_error(arg1: int, arg2: int) -> None:
         raise Exception("This is an error")
 
     with pytest.raises(Exception):
-        with_error()
+        with_error(1, arg2=2)
 
     if disable.expected or channel.expected is None:
         assert dummy_client.sent == []
@@ -382,6 +399,12 @@ def test_slack_watch_decorator_error(
         in dummy_client.sent[1]["attachments"][0]["blocks"][0]["text"]["text"]
     )
     assert dummy_client.sent[-1]["attachments"] is not None
+    if params == "arg1":
+        assert all("arg1=1" in s["text"] for s in dummy_client.sent)
+        assert all("arg2" not in s["text"] for s in dummy_client.sent)
+    elif params == ["arg1", "arg2"]:
+        assert all("arg1=1" in s["text"] for s in dummy_client.sent)
+        assert all("arg2=2" in s["text"] for s in dummy_client.sent)
 
 
 def test_slack_register_module(
