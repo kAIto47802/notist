@@ -43,7 +43,7 @@ add_module_names = False
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 html_css_files = ["css/custom.css"]
-html_title = f"{project} v{release} Document"
+html_title = f"{project} Documentation"
 html_last_updated_fmt = "%b %d, %Y"
 html_context = {"default_mode": "light"}
 
@@ -58,6 +58,10 @@ html_theme_options = {
     "collapse_navigation": True,
     "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
     "secondary_sidebar_items": ["page-toc"],
+    "switcher": {
+        "json_url": "_static/versions.json",
+        "version_match": os.getenv("DOC_VERSION_MATCH", "dev"),
+    },
 }
 
 html_sidebars = {
