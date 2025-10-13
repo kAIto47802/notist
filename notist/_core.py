@@ -275,7 +275,7 @@ def init(
     assert isinstance(send_to, str)
     if send_to in _notifiers:
         _log.warn(
-            f"{_DESTINATIONS_MAP[send_to].__class__.__name__} already initialized. Skipping."
+            f"{_DESTINATIONS_MAP[send_to].__name__} already initialized. Skipping."
         )
         return
     _notifiers[send_to] = _DESTINATIONS_MAP[send_to](
