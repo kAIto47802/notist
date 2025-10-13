@@ -354,7 +354,13 @@ class BaseNotifier(ABC):
         This will automatically send notifications when the function or code block starts, ends, or raises an exception.
 
         Args:
-            label: Optional label for the watch context. This label will be included in both notification messages and log entries.
+            params:
+                Names of the function parameters whose values should be included in the message
+                when the decorated function is called.
+                This option is ignored when used as a context manager.
+            label:
+                Optional label for the watch context.
+                This label will be included in both notification messages and log entries.
             channel: Override the default channel for notifications.
             mention_to: Override the default entity to mention on notification.
             mention_level: Override the default mention threshold level.
@@ -411,7 +417,13 @@ class BaseNotifier(ABC):
         Args:
             target: The module, class, or class instance containing the function to be registered.
             name: The name of the function to be registered.
-            label: Optional label for the watch context. This label will be included in both notification messages and log entries.
+            params:
+                Names of the function parameters whose values should be included in the message
+                when the registered function is called.
+                This option is ignored when used as a context manager.
+            label:
+                Optional label for the watch context.
+                This label will be included in both notification messages and log entries.
             channel: Override the default channel for notifications.
             mention_to: Override the default entity to mention on notification.
             mention_level: Override the default mention threshold level.
@@ -476,8 +488,12 @@ class BaseNotifier(ABC):
         Args:
             iterable: The iterable to watch.
             step: The number of items to process before sending a progress notification.
-            total: The total number of items in the iterable. If not provided, it will not be included in the progress messages.
-            label: Optional label for the watch context. This label will be included in both notification messages and log entries.
+            total:
+                The total number of items in the iterable.
+                If not provided, it will not be included in the progress messages.
+            label:
+                Optional label for the watch context.
+                This label will be included in both notification messages and log entries.
             mention_to: Override the default entity to mention on notification.
             mention_level: Override the default mention threshold level.
             mention_if_ends: Override the default setting for whether to mention at the end of the watch.
