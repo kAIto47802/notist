@@ -51,6 +51,7 @@ docs = [
     "sphinx-autodoc-typehints",
     "pydata_sphinx_theme",
     "sphinx-copybutton",
+    "sphinx-toolbox",
 ]
 
 
