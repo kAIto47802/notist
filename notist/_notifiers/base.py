@@ -100,34 +100,28 @@ class _SendFnPartial:
 
 class SendOptions(TypedDict, total=False):
     """
-    Additional options for :meth:`BaseNotifier.watch` and :meth:`BaseNotifier.register`.
-
-    Args:
-        label:
-            Optional label for the watch context.
-            This label will be included in both notification messages and log entries.
-        channel: Override the default channel for notifications.
-        mention_to: Override the default entity to mention on notification.
-        mention_level: Override the default mention threshold level.
-        mention_if_ends: Override the default setting for whether to mention at the end of the watch.
-        callsite_level: Override the default call-site source snippet threshold level.
-        callsite_context_before:
-            Number of lines of context to include before the call site. Default is 1.
-        callsite_context_after:
-            Number of lines of context to include after the call site. Default is 4.
-        verbose: Override the default verbosity setting.
-        disable: Override the default disable flag.
+    Additional options for :meth:`~BaseNotifier.watch` and :meth:`~BaseNotifier.register`.
     """
 
+    #: Optional label for the message. Included in notification messages and log entries.
     label: str | None
+    #: Override the default channel for notifications.
     channel: str | None
+    #: Override the default user to mention on notification.
     mention_to: str | None
+    #: Override the default mention threshold level.
     mention_level: LevelStr | None
+    #: Override the default setting for whether to mention at the end of the watch.
     mention_if_ends: bool | None
+    #: Override the default call-site source snippet threshold level.
     callsite_level: LevelStr | None
+    #: Number of lines of context to include before the call site. Default is 1.
     callsite_context_before: int
+    #: Number of lines of context to include after the call site. Default is 4.
     callsite_context_after: int
+    #: Override the default verbosity setting.
     verbose: bool | None
+    #: Override the default disable flag.
     disable: bool | None
 
 

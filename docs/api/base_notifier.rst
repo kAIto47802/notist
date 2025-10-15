@@ -4,4 +4,5 @@ BaseNotifier
 .. automodule:: notist._notifiers.base
    :members:
    :undoc-members:
-   :show-inheritance:
+   :no-inherited-members:
+   :show-inheritance: False
