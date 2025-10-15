@@ -334,7 +334,7 @@ def test_slack_watch_decorator_success(
     slack._client = dummy_client  # type: ignore
 
     @slack.watch(
-        params, label=label, channel=channel.override, disable=disable.override
+        params=params, label=label, channel=channel.override, disable=disable.override
     )
     def with_success(arg1: int, arg2: int) -> None:
         pass
@@ -374,7 +374,7 @@ def test_slack_watch_decorator_error(
     slack._client = dummy_client  # type: ignore
 
     @slack.watch(
-        params, label=label, channel=channel.override, disable=disable.override
+        params=params, label=label, channel=channel.override, disable=disable.override
     )
     def with_error(arg1: int, arg2: int) -> None:
         raise Exception("This is an error")
@@ -542,7 +542,7 @@ def test_slack_watch_iterable_success(
     iterable_object = (
         f"<{'range' if sized else 'range_iterator'} object at {hex(id(iterable))}>"
     )
-    watch_iterable = slack.watch_iterable(
+    watch_iterable = slack.watch(
         iterable,
         step=step,
         total=total,
@@ -612,7 +612,7 @@ def test_slack_watch_iterable_error(
         f"<{'range' if sized else 'range_iterator'} object at {hex(id(iterable))}>"
     )
 
-    watch_iterable = slack.watch_iterable(
+    watch_iterable = slack.watch(
         iterable,
         step=step,
         total=total,
