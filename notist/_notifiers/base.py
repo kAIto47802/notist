@@ -4,7 +4,7 @@ import os
 import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Protocol, TypedDict, TypeVar, overload
 
 from notist import _log
 from notist._log import LevelStr, prepare_for_message
@@ -22,6 +22,11 @@ else:
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
     from types import ModuleType, TracebackType
+
+    if sys.version_info >= (3, 12):
+        from typing import Unpack
+    else:
+        from typing_extensions import Unpack
 
 
 # NOTE: Python 3.12+ (PEP 695) supports inline type parameter syntax.
@@ -91,6 +96,57 @@ class _SendFnPartial:
         prefix: str = "",
     ) -> None:
         self.fn(self.config, message, tb, level, prefix)
+
+
+class SendOptions(TypedDict, total=False):
+    """
+    Additional options for :meth:`BaseNotifier.watch` and :meth:`BaseNotifier.register`.
+
+    Args:
+        label:
+            Optional label for the watch context.
+            This label will be included in both notification messages and log entries.
+        channel: Override the default channel for notifications.
+        mention_to: Override the default entity to mention on notification.
+        mention_level: Override the default mention threshold level.
+        mention_if_ends: Override the default setting for whether to mention at the end of the watch.
+        callsite_level: Override the default call-site source snippet threshold level.
+        callsite_context_before:
+            Number of lines of context to include before the call site. Default is 1.
+        callsite_context_after:
+            Number of lines of context to include after the call site. Default is 4.
+        verbose: Override the default verbosity setting.
+        disable: Override the default disable flag.
+    """
+
+    label: str | None
+    channel: str | None
+    mention_to: str | None
+    mention_level: LevelStr | None
+    mention_if_ends: bool | None
+    callsite_level: LevelStr | None
+    callsite_context_before: int
+    callsite_context_after: int
+    verbose: bool | None
+    disable: bool | None
+
+
+@dataclass(frozen=True)
+class _SendOptions:
+    """
+    Internal version of SendOptions with default values filled in.
+    """
+
+    label: str | None = None
+    channel: str | None = None
+    mention_to: str | None = None
+    mention_level: LevelStr | None = None
+    mention_if_ends: bool | None = None
+    callsite_level: LevelStr | None = None
+    callsite_context_before: int = 1
+    callsite_context_after: int = 4
+    verbose: bool | None = None
+    disable: bool | None = None
 
 
 DOC_ADDITIONS_BASE = {
@@ -334,81 +390,134 @@ class BaseNotifier(ABC):
     ) -> None:
         raise NotImplementedError
 
+    @overload
     def watch(
         self,
-        params: str | list[str] | None = None,
+        iterable: None = ...,
+        /,
         *,
-        label: str | None = None,
-        channel: str | None = None,
-        mention_to: str | None = None,
-        mention_level: LevelStr | None = None,
-        mention_if_ends: bool | None = None,
-        callsite_level: LevelStr | None = None,
-        callsite_context_before: int = 1,
-        callsite_context_after: int = 4,
-        verbose: bool | None = None,
-        disable: bool | None = None,
-    ) -> ContextManagerDecorator:
+        params: str | list[str] | None = ...,
+        step: int = ...,
+        total: None = ...,
+        **kwargs: Unpack[SendOptions],
+    ) -> ContextManagerDecorator: ...
+
+    @overload
+    def watch(
+        self,
+        iterable: Iterable[T],
+        /,
+        *,
+        params: None = ...,
+        step: int = ...,
+        total: int | None = ...,
+        **kwargs: Unpack[SendOptions],
+    ) -> ContextManagerIterator[T]: ...
+
+    def watch(
+        self,
+        iterable: Iterable[T] | None = None,
+        /,
+        *,
+        params: str | list[str] | None = None,
+        step: int = 1,
+        total: int | None = None,
+        **options: Unpack[SendOptions],
+    ) -> ContextManagerDecorator | ContextManagerIterator[T]:
         """
-        Return an object that can serve as both a context manager and a decorator to watch code execution.
-        This will automatically send notifications when the function or code block starts, ends, or raises an exception.
+        If ``iterable`` is not provided, return an object that can serve as both a context manager and
+        a decorator to watch code execution.
+        This will automatically send notifications when the function or code block starts, ends,
+        or raises an exception.
+
+        If ``iterable`` is provided, return a generator that yields items from an ``iterable``
+        while sending notifications about its progress.
 
         Args:
             params:
                 Names of the function parameters whose values should be included in the message
                 when the decorated function is called.
                 This option is ignored when used as a context manager.
-            label:
-                Optional label for the watch context.
-                This label will be included in both notification messages and log entries.
-            channel: Override the default channel for notifications.
-            mention_to: Override the default entity to mention on notification.
-            mention_level: Override the default mention threshold level.
-            mention_if_ends: Override the default setting for whether to mention at the end of the watch.
-            callsite_level: Override the default call-site source snippet threshold level.
-            callsite_context_before: Number of lines of context to include before the call site.
-            callsite_context_after: Number of lines of context to include after the call site.
-            verbose: Override the default verbosity setting.
-            disable: Override the default disable flag.
+            step:
+                The number of items to process before sending a progress notification.
+                This option is ignored if the iterable is not provided.
+            total:
+                The total number of items in the iterable.
+                If not provided and the iterable has not ``__len__``,
+                it will not be included in the progress messages.
+                This option is ignored if the iterable is not provided.
+            **options: Additional options. See :class:`SendOptions` for details.
 
         Returns:
             An an object that can serve as both a context manager and a decorator.
         """
+        return self._watch_impl(
+            iterable,
+            params=params,
+            step=step,
+            total=total,
+            **options,
+        )
+
+    def _watch_impl(
+        self,
+        iterable: Iterable[T] | None = None,
+        /,
+        *,
+        params: str | list[str] | None = None,
+        step: int = 1,
+        total: int | None = None,
+        class_name: str | None = None,
+        object_id: int | None = None,
+        **options: Unpack[SendOptions],
+    ) -> ContextManagerDecorator | ContextManagerIterator[T]:
+        opts = _SendOptions(**options)
         send_config = _SendConfig(
-            channel=channel or self._default_channel,
-            mention_to=mention_to or self._mention_to,
-            mention_level=mention_level or self._mention_level,
-            mention_if_ends=mention_if_ends
-            if mention_if_ends is not None
+            channel=opts.channel or self._default_channel,
+            mention_to=opts.mention_to or self._mention_to,
+            mention_level=opts.mention_level or self._mention_level,
+            mention_if_ends=opts.mention_if_ends
+            if opts.mention_if_ends is not None
             else self._mention_if_ends,
-            verbose=verbose if verbose is not None else self._verbose,
-            disable=disable if disable is not None else self._disable,
+            verbose=opts.verbose if opts.verbose is not None else self._verbose,
+            disable=opts.disable if opts.disable is not None else self._disable,
         )
-        return Watch(
-            _SendFnPartial(self._send, send_config),
-            params,
-            label,
-            callsite_level or self._default_callsite_level,
-            callsite_context_before,
-            callsite_context_after,
-        )
+        if iterable is None:
+            return Watch(
+                _SendFnPartial(self._send, send_config),
+                params,
+                opts.label,
+                opts.callsite_level or self._default_callsite_level,
+                opts.callsite_context_before,
+                opts.callsite_context_after,
+            )
+        else:
+            if step < 1:
+                step = 1
+                if send_config.verbose:
+                    _log.warn(
+                        f"Step must be at least 1. Setting step to 1 for {self._platform}Notifier."
+                    )
+
+            return IterableWatch(
+                iterable,
+                step,
+                total,
+                _SendFnPartial(self._send, send_config),
+                opts.label,
+                opts.callsite_level or self._default_callsite_level,
+                opts.callsite_context_before,
+                opts.callsite_context_after,
+                class_name,
+                object_id,
+            )
 
     def register(
         self,
         target: ModuleType | type[Any] | Any,
         name: str,
         params: str | list[str] | None = None,
-        *,
-        label: str | None = None,
-        channel: str | None = None,
-        mention_to: str | None = None,
-        mention_level: LevelStr | None = None,
-        mention_if_ends: bool | None = None,
-        callsite_level: LevelStr | None = None,
-        callsite_context_before: int = 1,
-        callsite_context_after: int = 4,
-        verbose: bool | None = None,
-        disable: bool | None = None,
+        **options: Unpack[SendOptions],
     ) -> None:
         """
         Register existing function or method to be monitored by this notifier.
@@ -420,150 +529,23 @@ class BaseNotifier(ABC):
             params:
                 Names of the function parameters whose values should be included in the message
                 when the registered function is called.
-                This option is ignored when used as a context manager.
-            label:
-                Optional label for the watch context.
-                This label will be included in both notification messages and log entries.
-            channel: Override the default channel for notifications.
-            mention_to: Override the default entity to mention on notification.
-            mention_level: Override the default mention threshold level.
-            mention_if_ends: Override the default setting for whether to mention at the end of the watch.
-            callsite_level: Override the default call-site source snippet threshold level.
-            callsite_context_before: Number of lines of context to include before the call site.
-            callsite_context_after: Number of lines of context to include after the call site.
-            verbose: Override the default verbosity setting.
-            disable: Override the default disable flag.
+            **options: Additional options. See :class:`SendOptions` for details.
         """
+        opts = _SendOptions(**options)
         original = getattr(target, name, None)
         if original is None:
-            if verbose if verbose is not None else self._verbose:
+            if opts.verbose if opts.verbose is not None else self._verbose:
                 _log.warn(
                     f"Cannot register {self._platform}Notifier on `{target.__name__}.{name}`: "
                     f"target `{target.__name__}` has no attribute `{name}`."
                 )
             return
-        patched = self.watch(
-            params=params,
-            label=label,
-            channel=channel,
-            mention_to=mention_to,
-            mention_level=mention_level,
-            mention_if_ends=mention_if_ends,
-            callsite_level=callsite_level,
-            callsite_context_before=callsite_context_before,
-            callsite_context_after=callsite_context_after,
-            verbose=verbose,
-            disable=disable,
-        )(original)
+        patched = self.watch(params=params, **options)(original)
         setattr(target, name, patched)
         target_name = (
             target.__name__
             if hasattr(target, "__name__")
             else f"<{target.__class__.__name__} object at {hex(id(target))}>"
         )
-        if verbose if verbose is not None else self._verbose:
+        if opts.verbose if opts.verbose is not None else self._verbose:
             _log.info(f"Registered {self._platform}Notifier on `{target_name}.{name}`.")
-
-    def watch_iterable(
-        self,
-        iterable: Iterable[T],
-        step: int = 1,
-        total: int | None = None,
-        *,
-        label: str | None = None,
-        channel: str | None = None,
-        mention_to: str | None = None,
-        mention_level: LevelStr | None = None,
-        mention_if_ends: bool | None = None,
-        callsite_level: LevelStr | None = None,
-        callsite_context_before: int = 1,
-        callsite_context_after: int = 4,
-        verbose: bool | None = None,
-        disable: bool | None = None,
-    ) -> ContextManagerIterator[T]:
-        """
-        A generator that yields items from an iterable while sending notifications about the progress.
-        This is useful for monitoring long-running tasks that process items from an iterable.
-
-        Args:
-            iterable: The iterable to watch.
-            step: The number of items to process before sending a progress notification.
-            total:
-                The total number of items in the iterable.
-                If not provided, it will not be included in the progress messages.
-            label:
-                Optional label for the watch context.
-                This label will be included in both notification messages and log entries.
-            mention_to: Override the default entity to mention on notification.
-            mention_level: Override the default mention threshold level.
-            mention_if_ends: Override the default setting for whether to mention at the end of the watch.
-            callsite_level: Override the default call-site source snippet threshold level.
-            callsite_context_before: Number of lines of context to include before the call site.
-            callsite_context_after: Number of lines of context to include after the call site.
-            verbose: Override the default verbosity setting.
-            disable: Override the default disable flag.
-        """
-        return self._watch_iterable_impl(
-            iterable,
-            step,
-            total,
-            label=label,
-            channel=channel,
-            mention_to=mention_to,
-            mention_level=mention_level,
-            mention_if_ends=mention_if_ends,
-            callsite_level=callsite_level,
-            callsite_context_before=callsite_context_before,
-            callsite_context_after=callsite_context_after,
-            verbose=verbose,
-            disable=disable,
-        )
-
-    def _watch_iterable_impl(
-        self,
-        iterable: Iterable[T],
-        step: int = 1,
-        total: int | None = None,
-        *,
-        label: str | None = None,
-        channel: str | None = None,
-        mention_to: str | None = None,
-        mention_level: LevelStr | None = None,
-        mention_if_ends: bool | None = None,
-        callsite_level: LevelStr | None = None,
-        callsite_context_before: int = 1,
-        callsite_context_after: int = 4,
-        verbose: bool | None = None,
-        disable: bool | None = None,
-        class_name: str | None = None,
-        object_id: int | None = None,
-    ) -> ContextManagerIterator[T]:
-        send_config = _SendConfig(
-            channel=channel or self._default_channel,
-            mention_to=mention_to or self._mention_to,
-            mention_level=mention_level or self._mention_level,
-            mention_if_ends=mention_if_ends
-            if mention_if_ends is not None
-            else self._mention_if_ends,
-            verbose=verbose if verbose is not None else self._verbose,
-            disable=disable if disable is not None else self._disable,
-        )
-        if step < 1:
-            step = 1
-            if send_config.verbose:
-                _log.warn(
-                    f"Step must be at least 1. Setting step to 1 for {self._platform}Notifier."
-                )
-
-        return IterableWatch(
-            iterable,
-            step,
-            total,
-            _SendFnPartial(self._send, send_config),
-            label,
-            callsite_level or self._default_callsite_level,
-            callsite_context_before,
-            callsite_context_after,
-            class_name,
-            object_id,
-        )
