@@ -6,12 +6,14 @@ import sys
 from collections.abc import Callable
 from contextlib import AbstractContextManager, ContextDecorator
 from functools import wraps
+from operator import itemgetter
 from typing import (
     TYPE_CHECKING,
     Any,
     Iterable,
     Literal,
     Protocol,
+    TypedDict,
     TypeVar,
     overload,
     runtime_checkable,
@@ -36,6 +38,7 @@ if TYPE_CHECKING:
     from types import ModuleType, TracebackType
 
     from notist._log import LevelStr
+    from notist._notifiers.base import SendOptions
 
     if sys.version_info >= (3, 10):
         from typing import TypeGuard
@@ -46,6 +49,11 @@ if TYPE_CHECKING:
         from typing import Self
     else:
         from typing_extensions import Self
+
+    if sys.version_info >= (3, 12):
+        from typing import Unpack
+    else:
+        from typing_extensions import Unpack
 
 
 _notifiers: dict[str, BaseNotifier] = {}
@@ -82,12 +90,8 @@ else:
 
 @overload
 def _allow_multi_dest(
-    fn: Callable[_P, ContextManagerDecorator],
-) -> Callable[_P, ContextManagerDecorator]: ...
-@overload
-def _allow_multi_dest(
-    fn: Callable[_P, ContextManagerIterator[_T]],
-) -> Callable[_P, ContextManagerIterator[_T]]: ...
+    fn: Callable[_P, ContextManagerDecorator | ContextManagerIterator[_T]],
+) -> Callable[_P, ContextManagerDecorator | ContextManagerIterator[_T]]: ...
 @overload
 def _allow_multi_dest(fn: Callable[_P, None]) -> Callable[_P, None]: ...
 
@@ -209,6 +213,27 @@ class _PhantomContextManagerIterator(Iterable[_T], contextlib.nullcontext):
         yield from self._iterable
 
 
+class _LazyInitOptions(TypedDict, total=False):
+    channel: str | None
+    mention_to: str | None
+    mention_level: LevelStr | None
+    mention_if_ends: bool | None
+    callsite_level: LevelStr | None
+    verbose: bool | None
+    disable: bool | None
+
+
+def _to_init_options(options: SendOptions | _LazyInitOptions) -> _LazyInitOptions:
+    return _LazyInitOptions(
+        **dict(  # type: ignore
+            zip(
+                keys := _LazyInitOptions.__annotations__.keys(),
+                itemgetter(*keys)(options),
+            )
+        )
+    )
+
+
 @_allow_multi_dest
 def init(
     *,
@@ -328,33 +353,46 @@ def send(
         _warn_not_set_send_to()
         return
     assert isinstance(send_to, str)
-    kwargs = dict(
+    init_opts = _LazyInitOptions(
         channel=channel,
         mention_to=mention_to,
         verbose=verbose,
         disable=disable,
     )
-    _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
-    _update_verbose(kwargs)
-    _notifiers[send_to].send(data, **kwargs)  # type: ignore
+    _init_if_needed(send_to, init_opts)
+    _notifiers[send_to].send(data, **init_opts)  # type: ignore
 
 
-@_allow_multi_dest
+@overload
 def watch(
-    params: str | list[str] | None = None,
+    iterable: None = ...,
+    /,
     *,
-    label: str | None = None,
+    send_to: _DESTINATIONS | list[_DESTINATIONS] | None = ...,
+    params: str | list[str] | None = ...,
+    **options: Unpack[SendOptions],
+) -> ContextManagerDecorator: ...
+
+
+@overload
+def watch(
+    iterable: Iterable[T],
+    /,
+    *,
+    send_to: _DESTINATIONS | list[_DESTINATIONS] | None = ...,
+    params: None = ...,
+    **options: Unpack[SendOptions],
+) -> ContextManagerIterator[T]: ...
+
+
+def watch(
+    iterable: Iterable[T] | None = None,
+    /,
+    *,
     send_to: _DESTINATIONS | list[_DESTINATIONS] | None = None,
-    channel: str | None = None,
-    mention_to: str | None = None,
-    mention_level: LevelStr | None = None,
-    mention_if_ends: bool | None = None,
-    callsite_level: LevelStr | None = None,
-    callsite_context_before: int = 1,
-    callsite_context_after: int = 4,
-    verbose: bool | None = None,
-    disable: bool | None = None,
-) -> ContextManagerDecorator:
+    params: str | list[str] | None = None,
+    **options: Unpack[SendOptions],
+) -> ContextManagerDecorator | ContextManagerIterator[T]:
     """
     Return an object that can serve as both a context manager and a decorator to watch code execution.
     This will automatically send notifications when the function or code block starts, ends, or raises
@@ -402,28 +440,64 @@ def watch(
                # Code inside this block will be monitored
                # Your long-running code here
                ...
+
+        Use to monitor an iterable in a for loop:
+
+        .. code-block:: python
+
+           # Monitor progress of processing a long-running for loop
+           for batch in notist.watch_iterable(train_dataloader, step=10):
+               # This loop will be monitored, and you'll receive notifications every 10 iterations.
+               # If an error occurs inside this loop, you'll be notified immediately.
+               ...
+
+    .. note::
+       The above example does **not** catch exceptions automatically,
+       since exceptions raised inside the for loop cannot be caught by the iterator in Python.
+       If you also want to be notified when an error occurs, wrap your code in the monitoring context:
+
+       .. code-block:: python
+
+           with notist.watch_iterable(train_dataloader, step=10) as it:
+               for batch in it:
+                   # This loop will be monitored, and you'll receive notifications every 10 iterations.
+                   # If an error occurs inside this context, you'll be notified immediately.
+                   ...
     """
+    return _watch_impl(
+        iterable,
+        send_to=send_to,
+        params=params,
+        **options,
+    )
+
+
+@_allow_multi_dest
+def _watch_impl(
+    iterable: Iterable[T] | None = None,
+    /,
+    *,
+    send_to: _DESTINATIONS | list[_DESTINATIONS] | None = None,
+    params: str | list[str] | None = None,
+    class_name: str | None = None,
+    object_id: int | None = None,
+    **options: Unpack[SendOptions],
+) -> ContextManagerDecorator | ContextManagerIterator[T]:
     if send_to is None:
         _warn_not_set_send_to()
-        return _PhantomContextManagerDecorator()
+        return (
+            _PhantomContextManagerDecorator()
+            if iterable is None
+            else _PhantomContextManagerIterator(iterable)
+        )
     assert isinstance(send_to, str)
-    kwargs = dict(
-        channel=channel,
-        mention_to=mention_to,
-        mention_level=mention_level,
-        mention_if_ends=mention_if_ends,
-        callsite_level=callsite_level,
-        verbose=verbose,
-        disable=disable,
-    )
-    _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
-    _update_verbose(kwargs)
-    return _notifiers[send_to].watch(
-        params,
-        label=label,
-        callsite_context_before=callsite_context_before,
-        callsite_context_after=callsite_context_after,
-        **kwargs,  # type: ignore
+    _init_if_needed(send_to, options)
+    return _notifiers[send_to]._watch_impl(
+        iterable,
+        params=params,
+        class_name=class_name,
+        object_id=object_id,
+        **options,
     )
 
 
@@ -434,16 +508,7 @@ def register(
     params: str | list[str] | None = None,
     *,
     send_to: _DESTINATIONS | list[_DESTINATIONS] | None = None,
-    label: str | None = None,
-    channel: str | None = None,
-    mention_to: str | None = None,
-    mention_level: LevelStr | None = None,
-    mention_if_ends: bool | None = None,
-    callsite_level: LevelStr | None = None,
-    callsite_context_before: int = 1,
-    callsite_context_after: int = 4,
-    verbose: bool | None = None,
-    disable: bool | None = None,
+    **options: Unpack[SendOptions],
 ) -> None:
     """
     Register existing function or method to be watched by this notifier.
@@ -455,7 +520,6 @@ def register(
         params:
             Names of the function parameters whose values should be included in the message
             when the registered function is called.
-            This option is ignored when used as a context manager.
         send_to:
             Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
         label:
@@ -517,185 +581,28 @@ def register(
         _warn_not_set_send_to()
         return
     assert isinstance(send_to, str)
-    kwargs = dict(
-        channel=channel,
-        mention_to=mention_to,
-        mention_level=mention_level,
-        mention_if_ends=mention_if_ends,
-        callsite_level=callsite_level,
-        verbose=verbose,
-        disable=disable,
-    )
-    _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
-    _update_verbose(kwargs)
+    _init_if_needed(send_to, options)
     _notifiers[send_to].register(
         target,
         name,
         params,
-        label=label,
-        callsite_context_before=callsite_context_before,
-        callsite_context_after=callsite_context_after,
-        **kwargs,  # type: ignore
-    )
-
-
-@_allow_multi_dest
-def _watch_iterable_impl(
-    iterable: Iterable[T],
-    step: int = 1,
-    total: int | None = None,
-    *,
-    send_to: _DESTINATIONS | list[_DESTINATIONS] | None = None,
-    label: str | None = None,
-    channel: str | None = None,
-    mention_to: str | None = None,
-    mention_level: LevelStr | None = None,
-    mention_if_ends: bool | None = None,
-    callsite_level: LevelStr | None = None,
-    callsite_context_before: int = 1,
-    callsite_context_after: int = 4,
-    verbose: bool | None = None,
-    disable: bool | None = None,
-    class_name: str | None = None,
-    object_id: int | None = None,
-) -> ContextManagerIterator[T]:
-    if send_to is None:
-        _warn_not_set_send_to()
-        return _PhantomContextManagerIterator(iterable)
-    assert isinstance(send_to, str)
-    kwargs = dict(
-        channel=channel,
-        mention_to=mention_to,
-        mention_level=mention_level,
-        mention_if_ends=mention_if_ends,
-        callsite_level=callsite_level,
-        verbose=verbose,
-        disable=disable,
-    )
-    _init_if_needed(send_to=send_to, **kwargs)  # type: ignore
-    _update_verbose(kwargs)
-    return _notifiers[send_to]._watch_iterable_impl(  # type: ignore
-        iterable,
-        step=step,
-        total=total,
-        label=label,
-        callsite_context_before=callsite_context_before,
-        callsite_context_after=callsite_context_after,
-        class_name=class_name,
-        object_id=object_id,
-        **kwargs,  # type: ignore
-    )
-
-
-def watch_iterable(
-    iterable: Iterable[T],
-    step: int = 1,
-    total: int | None = None,
-    *,
-    send_to: _DESTINATIONS | list[_DESTINATIONS] | None = None,
-    label: str | None = None,
-    channel: str | None = None,
-    mention_to: str | None = None,
-    mention_level: LevelStr | None = None,
-    mention_if_ends: bool | None = None,
-    callsite_level: LevelStr | None = None,
-    callsite_context_before: int = 1,
-    callsite_context_after: int = 4,
-    verbose: bool | None = None,
-    disable: bool | None = None,
-) -> ContextManagerIterator[T]:
-    """
-    A generator that yields items from an iterable while sending notifications about the progress.
-    This is useful for monitoring long-running tasks that process items from an iterable.
-
-    Args:
-        iterable: The iterable to watch.
-        step: The number of items to process before sending a progress notification.
-        total:
-            The total number of items in the iterable.
-            If not provided, it will not be included in the progress messages.
-        send_to:
-            Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
-        label:
-            Optional label for the watch context.
-            This label will be included in both notification messages and log entries.
-        mention_to: Override the default entity to mention on notification.
-        mention_level: Override the default mention threshold level.
-        mention_if_ends: Override the default setting for whether to mention at the end of the watch.
-        callsite_level: Override the default call-site source snippet threshold level.
-        callsite_context_before: Number of lines of context to include before the call site.
-        callsite_context_after: Number of lines of context to include after the call site.
-        verbose: Override the default verbosity setting.
-        disable: Override the default disable flag.
-
-
-    Example:
-
-        .. code-block:: python
-
-            # Monitor progress of processing a long-running for loop
-            for batch in notist.watch_iterable(train_dataloader, step=10):
-                # This loop will be monitored, and you'll receive notifications every 10 iterations.
-                # If an error occurs inside this loop, you'll be notified immediately.
-                ...
-
-    .. note::
-       The above example does **not** catch exceptions automatically,
-       since exceptions raised inside the for loop cannot be caught by the iterator in Python.
-       If you also want to be notified when an error occurs, wrap your code in the monitoring context:
-
-       .. code-block:: python
-
-          with notist.watch_iterable(train_dataloader, step=10) as it:
-              for batch in it:
-                  # This loop will be monitored, and you'll receive notifications every 10 iterations.
-                  # If an error occurs inside this context, you'll be notified immediately.
-                  ...
-    """
-    return _watch_iterable_impl(
-        iterable,
-        step,
-        total,
-        send_to=send_to,
-        label=label,
-        channel=channel,
-        mention_to=mention_to,
-        mention_level=mention_level,
-        mention_if_ends=mention_if_ends,
-        callsite_level=callsite_level,
-        callsite_context_before=callsite_context_before,
-        callsite_context_after=callsite_context_after,
-        verbose=verbose,
-        disable=disable,
+        **options,
     )
 
 
 def _init_if_needed(
-    send_to: _DESTINATIONS | list[_DESTINATIONS] = "slack",
-    channel: str | None = None,
-    mention_to: str | None = None,
-    mention_level: LevelStr | None = None,
-    mention_if_ends: bool | None = None,
-    callsite_level: LevelStr | None = None,
-    verbose: bool | None = None,
-    disable: bool | None = None,
+    send_to: _DESTINATIONS | list[_DESTINATIONS],
+    opts: _LazyInitOptions | SendOptions,
 ) -> None:
+    init_opts = _to_init_options(opts)
     if send_to in _notifiers:
         return
-    kwargs = dict(
-        channel=channel,
-        mention_to=mention_to,
-        mention_level=mention_level,
-        mention_if_ends=mention_if_ends,
-        callsite_level=callsite_level,
-        verbose=verbose,
-        disable=disable,
-    )
-    init(send_to=send_to, **{k: v for k, v in kwargs.items() if v is not None})  # type: ignore
+    init(send_to=send_to, **{k: v for k, v in init_opts.items() if v is not None})  # type: ignore
+    _update_verbose(opts)
 
 
-def _update_verbose(kwargs: dict[str, Any]) -> None:
-    kwargs["verbose"] = (verbose := kwargs["verbose"]) and (
+def _update_verbose(opts: SendOptions | _LazyInitOptions) -> None:
+    opts["verbose"] = (verbose := opts.get("verbose")) and (
         verbose if isinstance(verbose, bool) else verbose >= 2
     )
 
