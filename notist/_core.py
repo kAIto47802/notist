@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 import contextlib
+import inspect
 import itertools
 import sys
 from collections.abc import Callable
 from contextlib import AbstractContextManager, ContextDecorator
 from functools import wraps
-from operator import itemgetter
 from typing import (
     TYPE_CHECKING,
     Any,
     Iterable,
     Literal,
     Protocol,
-    TypedDict,
     TypeVar,
     overload,
     runtime_checkable,
@@ -24,6 +23,7 @@ from notist._notifiers.base import (
     BaseNotifier,
     ContextManagerDecorator,
     ContextManagerIterator,
+    SendOptions,
 )
 from notist._notifiers.discord import DiscordNotifier
 from notist._notifiers.slack import SlackNotifier
@@ -38,7 +38,6 @@ if TYPE_CHECKING:
     from types import ModuleType, TracebackType
 
     from notist._log import LevelStr
-    from notist._notifiers.base import SendOptions
 
     if sys.version_info >= (3, 10):
         from typing import TypeGuard
@@ -213,27 +212,6 @@ class _PhantomContextManagerIterator(Iterable[_T], contextlib.nullcontext):
         yield from self._iterable
 
 
-class _LazyInitOptions(TypedDict, total=False):
-    channel: str | None
-    mention_to: str | None
-    mention_level: LevelStr | None
-    mention_if_ends: bool | None
-    callsite_level: LevelStr | None
-    verbose: bool | None
-    disable: bool | None
-
-
-def _to_init_options(options: SendOptions | _LazyInitOptions) -> _LazyInitOptions:
-    return _LazyInitOptions(
-        **dict(  # type: ignore
-            zip(
-                keys := _LazyInitOptions.__annotations__.keys(),
-                itemgetter(*keys)(options),
-            )
-        )
-    )
-
-
 @_allow_multi_dest
 def init(
     *,
@@ -353,13 +331,14 @@ def send(
         _warn_not_set_send_to()
         return
     assert isinstance(send_to, str)
-    init_opts = _LazyInitOptions(
+    init_opts = SendOptions(
         channel=channel,
         mention_to=mention_to,
         verbose=verbose,
         disable=disable,
     )
     _init_if_needed(send_to, init_opts)
+    print(init_opts)
     _notifiers[send_to].send(data, **init_opts)  # type: ignore
 
 
@@ -369,6 +348,8 @@ def watch(
     /,
     *,
     send_to: _DESTINATIONS | list[_DESTINATIONS] | None = ...,
+    step: int = ...,
+    total: None = ...,
     params: str | list[str] | None = ...,
     **options: Unpack[SendOptions],
 ) -> ContextManagerDecorator: ...
@@ -380,6 +361,8 @@ def watch(
     /,
     *,
     send_to: _DESTINATIONS | list[_DESTINATIONS] | None = ...,
+    step: int = ...,
+    total: int | None = ...,
     params: None = ...,
     **options: Unpack[SendOptions],
 ) -> ContextManagerIterator[T]: ...
@@ -391,6 +374,8 @@ def watch(
     *,
     send_to: _DESTINATIONS | list[_DESTINATIONS] | None = None,
     params: str | list[str] | None = None,
+    step: int = 1,
+    total: int | None = None,
     **options: Unpack[SendOptions],
 ) -> ContextManagerDecorator | ContextManagerIterator[T]:
     """
@@ -592,16 +577,21 @@ def register(
 
 def _init_if_needed(
     send_to: _DESTINATIONS | list[_DESTINATIONS],
-    opts: _LazyInitOptions | SendOptions,
+    opts: SendOptions,
 ) -> None:
-    init_opts = _to_init_options(opts)
-    if send_to in _notifiers:
-        return
-    init(send_to=send_to, **{k: v for k, v in init_opts.items() if v is not None})  # type: ignore
+    if send_to not in _notifiers:
+        init(
+            send_to=send_to,
+            **{  # type: ignore
+                k: v
+                for k, v in opts.items()
+                if v is not None and v in inspect.signature(init).parameters.keys()
+            },
+        )
     _update_verbose(opts)
 
 
-def _update_verbose(opts: SendOptions | _LazyInitOptions) -> None:
+def _update_verbose(opts: SendOptions) -> None:
     opts["verbose"] = (verbose := opts.get("verbose")) and (
         verbose if isinstance(verbose, bool) else verbose >= 2
     )
