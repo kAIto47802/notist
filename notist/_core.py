@@ -228,7 +228,7 @@ def init(
     """
     Initialize the notifier with default settings.
     This settings can be overridden at each call of :func:`~notist._core.register`,
-    :func:`~notist._core.send`, :func:`~notist._core.watch`, and :func:`~notist._core.watch_iterable`.
+    :func:`~notist._core.send`, and :func:`~notist._core.watch`.
     Alternatively, you can skip initialization with this function and provide all settings directly through
     these functions.
 
@@ -392,15 +392,7 @@ def watch(
             Optional label for the watch context.
             This label will be included in both notification messages and log entries.
         send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
-        channel: Override the default channel for notifications.
-        mention_to: Override the default entity to mention on notification.
-        mention_level: Override the default mention threshold level.
-        mention_if_ends: Override the default setting for whether to mention at the end of the watch.
-        callsite_level: Override the default call-site source snippet threshold level.
-        callsite_context_before: Number of lines of context to include before the call site.
-        callsite_context_after: Number of lines of context to include after the call site.
-        verbose: Override the default verbosity setting.
-        disable: Override the default disable flag.
+        **options: Additional options. See :class:`~notist._notifiers.base.SendOptions` for details.
 
     Returns:
         An an object that can serve as both a context manager and a decorator.
@@ -431,7 +423,7 @@ def watch(
         .. code-block:: python
 
            # Monitor progress of processing a long-running for loop
-           for batch in notist.watch_iterable(train_dataloader, step=10):
+           for batch in notist.watch(train_dataloader, step=10):
                # This loop will be monitored, and you'll receive notifications every 10 iterations.
                # If an error occurs inside this loop, you'll be notified immediately.
                ...
@@ -443,7 +435,7 @@ def watch(
 
        .. code-block:: python
 
-           with notist.watch_iterable(train_dataloader, step=10) as it:
+           with notist.watch(train_dataloader, step=10) as it:
                for batch in it:
                    # This loop will be monitored, and you'll receive notifications every 10 iterations.
                    # If an error occurs inside this context, you'll be notified immediately.
@@ -453,6 +445,8 @@ def watch(
         iterable,
         send_to=send_to,
         params=params,
+        step=step,
+        total=total,
         **options,
     )
 
@@ -464,6 +458,8 @@ def _watch_impl(
     *,
     send_to: _DESTINATIONS | list[_DESTINATIONS] | None = None,
     params: str | list[str] | None = None,
+    step: int = 1,
+    total: int | None = None,
     class_name: str | None = None,
     object_id: int | None = None,
     **options: Unpack[SendOptions],
@@ -480,6 +476,8 @@ def _watch_impl(
     return _notifiers[send_to]._watch_impl(
         iterable,
         params=params,
+        step=step,
+        total=total,
         class_name=class_name,
         object_id=object_id,
         **options,
@@ -507,18 +505,7 @@ def register(
             when the registered function is called.
         send_to:
             Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
-        label:
-            Optional label for the watch context.
-            This label will be included in both notification messages and log entries.
-        channel: Override the default channel for notifications.
-        mention_to: Override the default entity to mention on notification.
-        mention_level: Override the default mention threshold level.
-        mention_if_ends: Override the default setting for whether to mention at the end of the watch.
-        callsite_level: Override the default call-site source snippet threshold level.
-        callsite_context_before: Number of lines of context to include before the call site.
-        callsite_context_after: Number of lines of context to include after the call site.
-        verbose: Override the default verbosity setting.
-        disable: Override the default disable flag.
+        **options: Additional options. See :class:`~notist._notifiers.base.SendOptions` for details.
 
     Example:
 
