@@ -63,7 +63,7 @@ You can use the `notist.watch` helper either as a function decorator or as a con
 ```python
 import notist
 
-# You can also specify params to include in the notification
+# You can also optionally specify params to include in the notification
 # The values passed to these parameters are also reported
 @notist.watch(params=["arg1", "arg2"])
 def long_task(arg1: int, arg2: str, arg3: bool) -> None:
