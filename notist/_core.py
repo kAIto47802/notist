@@ -131,7 +131,7 @@ def _allow_multi_dest(fn: Callable[_P, _R]) -> Callable[_P, _R]:
 
 @runtime_checkable
 class _Combinable(Protocol):
-    _combined: bool
+    _combined: int | bool
 
     def __enter__(self) -> Self: ...
 
@@ -169,9 +169,9 @@ def _combine_contexts(
         class _CombinedContextManagerDecorator(_CombinedBase):
             def __call__(self, fn: _F) -> _F:
                 wrapped = fn
-                for ctx in contexts:
+                for i, ctx in enumerate(reversed(contexts)):
                     assert callable(ctx)
-                    ctx._combined = True
+                    ctx._combined = len(contexts) - i
                     wrapped = ctx(wrapped)
                 return wrapped
 
@@ -197,9 +197,6 @@ def _are_all_combinable(
 
 class _PhantomContextManagerDecorator(ContextDecorator, contextlib.nullcontext):
     """A no-op context manager decorator that does nothing."""
-
-    def __call__(self, fn: Callable) -> Any:
-        return fn
 
 
 class _PhantomContextManagerIterator(Iterable[_T], contextlib.nullcontext):
