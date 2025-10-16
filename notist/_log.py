@@ -14,7 +14,7 @@ if TYPE_CHECKING:
         from typing_extensions import Self
 
 
-_PREFIX = "[NotifyState] "
+_PREFIX = "[notist] "
 
 
 # NOTE: Python 3.12+ (PEP 695) supports type statement.
