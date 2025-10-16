@@ -66,7 +66,7 @@ class Watch(ContextDecorator, AbstractContextManager):
         self._is_fn = False
         self._filename: str | None = None
         self._lineno: int | None = None
-        self._combined: bool = False
+        self._combined: int = 0
 
     def __enter__(self) -> Self:
         self._start = datetime.now()
@@ -77,8 +77,9 @@ class Watch(ContextDecorator, AbstractContextManager):
 
         f = (f0 := inspect.currentframe()) and f0.f_back
         if self._is_fn:
-            f = f and f.f_back
-        if self._combined:
+            for _ in range(max(1, self._combined) * 2):
+                f = f and f.f_back
+        elif self._combined:
             f = f and f.f_back
 
         self._filename = f and f.f_code.co_filename
@@ -159,10 +160,14 @@ class Watch(ContextDecorator, AbstractContextManager):
 
     def __call__(self, fn: _F) -> _F:
         self._is_fn = True
-        filename = inspect.getsourcefile(fn) or fn.__code__.co_filename
-        lineno = fn.__code__.co_firstlineno
-        module = fn.__module__
-        qualname = fn.__qualname__
+
+        orig_fn = fn
+        while hasattr(orig_fn, "__wrapped__"):
+            orig_fn = orig_fn.__wrapped__
+        filename = orig_fn.__code__.co_filename
+        lineno = orig_fn.__code__.co_firstlineno
+        module = orig_fn.__module__
+        qualname = orig_fn.__qualname__
         self._target = f"function {_S.BT_ALW}{module}.{qualname}{_S.BT_ALW}"
         self._defined_at = f"{filename}:{lineno}"
 
