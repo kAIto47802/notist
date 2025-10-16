@@ -201,7 +201,6 @@ class IterableWatch(AbstractContextManager, Generic[T]):
         callsite_level: LevelStr = "error",
         callsite_context_before: int = 1,
         callsite_context_after: int = 4,
-        combined: int = 0,
         class_name: str | None = None,
         object_id: int | None = None,
     ) -> None:
@@ -216,7 +215,6 @@ class IterableWatch(AbstractContextManager, Generic[T]):
         self._callsite_context_before = callsite_context_before
         self._callsite_context_after = callsite_context_after
         self._iterable_object_str = f"{class_name or iterable.__class__.__name__} object at {object_id or hex(id(iterable))}"
-        self._combined = combined
         self._start: datetime | None = datetime.now()
         self._count: int | None = None
         self._prev_start: datetime | None = None
@@ -225,11 +223,6 @@ class IterableWatch(AbstractContextManager, Generic[T]):
         self._filename: str | None = None
         self._lineno: int | None = None
         self._called_from: str | None = None
-        self._is_context = False
-
-    def __enter__(self) -> Self:
-        self._is_context = True
-        return self
 
     def __exit__(
         self,
@@ -314,10 +307,7 @@ class IterableWatch(AbstractContextManager, Generic[T]):
 
     def _set_callsite_info(self) -> None:
         f = (f0 := inspect.currentframe()) and (f1 := f0.f_back) and f1.f_back
-        if not self._is_context:
-            f = f and f.f_back
-        if self._combined:
-            f = f and f.f_back
+        f = f and f.f_back
         self._filename = f and f.f_code.co_filename
         fnname = f and f.f_code.co_name
         self._lineno = f and f.f_lineno
