@@ -16,8 +16,8 @@ Before using NotifyState's DiscordNotifier, you must create and configure a Disc
 
    In the left sidebar, go to "OAuth2" → "URL Generator".
 
-      - Under "SCOPES", check "bot"
-      - Under "BOT PERMISSIONS", check "Send Messages"
+   - Under "SCOPES", check "bot"
+   - Under "BOT PERMISSIONS", check "Send Messages"
 
    Copy the generated URL and visit it to add the Bot to your server.
 
