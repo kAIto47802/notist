@@ -45,12 +45,12 @@ You can receive notifications when your script:
 
 For more detailed usage, please refer to the :doc:`api` or the :doc:`quickstart` guide.
 
-Watch Your Functions and Blocks of Code
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Watch Your Functions, Blocks of Code, or Iterations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can use the :func:`~notist._core.watch` helper either as a function decorator or as a context manager around a block of code:
+You can use :func:`~notist._core.watch` to monitor the execution of your functions, blocks of code, or iterations.
 
-**Use as a decorator to monitor a function:**
+**Monitor functions:**
 
 .. code-block:: python
 
@@ -66,7 +66,7 @@ You can use the :func:`~notist._core.watch` helper either as a function decorato
        # Your long-running code here
 
 
-**Use as a context manager to monitor a block of code:**
+**Monitor blocks of code:**
 
 .. code-block:: python
 
@@ -77,6 +77,16 @@ You can use the :func:`~notist._core.watch` helper either as a function decorato
        # You can receive notifications when it starts, ends, or encounters an error
        ...
        # Your long-running code here
+
+**Monitor iterations (e.g., for loops)**:
+
+.. code-block:: python
+
+   # Monitor progress of processing a long-running for loop
+   for i in notist.watch(range(100), step=10):
+      # This loop will be monitored, and you'll receive notifications every 10 iterations.
+      ...
+
 
 This code example send the following notifications:
 
@@ -124,11 +134,25 @@ This code example send the following notifications:
      >    raise Exception("This is an error")
      > Exception: This is an error
 
+.. note::
+   The above example for monitoring iterations does **not** catch exceptions automatically,
+   since exceptions raised inside the for loop cannot be caught by the iterator in Python.
+   If you also want to be notified when an error occurs, wrap your code in the monitoring context:
+
+   .. code-block:: python
+
+      with notist.watch(range(100), step=10) as it:
+          for i in it:
+              # This loop will be monitored, and you'll receive notifications every 10 iterations.
+              # If an error occurs inside this context, you'll be notified immediately.
+              ...
+              # Your long-running code here
+
 
 Register an Existing Function or Method to be Monitored
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can also register an existing function or method to be monitored using the :func:`~notist._core.register` function.
+You can also use :func:`~notist._core.register` to register an existing function or method to be monitored.
 
 **Monitor existing functions from libraries:**
 

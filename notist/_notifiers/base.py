@@ -158,25 +158,56 @@ DOC_ADDITIONS_BASE = {
     "watch": lambda cls: f"""
         Example:
 
+            Monitor functions:
+
             .. code-block:: python
 
-               # Use as a decorator to monitor a function
-               @{cls._platform.lower()}.watch()
-               def my_function():
+               # You can also optionally specify params to include in the notification
+               # The values passed to these parameters are also reported
+               @{cls._platform.lower()}.watch(params=["arg1", "arg2"])
+               def long_task(arg1: int, arg2: str, arg3: bool) -> None:
                    # This function will be monitored
-                   # Your long-running code here
+                   # You can receive notifications when it starts, ends, or encounters an error
                    ...
+                   # Your long-running code here
 
-               # Or use as a context manager to monitor a block of code
+            Monitor methods:
+
+            .. code-block:: python
+
                with {cls._platform.lower()}.watch():
                    # Code inside this block will be monitored
-                   # Your long-running code here
+                   # You can receive notifications when it starts, ends, or encounters an error
                    ...
+                   # Your long-running code here
+
+            Monitor Iterations (e.g., for loops):
+
+            .. code-block:: python
+
+                for i in {cls._platform.lower()}.watch(range(100), step=10):
+                    # This loop will be monitored, and you'll receive notifications every 10 iterations.
+                    ...
+                    # Your long-running code here
+
+        .. note::
+           The above example does **not** catch exceptions automatically,
+           since exceptions raised inside the for loop cannot be caught by the iterator in Python.
+           If you also want to be notified when an error occurs, wrap your code in the monitoring context:
+
+           .. code-block:: python
+
+              with {cls._platform.lower()}.watch(range(100), step=10) as it:
+                  for i in it:
+                      # This loop will be monitored, and you'll receive notifications every 10 iterations.
+                      # If an error occurs inside this context, you'll be notified immediately.
+                      ...
+                      # Your long-running code here
         """,
     "register": lambda cls: f"""
         Example:
 
-            If you want to monitor existing functions from libraries:
+            Monitor existing functions from libraries:
 
             .. code-block:: python
 
@@ -188,7 +219,7 @@ DOC_ADDITIONS_BASE = {
                # Now any time you call `requests.get`, it will be monitored
                response = requests.get("https://example.com/largefile.zip")
 
-            If you want to monitor existing methods of classes:
+            Monitor existing methods of classes:
 
             .. code-block:: python
 
@@ -201,7 +232,7 @@ DOC_ADDITIONS_BASE = {
                trainer = Trainer(model=...)
                trainer.train()
 
-            If you want to monitor existing methods of specific class instances:
+            Monitor existing methods of specific class instances:
 
             .. code-block:: python
 
@@ -215,29 +246,6 @@ DOC_ADDITIONS_BASE = {
 
                # Now any time you call `trainer.train()`, it will be monitored
                trainer.train()
-        """,
-    "watch_iterable": lambda cls: f"""
-        Example:
-
-            .. code-block:: python
-
-                # Monitor progress of processing a long-running for loop
-                for batch in {cls._platform.lower()}.watch_iterable(train_dataloader, step=10):
-                    # This loop will be monitored, and you'll receive notifications every 10 iterations.
-                    ...
-
-        .. note::
-           The above example does **not** catch exceptions automatically,
-           since exceptions raised inside the for loop cannot be caught by the iterator in Python.
-           If you also want to be notified when an error occurs, wrap your code in the monitoring context:
-
-           .. code-block:: python
-
-              with {cls._platform.lower()}.watch_iterable(train_dataloader, step=10) as it:
-                  for batch in it:
-                      # This loop will be monitored, and you'll receive notifications every 10 iterations.
-                      # If an error occurs inside this context, you'll be notified immediately.
-                      ...
         """,
 }
 
