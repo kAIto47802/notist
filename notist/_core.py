@@ -4,7 +4,7 @@ import contextlib
 import inspect
 import itertools
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from contextlib import AbstractContextManager, ContextDecorator
 from functools import wraps
 from typing import (
@@ -12,10 +12,8 @@ from typing import (
     Any,
     Iterable,
     Literal,
-    Protocol,
     TypeVar,
     overload,
-    runtime_checkable,
 )
 
 from notist import _log
@@ -34,7 +32,7 @@ else:
     from typing_extensions import ParamSpec
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterator, Sequence
+    from collections.abc import Generator, Iterator
     from types import ModuleType, TracebackType
 
     from notist._log import LevelStr
@@ -74,25 +72,17 @@ _T = TypeVar("_T")
 _P = ParamSpec("_P")
 _F = TypeVar("_F", bound=Callable[..., Any])
 
-# NOTE: Python 3.10+ (PEP 604) supports writing union types with `X | Y`.
-# After dropping Python 3.9 support, we can remove using `typing.Union`.
-# See:
-#   - https://peps.python.org/pep-0604/
-#   - https://docs.python.org/3/library/stdtypes.html#types-union
+# # NOTE: Python 3.10+ (PEP 604) supports writing union types with `X | Y`.
+# # After dropping Python 3.9 support, we can remove using `typing.Union`.
+# # See:
+# #   - https://peps.python.org/pep-0604/
+# #   - https://docs.python.org/3/library/stdtypes.html#types-union
 if sys.version_info >= (3, 10):
     _R = ContextManagerDecorator | ContextManagerIterator | None
 else:
     from typing import Union
 
     _R = Union[ContextManagerDecorator, None]
-
-
-@overload
-def _allow_multi_dest(
-    fn: Callable[_P, ContextManagerDecorator | ContextManagerIterator[_T]],
-) -> Callable[_P, ContextManagerDecorator | ContextManagerIterator[_T]]: ...
-@overload
-def _allow_multi_dest(fn: Callable[_P, None]) -> Callable[_P, None]: ...
 
 
 def _allow_multi_dest(fn: Callable[_P, _R]) -> Callable[_P, _R]:
@@ -105,7 +95,7 @@ def _allow_multi_dest(fn: Callable[_P, _R]) -> Callable[_P, _R]:
         if send_to is None and _notifiers:
             send_to = list(_notifiers.keys())
         iterable = kwargs.get("iterable")
-        if isinstance(send_to, Iterable) and not isinstance(send_to, str):
+        if isinstance(send_to, Sequence) and not isinstance(send_to, str):
             res = []
             for i, dest in enumerate(send_to):
                 new_kwargs = kwargs.copy()
@@ -116,8 +106,10 @@ def _allow_multi_dest(fn: Callable[_P, _R]) -> Callable[_P, _R]:
                     new_kwargs["object_id"] = hex(id(iterable))
                 if i:
                     new_kwargs["verbose"] = 1
+                if "combined" in inspect.signature(fn).parameters.keys():
+                    new_kwargs["combined"] = len(send_to) - i
                 res.append(fn(*args, **new_kwargs))  # type: ignore
-            if _are_all_combinable(res):
+            if _are_all_contexts(res):
                 return _combine_contexts(res)
             elif all(r is None for r in res):
                 return None
@@ -129,27 +121,12 @@ def _allow_multi_dest(fn: Callable[_P, _R]) -> Callable[_P, _R]:
     return wrapper
 
 
-@runtime_checkable
-class _Combinable(Protocol):
-    _combined: int | bool
-
-    def __enter__(self) -> Self: ...
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        tb: TracebackType | None,
-    ) -> None: ...
-
-
 def _combine_contexts(
-    contexts: Sequence[_Combinable],
+    contexts: Sequence[AbstractContextManager],
 ) -> ContextManagerDecorator | ContextManagerIterator:
     class _CombinedBase(AbstractContextManager):
         def __enter__(self) -> Self:
             for ctx in contexts:
-                ctx._combined = True
                 ctx.__enter__()
             return self
 
@@ -169,9 +146,8 @@ def _combine_contexts(
         class _CombinedContextManagerDecorator(_CombinedBase):
             def __call__(self, fn: _F) -> _F:
                 wrapped = fn
-                for i, ctx in enumerate(reversed(contexts)):
+                for ctx in contexts:
                     assert callable(ctx)
-                    ctx._combined = len(contexts) - i
                     wrapped = ctx(wrapped)
                 return wrapped
 
@@ -189,10 +165,10 @@ def _combine_contexts(
     return combined_cls()
 
 
-def _are_all_combinable(
+def _are_all_contexts(
     contexts: Sequence[object],
-) -> TypeGuard[Sequence[_Combinable]]:
-    return all(isinstance(ctx, _Combinable) for ctx in contexts)
+) -> TypeGuard[Sequence[AbstractContextManager]]:
+    return all(isinstance(ctx, AbstractContextManager) for ctx in contexts)
 
 
 class _PhantomContextManagerDecorator(ContextDecorator, contextlib.nullcontext):
@@ -457,6 +433,7 @@ def _watch_impl(
     params: str | list[str] | None = None,
     step: int = 1,
     total: int | None = None,
+    combined: int = 0,
     class_name: str | None = None,
     object_id: int | None = None,
     **options: Unpack[SendOptions],
@@ -475,13 +452,13 @@ def _watch_impl(
         params=params,
         step=step,
         total=total,
+        combined=combined,
         class_name=class_name,
         object_id=object_id,
         **options,
     )
 
 
-@_allow_multi_dest
 def register(
     target: ModuleType | type[Any] | Any,
     name: str,
@@ -546,15 +523,35 @@ def register(
            # Now any time you call `trainer.train()`, it will be monitored
            trainer.train()
     """
-    if send_to is None:
-        _warn_not_set_send_to()
-        return
-    assert isinstance(send_to, str)
-    _init_if_needed(send_to, options)
-    _notifiers[send_to].register(
+    _register_impl(
         target,
         name,
         params,
+        send_to=send_to,
+        **options,
+    )
+
+
+@_allow_multi_dest
+def _register_impl(
+    target: ModuleType | type[Any] | Any,
+    name: str,
+    params: str | list[str] | None = None,
+    *,
+    send_to: _DESTINATIONS | list[_DESTINATIONS] | None = None,
+    combined: int = 0,
+    **options: Unpack[SendOptions],
+) -> None:
+    if send_to is None:
+        _warn_not_set_send_to()
+        return None
+    assert isinstance(send_to, str)
+    _init_if_needed(send_to, options)
+    _notifiers[send_to]._register_impl(
+        target,
+        name,
+        params,
+        combined=combined,
         **options,
     )
 

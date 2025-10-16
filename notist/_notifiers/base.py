@@ -56,7 +56,7 @@ class ContextManagerDecorator(Protocol[F]):
         tb: TracebackType | None,
         /,
     ) -> None: ...
-    def __call__(self, fn: F) -> F: ...
+    def __call__(self, fn: F, /) -> F: ...
 
 
 class ContextManagerIterator(Protocol[T_co]):
@@ -461,10 +461,11 @@ class BaseNotifier(ABC):
         params: str | list[str] | None = None,
         step: int = 1,
         total: int | None = None,
+        combined: int = 0,
         class_name: str | None = None,
         object_id: int | None = None,
         **options: Unpack[SendOptions],
-    ) -> ContextManagerDecorator | ContextManagerIterator[T]:
+    ) -> Watch | IterableWatch[T]:
         opts = _SendOptions(**options)
         send_config = _SendConfig(
             channel=opts.channel or self._default_channel,
@@ -484,6 +485,7 @@ class BaseNotifier(ABC):
                 opts.callsite_level or self._default_callsite_level,
                 opts.callsite_context_before,
                 opts.callsite_context_after,
+                combined,
             )
         else:
             if step < 1:
@@ -502,6 +504,7 @@ class BaseNotifier(ABC):
                 opts.callsite_level or self._default_callsite_level,
                 opts.callsite_context_before,
                 opts.callsite_context_after,
+                combined,
                 class_name,
                 object_id,
             )
@@ -525,6 +528,16 @@ class BaseNotifier(ABC):
                 when the registered function is called.
             **options: Additional options. See :class:`SendOptions` for details.
         """
+        self._register_impl(target, name, params, **options)
+
+    def _register_impl(
+        self,
+        target: ModuleType | type[Any] | Any,
+        name: str,
+        params: str | list[str] | None = None,
+        combined: int = 0,
+        **options: Unpack[SendOptions],
+    ) -> None:
         opts = _SendOptions(**options)
         original = getattr(target, name, None)
         if original is None:
@@ -534,7 +547,14 @@ class BaseNotifier(ABC):
                     f"target `{target.__name__}` has no attribute `{name}`."
                 )
             return
-        patched = self.watch(params=params, **options)(original)
+        watch: Watch | IterableWatch = self._watch_impl(
+            params=params,
+            combined=combined,
+            **options,
+        )
+        assert isinstance(watch, Watch)
+        watch._is_register = True
+        patched = watch(original)
         setattr(target, name, patched)
         target_name = (
             target.__name__

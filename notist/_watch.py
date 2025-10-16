@@ -51,6 +51,7 @@ class Watch(ContextDecorator, AbstractContextManager):
         callsite_level: LevelStr = "error",
         callsite_context_before: int = 1,
         callsite_context_after: int = 4,
+        combined: int = 0,
     ) -> None:
         self._send = send_fn
         self._params = [params] if isinstance(params, str) else params or []
@@ -60,13 +61,13 @@ class Watch(ContextDecorator, AbstractContextManager):
         self._callsite_level = callsite_level
         self._callsite_context_before = callsite_context_before
         self._callsite_context_after = callsite_context_after
+        self._combined: int = combined
         self._target: str | None = None
         self._called_from: str | None = None
         self._defined_at: str | None = None
         self._is_fn = False
         self._filename: str | None = None
         self._lineno: int | None = None
-        self._combined: int = 0
 
     def __enter__(self) -> Self:
         self._start = datetime.now()
@@ -76,6 +77,7 @@ class Watch(ContextDecorator, AbstractContextManager):
             )
 
         f = (f0 := inspect.currentframe()) and f0.f_back
+        print("combined", self._combined)
         if self._is_fn:
             for _ in range(max(1, self._combined) * 2):
                 f = f and f.f_back
@@ -199,6 +201,7 @@ class IterableWatch(AbstractContextManager, Generic[T]):
         callsite_level: LevelStr = "error",
         callsite_context_before: int = 1,
         callsite_context_after: int = 4,
+        combined: int = 0,
         class_name: str | None = None,
         object_id: int | None = None,
     ) -> None:
@@ -213,6 +216,7 @@ class IterableWatch(AbstractContextManager, Generic[T]):
         self._callsite_context_before = callsite_context_before
         self._callsite_context_after = callsite_context_after
         self._iterable_object_str = f"{class_name or iterable.__class__.__name__} object at {object_id or hex(id(iterable))}"
+        self._combined = combined
         self._start: datetime | None = datetime.now()
         self._count: int | None = None
         self._prev_start: datetime | None = None
@@ -221,7 +225,6 @@ class IterableWatch(AbstractContextManager, Generic[T]):
         self._filename: str | None = None
         self._lineno: int | None = None
         self._called_from: str | None = None
-        self._combined: bool = False
         self._is_context = False
 
     def __enter__(self) -> Self:

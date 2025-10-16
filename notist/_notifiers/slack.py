@@ -89,8 +89,10 @@ class SlackNotifier(BaseNotifier):
         text = (
             f"<{mention_to}>\n{message}"
             if mention_to
-            and LEVEL_ORDER[level] >= LEVEL_ORDER[mention_level]
-            or (send_config.mention_if_ends and "End" in message)
+            and (
+                LEVEL_ORDER[level] >= LEVEL_ORDER[mention_level]
+                or (send_config.mention_if_ends and "End" in message)
+            )
             else message
         )
         self._client.chat_postMessage(
