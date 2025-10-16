@@ -311,7 +311,6 @@ def send(
         disable=disable,
     )
     _init_if_needed(send_to, init_opts)
-    print(init_opts)
     _notifiers[send_to].send(data, **init_opts)  # type: ignore
 
 

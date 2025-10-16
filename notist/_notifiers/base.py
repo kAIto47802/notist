@@ -504,7 +504,6 @@ class BaseNotifier(ABC):
                 opts.callsite_level or self._default_callsite_level,
                 opts.callsite_context_before,
                 opts.callsite_context_after,
-                combined,
                 class_name,
                 object_id,
             )
@@ -553,7 +552,6 @@ class BaseNotifier(ABC):
             **options,
         )
         assert isinstance(watch, Watch)
-        watch._is_register = True
         patched = watch(original)
         setattr(target, name, patched)
         target_name = (
