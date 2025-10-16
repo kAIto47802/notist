@@ -6,7 +6,7 @@ Get up and running with NotifyState in just a few steps!
 Installation
 ------------
 
-Install the latest release from our `GitHub <https://github.com/kAIto47802/NotifyState>`__:
+Install the latest release from `our GitHub <https://github.com/kAIto47802/NotifyState>`__:
 
 .. code-block:: bash
 
@@ -78,12 +78,12 @@ Once initialized with :func:`~notist._core.init`, you can omit basic settings in
        ...
 
 
-Watch Your Function or Block of Code
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Watch Your Functions, Blocks of Code, or Iterations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Wrap any function or block of code with the :func:`~notist._core.watch` function to get automatic start/stop/error alerts:
 
-**Use as a decorator to monitor a function**:
+**To monitor functions**:
 
 .. code-block:: python
 
@@ -96,7 +96,7 @@ Wrap any function or block of code with the :func:`~notist._core.watch` function
        ...
        # Your long-running code here
 
-**Use as a context manager to monitor a block of code**:
+**To monitor blocks of code**:
 
 .. code-block:: python
 
@@ -107,8 +107,32 @@ Wrap any function or block of code with the :func:`~notist._core.watch` function
        # Your long-running code here
 
 
-Register an Existing Function or Method to be Monitored
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+**To monitor iterations (e.g., for loops)**:
+
+.. code-block:: python
+
+   # Monitor progress of processing a long-running for loop
+   for i in notist.watch(range(100), step=10):
+      # This loop will be monitored, and you'll receive notifications every 10 iterations.
+      ...
+
+.. note::
+   The above example for monitoring iterations does **not** catch exceptions automatically,
+   since exceptions raised inside the for loop cannot be caught by the iterator in Python.
+   If you also want to be notified when an error occurs, wrap your code in the monitoring context:
+
+   .. code-block:: python
+
+      with notist.watch(range(100), step=10) as it:
+          for i in it:
+              # This loop will be monitored, and you'll receive notifications every 10 iterations.
+              # If an error occurs inside this context, you'll be notified immediately.
+              ...
+              # Your long-running code here
+
+
+Register Existing Functions or Methods to be Monitored
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can also register an existing function or method to be monitored using the :func:`~notist._core.register` function.
 This function corresponds to applying the :func:`~notist._core.watch` decorator to an existing function or method.
@@ -156,32 +180,6 @@ If you want to monitor existing methods of specific class instances:
    trainer.train()
 
 
-Watch Your Iteration (e.g., for Loop)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-You can monitor the progress of an iterable (e.g., for loop) using the :func:`~notist._core.watch_iterable` function:
-
-.. code-block:: python
-
-   # Monitor progress of processing a long-running for loop
-   for batch in notist.watch_iterable(train_dataloader, step=10):
-      # This loop will be monitored, and you'll receive notifications every 10 iterations.
-      ...
-
-.. note::
-   The above example does **not** catch exceptions automatically,
-   since exceptions raised inside the for loop cannot be caught by the iterator in Python.
-   If you also want to be notified when an error occurs, wrap your code in the monitoring context:
-
-   .. code-block:: python
-
-      with notist.watch_iterable(train_dataloader, step=10) as it:
-          for batch in it:
-              # This loop will be monitored, and you'll receive notifications every 10 iterations.
-              # If an error occurs inside this context, you'll be notified immediately.
-              ...
-
-
 Send a One-Off Notification
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -199,7 +197,7 @@ You can also send notifications with the :func:`~notist._core.send` function at 
 Custom Notifier Instances
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Instead of the procedural API, you can also create a notifier instance and call its methods:
+You can also create a notifier instance and call its methods:
 
 .. code-block:: python
 
