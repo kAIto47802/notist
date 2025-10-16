@@ -81,9 +81,9 @@ Once initialized with :func:`~notist._core.init`, you can omit basic settings in
 Watch Your Functions, Blocks of Code, or Iterations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Wrap any function or block of code with the :func:`~notist._core.watch` function to get automatic start/stop/error alerts:
+You can use :func:`~notist._core.watch` to monitor the execution of your functions, blocks of code, or iterations.
 
-**To monitor functions**:
+**Monitor functions**:
 
 .. code-block:: python
 
@@ -96,7 +96,7 @@ Wrap any function or block of code with the :func:`~notist._core.watch` function
        ...
        # Your long-running code here
 
-**To monitor blocks of code**:
+**Monitor blocks of code**:
 
 .. code-block:: python
 
@@ -107,7 +107,7 @@ Wrap any function or block of code with the :func:`~notist._core.watch` function
        # Your long-running code here
 
 
-**To monitor iterations (e.g., for loops)**:
+**Monitor iterations (e.g., for loops)**:
 
 .. code-block:: python
 
@@ -115,6 +115,7 @@ Wrap any function or block of code with the :func:`~notist._core.watch` function
    for i in notist.watch(range(100), step=10):
       # This loop will be monitored, and you'll receive notifications every 10 iterations.
       ...
+      # Your long-running code here
 
 .. note::
    The above example for monitoring iterations does **not** catch exceptions automatically,
@@ -134,7 +135,7 @@ Wrap any function or block of code with the :func:`~notist._core.watch` function
 Register Existing Functions or Methods to be Monitored
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can also register an existing function or method to be monitored using the :func:`~notist._core.register` function.
+You can also use :func:`~notist._core.register` to register an existing function or method to be monitored.
 This function corresponds to applying the :func:`~notist._core.watch` decorator to an existing function or method.
 
 If you want to monitor existing functions from libraries:
@@ -183,7 +184,7 @@ If you want to monitor existing methods of specific class instances:
 Send a One-Off Notification
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can also send notifications with the :func:`~notist._core.send` function at any point in your code, not just at the start or end of a task:
+You can also send notifications with :func:`~notist._core.send` at any point in your code, not just at the start or end of a task:
 
 .. code-block:: python
 
@@ -215,8 +216,8 @@ You can also create a notifier instance and call its methods:
    # Or watch a function:
    @slack.watch()
    def long_task():
-       # Your long-running code here
        ...
+       # Your long-running code here
 
 Next Steps
 ----------

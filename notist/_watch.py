@@ -77,7 +77,6 @@ class Watch(ContextDecorator, AbstractContextManager):
             )
 
         f = (f0 := inspect.currentframe()) and f0.f_back
-        print("combined", self._combined)
         if self._is_fn:
             for _ in range(max(1, self._combined) * 2):
                 f = f and f.f_back

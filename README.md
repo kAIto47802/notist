@@ -59,9 +59,9 @@ You can receive notifications when your script:
 
 #### Watch Your Functions, Blocks of Code, or Iterations
 
-You can use the `notist.watch` helper to monitor the execution of your functions, blocks of code, or iterations.
+You can use `notist.watch` to monitor the execution of your functions, blocks of code, or iterations.
 
-**To monitor functions:**
+**Monitor functions:**
 
 ```python
 import notist
@@ -76,7 +76,7 @@ def long_task(arg1: int, arg2: str, arg3: bool) -> None:
     # Your long-running code here
 ```
 
-**To monitor blocks of code:**
+**Monitor blocks of code:**
 
 ```python
 import notist
@@ -88,7 +88,7 @@ with notist.watch():
     # Your long-running code here
 ```
 
-**To monitor iterations (e.g., for loops):**
+**Monitor iterations (e.g., for loops):**
 
 ```python
 import notist
@@ -158,7 +158,7 @@ This code example send the following notifications:
 
 #### Register Existing Functions or Methods to be Monitored
 
-You can also register an existing function or method to be monitored using the `notist.register` function.
+You can also use `notist.register` to register an existing function or method to be monitored.
 
 **Monitor existing functions from libraries:**
 

@@ -403,7 +403,7 @@ def watch(
         .. code-block:: python
 
            # Monitor progress of processing a long-running for loop
-           for batch in notist.watch(train_dataloader, step=10):
+           for i in notist.watch(range(100), step=10):
                # This loop will be monitored, and you'll receive notifications every 10 iterations.
                # If an error occurs inside this loop, you'll be notified immediately.
                ...
@@ -415,8 +415,8 @@ def watch(
 
        .. code-block:: python
 
-           with notist.watch(train_dataloader, step=10) as it:
-               for batch in it:
+           with notist.watch(range(100), step=10) as it:
+               for i in it:
                    # This loop will be monitored, and you'll receive notifications every 10 iterations.
                    # If an error occurs inside this context, you'll be notified immediately.
                    ...
