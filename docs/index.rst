@@ -174,7 +174,6 @@ You can also register an existing function or method to be monitored using the :
    # Now any time you call `trainer.train()`, it will be monitored
    trainer.train()
 
-We also provide other features such as :func:`~notist._core.send` and :func:`~notist._core.watch_iterable`. See :doc:`api` for details.
 
 
 🔔 Multiple Notifiers

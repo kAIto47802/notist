@@ -29,7 +29,10 @@
   ✨ Key Features ✨
 </h2>
 
-For the detailed usage and quick start guide, please refer to the [documentation](https://kaito47802.github.io/NotifyState/index.html).
+For the detailed usage and quick start guide, please refer to the document:
+<a href="https://kaito47802.github.io/NotifyState/index.html">
+  <img src="https://img.shields.io/badge/docs-latest-brightgreen?logo=read-the-docs" alt="Documentation" align="top"/>
+</a>
 
 
 <h3>
@@ -54,11 +57,11 @@ You can receive notifications when your script:
   </a>
 </h3>
 
-#### Watch Your Functions and Blocks of Code
+#### Watch Your Functions, Blocks of Code, or Iterations
 
-You can use the `notist.watch` helper either as a function decorator or as a context manager around a block of code:
+You can use the `notist.watch` helper to monitor the execution of your functions, blocks of code, or iterations.
 
-**Use as a decorator to monitor a function:**
+**To monitor functions:**
 
 ```python
 import notist
@@ -73,7 +76,7 @@ def long_task(arg1: int, arg2: str, arg3: bool) -> None:
     # Your long-running code here
 ```
 
-**Use as a context manager to monitor a block of code:**
+**To monitor blocks of code:**
 
 ```python
 import notist
@@ -81,6 +84,17 @@ import notist
 with notist.watch():
     # Code inside this block will be monitored
     # You can receive notifications when it starts, ends, or encounters an error
+    ...
+    # Your long-running code here
+```
+
+**To monitor iterations (e.g., for loops):**
+
+```python
+import notist
+
+for i in notist.watch(range(100), step=10):
+    # This loop will be monitored, and you'll receive notifications every 10 iterations.
     ...
     # Your long-running code here
 ```
@@ -129,7 +143,20 @@ This code example send the following notifications:
    > Exception: This is an error
    ```
 
-#### Register an Existing Function or Method to be Monitored
+> [!NOTE]
+> The above example for monitoring iterations does **not** catch exceptions automatically,
+> since exceptions raised inside the for loop cannot be caught by the iterator in Python.
+> If you also want to be notified when an error occurs, wrap your code in the monitoring context:
+> ```python
+> with notist.watch(range(100), step=10) as it:
+>     for i in it:
+>         # This loop will be monitored, and you'll receive notifications every 10 iterations.
+>         # If an error occurs inside this context, you'll be notified immediately.
+>         ...
+>         # Your long-running code here
+> ```
+
+#### Register Existing Functions or Methods to be Monitored
 
 You can also register an existing function or method to be monitored using the `notist.register` function.
 
@@ -176,11 +203,6 @@ notist.register(trainer, "train")
 # Now any time you call `trainer.train()`, it will be monitored
 trainer.train()
 ```
-
-We also provide other features such as `send` and `watch_iterable`. See the document for details:
-<a href="https://kaito47802.github.io/NotifyState/index.html">
-  <img src="https://img.shields.io/badge/docs-latest-brightgreen?logo=read-the-docs" alt="Documentation" align="top"/>
-</a>
 
 
 <h3>
