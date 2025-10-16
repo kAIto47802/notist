@@ -353,10 +353,11 @@ def test_slack_watch_decorator_success(
     assert "Execution time: 0s" in dummy_client.sent[1]["text"]
     if params == "arg1":
         assert all("arg1=1" in s["text"] for s in dummy_client.sent)
-        assert all("arg2" not in s["text"] for s in dummy_client.sent)
     elif params == ["arg1", "arg2"]:
         assert all("arg1=1" in s["text"] for s in dummy_client.sent)
         assert all("arg2=2" in s["text"] for s in dummy_client.sent)
+    elif params is None:
+        assert all("With params" not in s["text"] for s in dummy_client.sent)
 
 
 @parametrize_label
@@ -401,10 +402,11 @@ def test_slack_watch_decorator_error(
     assert dummy_client.sent[-1]["attachments"] is not None
     if params == "arg1":
         assert all("arg1=1" in s["text"] for s in dummy_client.sent)
-        assert all("arg2" not in s["text"] for s in dummy_client.sent)
     elif params == ["arg1", "arg2"]:
         assert all("arg1=1" in s["text"] for s in dummy_client.sent)
         assert all("arg2=2" in s["text"] for s in dummy_client.sent)
+    elif params is None:
+        assert all("With params" not in s["text"] for s in dummy_client.sent)
 
 
 def test_slack_register_module(
