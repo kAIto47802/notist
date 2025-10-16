@@ -364,6 +364,7 @@ def watch(
     an exception.
 
     Args:
+        iterable: An iterable (e.g., a list or range) to monitor progress.
         params:
             Names of the function parameters whose values should be included in the message
             when the decorated function is called.

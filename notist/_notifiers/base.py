@@ -436,6 +436,7 @@ class BaseNotifier(ABC):
         while sending notifications about its progress.
 
         Args:
+            iterable: An iterable (e.g., a list or range) to monitor progress.
             params:
                 Names of the function parameters whose values should be included in the message
                 when the decorated function is called.
@@ -448,7 +449,7 @@ class BaseNotifier(ABC):
                 If not provided and the iterable has not ``__len__``,
                 it will not be included in the progress messages.
                 This option is ignored if the iterable is not provided.
-            **options: Additional options. See :class:`SendOptions` for details.
+            **options: Additional options. See :class:`~notist._notifiers.base.SendOptions` for details.
 
         Returns:
             An an object that can serve as both a context manager and a decorator.
@@ -533,7 +534,7 @@ class BaseNotifier(ABC):
             params:
                 Names of the function parameters whose values should be included in the message
                 when the registered function is called.
-            **options: Additional options. See :class:`SendOptions` for details.
+            **options: Additional options. See :class:`~notist._notifiers.base.SendOptions` for details.
         """
         self._register_impl(target, name, params, **options)
 
