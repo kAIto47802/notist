@@ -82,7 +82,15 @@ if sys.version_info >= (3, 10):
 else:
     from typing import Union
 
-    _R = Union[ContextManagerDecorator, None]
+    _R = Union[ContextManagerDecorator, ContextManagerIterator, None]
+
+
+@overload
+def _allow_multi_dest(
+    fn: Callable[_P, ContextManagerDecorator | ContextManagerIterator],
+) -> Callable[_P, ContextManagerDecorator | ContextManagerIterator]: ...
+@overload
+def _allow_multi_dest(fn: Callable[_P, None]) -> Callable[_P, None]: ...
 
 
 def _allow_multi_dest(fn: Callable[_P, _R]) -> Callable[_P, _R]:
