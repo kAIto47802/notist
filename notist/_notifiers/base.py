@@ -529,7 +529,7 @@ class BaseNotifier(ABC):
         original = getattr(target, name, None)
         if original is None:
             if opts.verbose if opts.verbose is not None else self._verbose:
-                _log.warn(
+                _log.error(
                     f"Cannot register {self._platform}Notifier on `{target.__name__}.{name}`: "
                     f"target `{target.__name__}` has no attribute `{name}`."
                 )
