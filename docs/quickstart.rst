@@ -1,16 +1,16 @@
 Quickstart
 ==========
 
-Get up and running with NotifyState in just a few steps!
+Get up and running with notist in just a few steps!
 
 Installation
 ------------
 
-Install the latest release from `our GitHub <https://github.com/kAIto47802/NotifyState>`__:
+Install the latest release from `our GitHub <https://github.com/kAIto47802/notist>`__:
 
 .. code-block:: bash
 
-   pip install git+https://github.com/kAIto47802/NotifyState.git
+   pip install git+https://github.com/kAIto47802/notist.git
 
 
 Set Up Your Platform (e.g., Slack or Discord)
@@ -181,8 +181,8 @@ If you want to monitor existing methods of specific class instances:
    trainer.train()
 
 
-Send a One-Off Notification
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Send One-Off Notifications
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can also send notifications with :func:`~notist._core.send` at any point in your code, not just at the start or end of a task:
 
@@ -195,8 +195,8 @@ You can also send notifications with :func:`~notist._core.send` at any point in 
    notist.send(data)
 
 
-Custom Notifier Instances
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Create Custom Notifier Instances
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can also create a notifier instance and call its methods:
 
@@ -210,10 +210,7 @@ You can also create a notifier instance and call its methods:
        mention_to="@U012345678",  # Mention a specific user (Optional)
    )
 
-   # Send a one-off message
-   slack.send("Hello via instance!")
-
-   # Or watch a function:
+   # Watch a function:
    @slack.watch()
    def long_task():
        ...

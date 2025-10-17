@@ -1,12 +1,12 @@
 Slack Bot Setup
 ===============
 
-Before using NotifyState's SlackNotifier, you must create and configure a Slack app:
+Before using Notist's SlackNotifier, you must create and configure a Slack app:
 
 1. **Create a new Slack App**
 
    Go to https://api.slack.com/apps and click "Create New App" → "From scratch".
-   Give it a name (e.g., "NotifyState") and select your workspace.
+   Give it a name (e.g., "Notist") and select your workspace.
 
 2. **Add Bot Token Scopes**
 
@@ -23,7 +23,7 @@ Before using NotifyState's SlackNotifier, you must create and configure a Slack 
 
    .. code-block:: bash
 
-      /invite @NotifyState
+      /invite @Notist
 
 .. warning::
    This procedure was verified on June 08, 2025. For the most up-to-date instructions, please refer to the `official Slack documentation <https://api.slack.com/quickstart>`__.

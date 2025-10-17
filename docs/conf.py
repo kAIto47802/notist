@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "NotifyState"
+project = "Notist"
 copyright = "2025, Kaito Baba"
 author = "Kaito Baba"
 release = notist.__version__
@@ -53,7 +53,7 @@ html_theme_options = {
     "icon_links": [
         {
             "name": "GitHub",
-            "url": "https://github.com/kaito47802/NotifyState",
+            "url": "https://github.com/kaito47802/notist",
             "icon": "fa-brands fa-github",
         },
     ],

@@ -2,24 +2,24 @@
 
 .. rst-class:: center-title
 
-NotifyState: A Simple Package to Send Notifications of Script Execution Status
+Notist: A Simple Package to Send Notifications of Script Execution Status
 ==============================================================================
 
 .. rst-class:: center-paragraph
 
-NotifyState is a lightweight Python package that lets you keep track of your scripts by sending real-time notifications when they start, finish, or encounter errors.
-When you're executing long-running jobs or background tasks, NotifyState helps you stay informed without constantly checking your terminal.
+Notist (Notify State) is a lightweight Python package that lets you keep track of your scripts by sending real-time notifications when they start, finish, or encounter errors.
+When you're executing long-running jobs or background tasks, Notist helps you stay informed without constantly checking your terminal.
 
 .. raw:: html
 
    <div align="center" class="badges">
-     <a href="https://github.com/kAIto47802/NotifyState">
+     <a href="https://github.com/kAIto47802/notist">
        <img src="https://img.shields.io/badge/-GitHub-181717.svg?logo=github&style=flat" alt="GitHub">
      </a>
      <a href="https://www.python.org">
        <img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue?style=flat" alt="Python">
      </a>
-     <a href="https://kaito47802.github.io/NotifyState/index.html">
+     <a href="https://kaito47802.github.io/notist/index.html">
        <img src="https://img.shields.io/badge/docs-latest-brightgreen?logo=read-the-docs&style=flat" alt="Documentation">
      </a>
    </div>
@@ -95,8 +95,8 @@ This code example send the following notifications:
   .. code-block:: text
 
      Start watching <function `__main__.without_error`>
-      ▷ Defined at: /home/kaito47802/workspace/NotifyState/sample.py:21
-      ▷ Called from: `__main__` @ /home/kaito47802/workspace/NotifyState/sample.py:28
+      ▷ Defined at: /home/kaito47802/workspace/notist/sample.py:21
+      ▷ Called from: `__main__` @ /home/kaito47802/workspace/notist/sample.py:28
 
 
 - When the function completes successfully:
@@ -104,8 +104,8 @@ This code example send the following notifications:
   .. code-block:: text
 
      End watching <function `__main__.without_error`>
-      ▷ Defined at: /home/kaito47802/workspace/NotifyState/sample.py:21
-      ▷ Called from: `__main__` @ /home/kaito47802/workspace/NotifyState/sample.py:28
+      ▷ Defined at: /home/kaito47802/workspace/notist/sample.py:21
+      ▷ Called from: `__main__` @ /home/kaito47802/workspace/notist/sample.py:28
       ⦿ Execution time: 0s
 
 
@@ -115,8 +115,8 @@ This code example send the following notifications:
 
      @kAIto47802
      Error while watching <function `__main__.with_error`>
-      ▷ Defined at: /home/kaito47802/workspace/NotifyState/sample.py:15
-      ▷ Called from: `__main__` @ /home/kaito47802/workspace/NotifyState/sample.py:30
+      ▷ Defined at: /home/kaito47802/workspace/notist/sample.py:15
+      ▷ Called from: `__main__` @ /home/kaito47802/workspace/notist/sample.py:30
        29 │     print("Example function that raises an error")
        30 │     with_error()
      ╭───────┄┄ ────────────
@@ -130,7 +130,7 @@ This code example send the following notifications:
      >  File "/home/kaito47802/.pyenv/versions/3.12.0/lib/python3.12/contextlib.py", line 81, in inner
      >    return func(*args, **kwds)
      >           ^^^^^^^^^^^^^^^^^^^
-     >  File "/home/kaito47802/workspace/NotifyState/sample.py", line 18, in with_error
+     >  File "/home/kaito47802/workspace/notist/sample.py", line 18, in with_error
      >    raise Exception("This is an error")
      > Exception: This is an error
 
@@ -203,18 +203,18 @@ You can also use :func:`~notist._core.register` to register an existing function
 🔔 Multiple Notifiers
 ^^^^^^^^^^^^^^^^^^^^^
 
-Currently supports Slack and Discord. If you need another notifier, feel free to open an issue or a pull request on `GitHub <https://github.com/kAIto47802/NotifyState>`__!
+Currently supports Slack and Discord. If you need another notifier, feel free to open an issue or a pull request on `GitHub <https://github.com/kAIto47802/notist>`__!
 
 
 .. rst-class:: center-title
 
 📦 Installation 📦
 ------------------
-You can install NotifyState from our GitHub:
+You can install Notist from our GitHub:
 
 .. code-block:: bash
 
-   pip install git+https://github.com/kAIto47802/NotifyState.git
+   pip install git+https://github.com/kAIto47802/notist.git
 
 
 Contents

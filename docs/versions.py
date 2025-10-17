@@ -3,7 +3,7 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-URL_BASE = "https://kaito47802.github.io/NotifyState"
+URL_BASE = "https://kaito47802.github.io/notist"
 
 target = ROOT / "_static" / "versions.json"
 
