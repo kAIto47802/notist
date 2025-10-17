@@ -1,5 +1,5 @@
 name: 🐞 Bug Report
-description: Create a report to help us improve NotifyState.
+description: Create a report to help us improve notist.
 labels: ["bug"]
 body:
   - type: markdown
@@ -11,7 +11,7 @@ body:
     attributes:
       label: ✅ Checks
       options:
-        - label: I have searched [existing/past issues](https://github.com/kAIto47802/NotifyState/issues) and found no similar issue.
+        - label: I have searched [existing/past issues](https://github.com/kAIto47802/notist/issues) and found no similar issue.
           required: true
 
   - type: textarea
@@ -27,7 +27,7 @@ body:
     attributes:
       label: 💻 Environment
       description: Please specify the software and hardware you used to produce the bug.
-      placeholder: OS, Python version, NotifyState version, etc.
+      placeholder: OS, Python version, notist version, etc.
     validations:
       required: true
 

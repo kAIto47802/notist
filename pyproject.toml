@@ -8,7 +8,7 @@ description = "A simple package to send notifications of script execution status
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [{ name = "Kaito Baba", email = "k.ai.to47802@gmail.com" }]
-urls = { Homepage = "https://github.com/kaito47802/NotifyState" }
+urls = { Homepage = "https://github.com/kaito47802/notist" }
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.9",
