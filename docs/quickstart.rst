@@ -6,11 +6,13 @@ Get up and running with notist in just a few steps!
 Installation
 ------------
 
-Install the latest release from `our GitHub <https://github.com/kAIto47802/notist>`__:
+Install the latest release from PyPI or `our GitHub <https://github.com/kAIto47802/notist>`__:
 
 .. code-block:: bash
 
-   pip install git+https://github.com/kAIto47802/notist.git
+   pip install notist
+   # Or from our GitHub:
+   # pip install git+https://github.com/kAIto47802/notist.git
 
 
 Set Up Your Platform (e.g., Slack or Discord)

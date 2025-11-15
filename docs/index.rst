@@ -210,11 +210,13 @@ Currently supports Slack and Discord. If you need another notifier, feel free to
 
 📦 Installation 📦
 ------------------
-You can install Notist from our GitHub:
+You can install Notist from PyPI or our GitHub:
 
 .. code-block:: bash
 
-   pip install git+https://github.com/kAIto47802/notist.git
+   pip install notist
+   # Or from our GitHub:
+   # pip install git+https://github.com/kAIto47802/notist.git
 
 
 Contents
