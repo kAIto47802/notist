@@ -17,7 +17,7 @@ When you're executing long-running jobs or background tasks, Notist helps you st
        <img src="https://img.shields.io/badge/-GitHub-181717.svg?logo=github&style=flat" alt="GitHub">
      </a>
      <a href="https://www.python.org">
-       <img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue?style=flat" alt="Python">
+       <img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue?style=flat" alt="Python">
      </a>
      <a href="https://kaito47802.github.io/notist/index.html">
        <img src="https://img.shields.io/badge/docs-latest-brightgreen?logo=read-the-docs&style=flat" alt="Documentation">
