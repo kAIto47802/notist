@@ -16,7 +16,7 @@
 
 <div align="center">
   <a target="_blank" href="https://www.python.org">
-    <img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue" alt="Python"/>
+    <img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue" alt="Python"/>
   </a>
   <a href="https://kaito47802.github.io/notist/index.html">
     <img src="https://img.shields.io/badge/docs-latest-brightgreen?logo=read-the-docs" alt="Documentation"/>
