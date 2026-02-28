@@ -22,7 +22,7 @@ class DummyClient:
     def __init__(self) -> None:
         self.sent: list[Any] = []
 
-    def chat_post_message(self, **kwargs: Any) -> None:
+    def chat_postMessage(self, **kwargs: Any) -> None:  # noqa: N802
         self.sent.append(kwargs)
 
 
@@ -30,7 +30,7 @@ class DummyClient:
 def dummy_client(monkeypatch: MonkeyPatch) -> DummyClient:
     client = DummyClient()
     monkeypatch.setattr(WebClient, "__init__", lambda self, token: None)
-    monkeypatch.setattr(WebClient, "chat_postMessage", client.chat_post_message)
+    monkeypatch.setattr(WebClient, "chat_postMessage", client.chat_postMessage)
     return client
 
 
