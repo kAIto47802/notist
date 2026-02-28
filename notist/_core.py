@@ -292,12 +292,14 @@ def send(
 ) -> None:
     """
     Send a notification message.
-    You can send notifications at any point in your code, not just at the start or end of a task.
-    Any data can be sent, and it will be stringified.
+    You can send notifications at any point in your code, not just at the start or end
+    of a task. Any data can be sent, and it will be stringified.
 
     Args:
         data: The payload or message content.
-        send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
+        send_to:
+            Destination(s) to send notifications to. e.g., "slack", "discord",
+            or ["slack", "discord"].
         channel: Override the default channel for notifications.
         mention_to: Override the default entity to mention on notification.
         verbose: Override the default verbosity setting.
@@ -364,21 +366,25 @@ def watch(
     **options: Unpack[SendOptions],
 ) -> ContextManagerDecorator | ContextManagerIterator[T]:
     """
-    Return an object that can serve as both a context manager and a decorator to watch code execution.
-    This will automatically send notifications when the function or code block starts, ends, or raises
-    an exception.
+    Return an object that can serve as both a context manager and a decorator to watch
+    code execution. This will automatically send notifications when the function or
+    code block starts, ends, or raises an exception.
 
     Args:
         iterable: An iterable (e.g., a list or range) to monitor progress.
         params:
-            Names of the function parameters whose values should be included in the message
-            when the decorated function is called.
+            Names of the function parameters whose values should be included in the
+            message when the decorated function is called.
             This option is ignored when used as a context manager.
         label:
             Optional label for the watch context.
             This label will be included in both notification messages and log entries.
-        send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
-        **options: Additional options. See :class:`~notist._notifiers.base.SendOptions` for details.
+        send_to:
+            Destination(s) to send notifications to. e.g., "slack", "discord",
+            or ["slack", "discord"].
+        **options:
+            Additional options. See :class:`~notist._notifiers.base.SendOptions`
+            for details.
 
     Returns:
         An an object that can serve as both a context manager and a decorator.
@@ -416,8 +422,9 @@ def watch(
 
     .. note::
        The above example does **not** catch exceptions automatically,
-       since exceptions raised inside the for loop cannot be caught by the iterator in Python.
-       If you also want to be notified when an error occurs, wrap your code in the monitoring context:
+       since exceptions raised inside the for loop cannot be caught by the iterator in
+       Python. If you also want to be notified when an error occurs, wrap your code in
+       the monitoring context:
 
        .. code-block:: python
 
@@ -482,17 +489,23 @@ def register(
 ) -> None:
     """
     Register existing function or method to be watched by this notifier.
-    This function corresponds to applying the :meth:`watch` decorator to an existing function or method.
+    This function corresponds to applying the :meth:`watch` decorator to an existing
+    function or method.
 
     Args:
-        target: The module, class, or class instance containing the function to be registered.
+        target:
+            The module, class, or class instance containing the function to be
+            registered.
         name: The name of the function to be registered.
         params:
-            Names of the function parameters whose values should be included in the message
-            when the registered function is called.
+            Names of the function parameters whose values should be included in the
+            message when the registered function is called.
         send_to:
-            Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
-        **options: Additional options. See :class:`~notist._notifiers.base.SendOptions` for details.
+            Destination(s) to send notifications to. e.g., "slack", "discord",
+            or ["slack", "discord"].
+        **options:
+            Additional options. See :class:`~notist._notifiers.base.SendOptions`
+            for details.
 
     Example:
 
@@ -594,6 +607,6 @@ def _update_verbose(opts: SendOptions) -> None:
 def _warn_not_set_send_to() -> None:
     _log.warn(
         "No destination specified. "
-        "Please specify `send_to` parameter or initialize notifier with `notist.init()`. "
-        "No notifications will be sent."
+        "Please specify `send_to` parameter or initialize notifier with "
+        "`notist.init()`. No notifications will be sent."
     )
