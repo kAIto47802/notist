@@ -1,3 +1,6 @@
+# ruff: noqa: E501
+# Allow long lines for Sphinx `.. code-block:: python` examples (keep rendered line breaks unchanged).
+
 from __future__ import annotations
 
 import os
@@ -100,10 +103,12 @@ class _SendFnPartial:
 
 class SendOptions(TypedDict, total=False):
     """
-    Additional options for :meth:`~BaseNotifier.watch` and :meth:`~BaseNotifier.register`.
+    Additional options for :meth:`~BaseNotifier.watch` and
+    :meth:`~BaseNotifier.register`.
     """
 
-    #: Optional label for the message. Included in notification messages and log entries.
+    #: Optional label for the message.
+    #: Included in notification messages and log entries.
     label: str | None
     #: Override the default channel for notifications.
     channel: str | None
@@ -144,7 +149,8 @@ class _SendOptions:
 
 
 DOC_ADDITIONS_BASE = {
-    "send": lambda cls: f"""
+    "send": lambda cls: (
+        f"""
         Example:
 
             .. code-block:: python
@@ -154,8 +160,10 @@ DOC_ADDITIONS_BASE = {
 
                # You can also send any Python data (it will be stringified)
                {cls._platform.lower()}.send(data)
-        """,
-    "watch": lambda cls: f"""
+        """
+    ),
+    "watch": lambda cls: (
+        f"""
         Example:
 
             Monitor functions:
@@ -192,8 +200,9 @@ DOC_ADDITIONS_BASE = {
 
         .. note::
            The above example does **not** catch exceptions automatically,
-           since exceptions raised inside the for loop cannot be caught by the iterator in Python.
-           If you also want to be notified when an error occurs, wrap your code in the monitoring context:
+           since exceptions raised inside the for loop cannot be caught by the iterator
+           in Python. If you also want to be notified when an error occurs,
+           wrap your code in the monitoring context:
 
            .. code-block:: python
 
@@ -203,8 +212,10 @@ DOC_ADDITIONS_BASE = {
                       # If an error occurs inside this context, you'll be notified immediately.
                       ...
                       # Your long-running code here
-        """,
-    "register": lambda cls: f"""
+        """
+    ),
+    "register": lambda cls: (
+        f"""
         Example:
 
             Monitor existing functions from libraries:
@@ -246,7 +257,8 @@ DOC_ADDITIONS_BASE = {
 
                # Now any time you call `trainer.train()`, it will be monitored
                trainer.train()
-        """,
+        """
+    ),
 }
 
 
@@ -274,35 +286,41 @@ class BaseNotifier(ABC):
     ) -> None:
         """
         Initialize the notifier with default settings.
-        This settings can be overridden at each call of :meth:`register`, :meth:`send`, and :meth:`watch`.
+        This settings can be overridden at each call of :meth:`register`, :meth:`send`,
+        and :meth:`watch`.
 
         Args:
             channel:
-                Default channel for notifications. If not provided, it will look for an environment variable
-                named ``{platform}_CHANNEL`` where ``{platform}`` is the notifier's platform name in uppercase
+                Default channel for notifications. If not provided, it will look for an
+                environment variable named ``{platform}_CHANNEL`` where ``{platform}``
+                is the notifier's platform name in uppercase
                 (e.g., ``SLACK_CHANNEL`` for Slack).
             mention_to:
-                Default user to mention in notification. If not provided, it will look for an environment variable
-                named ``{platform}_MENTION_TO`` where ``{platform}`` is the notifier's platform name in uppercase
+                Default user to mention in notification. If not provided,
+                it will look for an environment variable named ``{platform}_MENTION_TO``
+                where ``{platform}`` is the notifier's platform name in uppercase
                 (e.g., ``SLACK_MENTION_TO`` for Slack).
             mention_level: Minimum log level to trigger a mention.
             mention_if_ends: Whether to mention at the end of the watch.
             callsite_level: Minimum log level to emit the call-site source snippet.
             token:
-                API token or authentication key. If not provided, it will look for an environment variable named
-                ``{platform}_BOT_TOKEN`` where ``{platform}`` is the notifier's platform name in uppercase
+                API token or authentication key. If not provided, it will look for an
+                environment variable named ``{platform}_BOT_TOKEN`` where ``{platform}``
+                is the notifier's platform name in uppercase
                 (e.g., ``SLACK_BOT_TOKEN`` for Slack).
             verbose:
                 If obj:`True`, log messages to console.
                 If set to 1, only logs during initialization.
                 If set to 2 or higher, behaves the same as obj:`True`.
             disable:
-                If :obj:`True`, disable sending all notifications. This is useful for parallel runs or testing
-                where you want to avoid sending actual notifications.
+                If :obj:`True`, disable sending all notifications. This is useful for
+                parallel runs or testing where you want to avoid sending actual
+                notifications.
 
         .. note::
-           The channel and token must be set, either via environment variables or as function arguments.
-           If not set, the notification will not be sent, and an error will be logged
+           The channel and token must be set, either via environment variables or as
+           function arguments. If not set, the notification will not be sent,
+           and an error will be logged
            (the original Python script will continue running without interruption).
         """
         self._mention_to = mention_to or os.getenv(
@@ -311,7 +329,8 @@ class BaseNotifier(ABC):
         self._token = token or os.getenv(f"{self._platform.upper()}_BOT_TOKEN")
         if not self._token and verbose:
             _log.error(
-                f"Missing {self._platform} bot token. Please set the {self._platform.upper()}_BOT_TOKEN "
+                f"Missing {self._platform} bot token. "
+                f"Please set the {self._platform.upper()}_BOT_TOKEN "
                 "environment variable or pass it as an argument."
             )
             self._disable = True
@@ -339,8 +358,8 @@ class BaseNotifier(ABC):
     ) -> None:
         """
         Send a notification message.
-        You can send notifications at any point in your code, not just at the start or end of a task.
-        Any data can be sent, and it will be stringified.
+        You can send notifications at any point in your code, not just at the start or
+        end of a task. Any data can be sent, and it will be stringified.
 
         Args:
             data: The payload or message content.
@@ -427,19 +446,19 @@ class BaseNotifier(ABC):
         **options: Unpack[SendOptions],
     ) -> ContextManagerDecorator | ContextManagerIterator[T]:
         """
-        If ``iterable`` is not provided, return an object that can serve as both a context manager and
-        a decorator to watch code execution.
-        This will automatically send notifications when the function or code block starts, ends,
-        or raises an exception.
+        If ``iterable`` is not provided, return an object that can serve as both
+        a context manager and a decorator to watch code execution.
+        This will automatically send notifications when the function or code block
+        starts, ends, or raises an exception.
 
-        If ``iterable`` is provided, return a generator that yields items from an ``iterable``
-        while sending notifications about its progress.
+        If ``iterable`` is provided, return a generator that yields items from an
+        ``iterable`` while sending notifications about its progress.
 
         Args:
             iterable: An iterable (e.g., a list or range) to monitor progress.
             params:
-                Names of the function parameters whose values should be included in the message
-                when the decorated function is called.
+                Names of the function parameters whose values should be included in the
+                message when the decorated function is called.
                 This option is ignored when used as a context manager.
             step:
                 The number of items to process before sending a progress notification.
@@ -449,7 +468,9 @@ class BaseNotifier(ABC):
                 If not provided and the iterable has not ``__len__``,
                 it will not be included in the progress messages.
                 This option is ignored if the iterable is not provided.
-            **options: Additional options. See :class:`~notist._notifiers.base.SendOptions` for details.
+            **options:
+                Additional options. See :class:`~notist._notifiers.base.SendOptions`
+                for details.
 
         Returns:
             An an object that can serve as both a context manager and a decorator.
@@ -501,7 +522,8 @@ class BaseNotifier(ABC):
                 step = 1
                 if send_config.verbose:
                     _log.warn(
-                        f"Step must be at least 1. Setting step to 1 for {self._platform}Notifier."
+                        "Step must be at least 1. "
+                        f"Setting step to 1 for {self._platform}Notifier."
                     )
 
             return IterableWatch(
@@ -526,15 +548,20 @@ class BaseNotifier(ABC):
     ) -> None:
         """
         Register existing function or method to be monitored by this notifier.
-        This function corresponds to applying the :meth:`watch` decorator to an existing function or method.
+        This function corresponds to applying the :meth:`watch` decorator to an existing
+        function or method.
 
         Args:
-            target: The module, class, or class instance containing the function to be registered.
+            target:
+                The module, class, or class instance containing the function to be
+                registered.
             name: The name of the function to be registered.
             params:
-                Names of the function parameters whose values should be included in the message
-                when the registered function is called.
-            **options: Additional options. See :class:`~notist._notifiers.base.SendOptions` for details.
+                Names of the function parameters whose values should be included in the
+                message when the registered function is called.
+            **options:
+                Additional options. See :class:`~notist._notifiers.base.SendOptions`
+                for details.
         """
         self._register_impl(target, name, params, **options)
 
@@ -551,7 +578,8 @@ class BaseNotifier(ABC):
         if original is None:
             if opts.verbose if opts.verbose is not None else self._verbose:
                 _log.error(
-                    f"Cannot register {self._platform}Notifier on `{target.__name__}.{name}`: "
+                    f"Cannot register {self._platform}Notifier "
+                    f"on `{target.__name__}.{name}`: "
                     f"target `{target.__name__}` has no attribute `{name}`."
                 )
             return
