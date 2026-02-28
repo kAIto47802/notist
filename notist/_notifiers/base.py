@@ -494,6 +494,7 @@ class BaseNotifier(ABC):
         combined: int = 0,
         class_name: str | None = None,
         object_id: int | None = None,
+        lazy_init_fn: Callable[[], None] | None = None,
         **options: Unpack[SendOptions],
     ) -> Watch | IterableWatch[T]:
         opts = _SendOptions(**options)
@@ -516,8 +517,11 @@ class BaseNotifier(ABC):
                 opts.callsite_context_before,
                 opts.callsite_context_after,
                 combined,
+                lazy_init_fn,
             )
         else:
+            if lazy_init_fn:
+                lazy_init_fn()
             if step < 1:
                 step = 1
                 if send_config.verbose:
