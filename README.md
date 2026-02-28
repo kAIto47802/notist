@@ -224,7 +224,7 @@ Currently supports Slack and Discord. If you need another notifier, feel free to
 You can install Notist from our GitHub:
 
 ```bash
-pip install notist
-# Or from our GitHub:
-# pip install git+https://github.com/kAIto47802/notist.git
+uv add notist
+# If you're using pip:
+# pip install notist
 ```
