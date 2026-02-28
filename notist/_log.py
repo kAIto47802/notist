@@ -101,10 +101,10 @@ class Glyph(str, Enum):
     TDH, BTDH, QDH, BQDH = "┄", "┅", "┈", "┉"
     RARROW, LARROW = "▶", "◀"
     RARROWF, LARROWF = "▷", "◁"
-    RARROWP = "❯"
+    RARROWP = "❯"  # noqa: RUF001
     BULLET, WBULLET, CBULLET = "•", "◦", "⦿"
     CHECK, CROSS = "✓", "✗"
-    WARN, INFO = "⚠", "ℹ"
+    WARN, INFO = "⚠", "ℹ"  # noqa: RUF001
 
     def __str__(self) -> str:
         return self.value

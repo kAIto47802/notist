@@ -1,16 +1,18 @@
+# ruff: noqa: E501
+# Allow long lines for Sphinx `.. code-block:: python` examples (keep rendered line breaks unchanged).
+
 from __future__ import annotations
 
 import contextlib
 import inspect
 import itertools
 import sys
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from contextlib import AbstractContextManager, ContextDecorator
 from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
-    Iterable,
     Literal,
     TypeVar,
     overload,
@@ -114,7 +116,7 @@ def _allow_multi_dest(fn: Callable[_P, _R]) -> Callable[_P, _R]:
                     new_kwargs["object_id"] = hex(id(iterable))
                 if i:
                     new_kwargs["verbose"] = 1
-                if "combined" in inspect.signature(fn).parameters.keys():
+                if "combined" in inspect.signature(fn).parameters:
                     new_kwargs["combined"] = len(send_to) - i
                 res.append(fn(*args, **new_kwargs))  # type: ignore
             if _are_all_contexts(res):
@@ -210,42 +212,48 @@ def init(
     Initialize the notifier with default settings.
     This settings can be overridden at each call of :func:`~notist._core.register`,
     :func:`~notist._core.send`, and :func:`~notist._core.watch`.
-    Alternatively, you can skip initialization with this function and provide all settings directly through
-    these functions.
+    Alternatively, you can skip initialization with this function and provide all
+    settings directly through these functions.
 
     Args:
-        send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
+        send_to: Destination(s) to send notifications to. e.g., "slack", "discord",
+        or ["slack", "discord"].
         channel:
-            Default channel for notifications. If not provided, it will look for an environment variable
-            named ``{platform}_CHANNEL`` where ``{platform}`` is the notifier's platform name in uppercase
+            Default channel for notifications. If not provided, it will look for an
+            environment variable named ``{platform}_CHANNEL`` where ``{platform}``
+            is the notifier's platform name in uppercase
             (e.g., ``SLACK_CHANNEL`` for Slack).
         mention_to:
-            Default user to mention in notification. If not provided, it will look for an environment variable
-            named ``{platform}_MENTION_TO`` where ``{platform}`` is the notifier's platform name in uppercase
+            Default user to mention in notification. If not provided, it will look for
+            an environment variable named ``{platform}_MENTION_TO`` where ``{platform}``
+            is the notifier's platform name in uppercase
             (e.g., ``SLACK_MENTION_TO`` for Slack).
         mention_level: Minimum log level to trigger a mention.
         mention_if_ends: Whether to mention at the end of the watch.
         callsite_level: Minimum log level to emit the call-site source snippet.
         token:
-            API token or authentication key. If not provided, it will look for an environment variable named
-            ``{platform}_BOT_TOKEN`` where ``{platform}`` is the notifier's platform name in uppercase
+            API token or authentication key. If not provided, it will look for an
+            environment variable named ``{platform}_BOT_TOKEN`` where ``{platform}``
+            is the notifier's platform name in uppercase
             (e.g., ``SLACK_BOT_TOKEN`` for Slack).
         verbose:
             If obj:`True`, log messages to console.
             If set to 1, only logs during initialization.
             If set to 2 or higher, behaves the same as obj:`True`.
         disable:
-            If :obj:`True`, disable sending all notifications. This is useful for parallel runs or testing
-            where you want to avoid sending actual notifications.
+            If :obj:`True`, disable sending all notifications. This is useful for
+            parallel runs or testing where you want to avoid sending actual
+            notifications.
 
     .. note::
-       The channel and token must be set, either via environment variables or as function arguments.
+       The channel and token must be set, either via environment variables or as
+       function arguments.
        If not set, the notification will not be sent, and an error will be logged
        (the original Python script will continue running without interruption).
 
     .. note::
-       The destination (``send_to``) must be set, either in this :func:`~notist._core.init` function
-       or as an argument to subsequent calls.
+       The destination (``send_to``) must be set, either in this
+       :func:`~notist._core.init` function or as an argument to subsequent calls.
 
     Example:
 
@@ -287,12 +295,14 @@ def send(
 ) -> None:
     """
     Send a notification message.
-    You can send notifications at any point in your code, not just at the start or end of a task.
-    Any data can be sent, and it will be stringified.
+    You can send notifications at any point in your code, not just at the start or end
+    of a task. Any data can be sent, and it will be stringified.
 
     Args:
         data: The payload or message content.
-        send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
+        send_to:
+            Destination(s) to send notifications to. e.g., "slack", "discord",
+            or ["slack", "discord"].
         channel: Override the default channel for notifications.
         mention_to: Override the default entity to mention on notification.
         verbose: Override the default verbosity setting.
@@ -359,21 +369,25 @@ def watch(
     **options: Unpack[SendOptions],
 ) -> ContextManagerDecorator | ContextManagerIterator[T]:
     """
-    Return an object that can serve as both a context manager and a decorator to watch code execution.
-    This will automatically send notifications when the function or code block starts, ends, or raises
-    an exception.
+    Return an object that can serve as both a context manager and a decorator to watch
+    code execution. This will automatically send notifications when the function or
+    code block starts, ends, or raises an exception.
 
     Args:
         iterable: An iterable (e.g., a list or range) to monitor progress.
         params:
-            Names of the function parameters whose values should be included in the message
-            when the decorated function is called.
+            Names of the function parameters whose values should be included in the
+            message when the decorated function is called.
             This option is ignored when used as a context manager.
         label:
             Optional label for the watch context.
             This label will be included in both notification messages and log entries.
-        send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
-        **options: Additional options. See :class:`~notist._notifiers.base.SendOptions` for details.
+        send_to:
+            Destination(s) to send notifications to. e.g., "slack", "discord",
+            or ["slack", "discord"].
+        **options:
+            Additional options. See :class:`~notist._notifiers.base.SendOptions`
+            for details.
 
     Returns:
         An an object that can serve as both a context manager and a decorator.
@@ -411,8 +425,9 @@ def watch(
 
     .. note::
        The above example does **not** catch exceptions automatically,
-       since exceptions raised inside the for loop cannot be caught by the iterator in Python.
-       If you also want to be notified when an error occurs, wrap your code in the monitoring context:
+       since exceptions raised inside the for loop cannot be caught by the iterator in
+       Python. If you also want to be notified when an error occurs, wrap your code in
+       the monitoring context:
 
        .. code-block:: python
 
@@ -477,17 +492,23 @@ def register(
 ) -> None:
     """
     Register existing function or method to be watched by this notifier.
-    This function corresponds to applying the :meth:`watch` decorator to an existing function or method.
+    This function corresponds to applying the :meth:`watch` decorator to an existing
+    function or method.
 
     Args:
-        target: The module, class, or class instance containing the function to be registered.
+        target:
+            The module, class, or class instance containing the function to be
+            registered.
         name: The name of the function to be registered.
         params:
-            Names of the function parameters whose values should be included in the message
-            when the registered function is called.
+            Names of the function parameters whose values should be included in the
+            message when the registered function is called.
         send_to:
-            Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
-        **options: Additional options. See :class:`~notist._notifiers.base.SendOptions` for details.
+            Destination(s) to send notifications to. e.g., "slack", "discord",
+            or ["slack", "discord"].
+        **options:
+            Additional options. See :class:`~notist._notifiers.base.SendOptions`
+            for details.
 
     Example:
 
@@ -574,7 +595,7 @@ def _init_if_needed(
             **{  # type: ignore
                 k: v
                 for k, v in opts.items()
-                if v is not None and v in inspect.signature(init).parameters.keys()
+                if v is not None and v in inspect.signature(init).parameters
             },
         )
     _update_verbose(opts)
@@ -589,6 +610,6 @@ def _update_verbose(opts: SendOptions) -> None:
 def _warn_not_set_send_to() -> None:
     _log.warn(
         "No destination specified. "
-        "Please specify `send_to` parameter or initialize notifier with `notist.init()`. "
-        "No notifications will be sent."
+        "Please specify `send_to` parameter or initialize notifier with "
+        "`notist.init()`. No notifications will be sent."
     )

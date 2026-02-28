@@ -22,7 +22,7 @@ class DummyClient:
     def __init__(self) -> None:
         self.sent: list[Any] = []
 
-    def chat_postMessage(self, **kwargs: Any) -> None:
+    def chat_postMessage(self, **kwargs: Any) -> None:  # noqa: N802
         self.sent.append(kwargs)
 
 
@@ -275,16 +275,18 @@ def test_slack_watch_context_error(
         disable=disable.default,
     )
     slack._client = dummy_client  # type: ignore
-    with pytest.raises(Exception):
-        with slack.watch(
+    with (
+        pytest.raises(Exception),
+        slack.watch(
             label=label,
             channel=channel.override,
             mention_to=mention_to.override,
             mention_level=mention_level.override,
             verbose=verbose.override,
             disable=disable.override,
-        ):
-            raise Exception("This is an error")
+        ),
+    ):
+        raise Exception("This is an error")
     if disable.expected or channel.expected is None:
         assert dummy_client.sent == []
     else:
@@ -411,11 +413,17 @@ def test_slack_watch_decorator_error(
 
 def test_slack_register_module(
     dummy_client: DummyClient,
+    monkeypatch: MonkeyPatch,
 ) -> None:
     slack = SlackNotifier(token="tok", channel="test-channel")
     slack._client = dummy_client  # type: ignore
 
     import requests
+
+    def _do_nothing(*args: Any, **kwargs: Any) -> Any:
+        return None
+
+    monkeypatch.setattr(requests, "get", _do_nothing)
 
     slack.register(requests, "get")
     requests.get("https://example.com")
@@ -576,15 +584,15 @@ def test_slack_watch_iterable_success(
 
     if step == 1:
         if total is None and not sized:
-            # Include white space so that it does not match "item 2–"
+            # Include white space so that it does not match "item 2–" # noqa: RUF003
             assert "item 1 " in dummy_client.sent[1]["text"]
         else:
             assert f"item 1 of {t}" in dummy_client.sent[1]["text"]
     else:
         if total is None and not sized:
-            assert "items 1–2" in dummy_client.sent[1]["text"]
+            assert "items 1–2" in dummy_client.sent[1]["text"]  # noqa: RUF001
         else:
-            assert f"items 1–2 of {t}" in dummy_client.sent[1]["text"]
+            assert f"items 1–2 of {t}" in dummy_client.sent[1]["text"]  # noqa: RUF001
 
 
 @parametrize_label
@@ -654,12 +662,12 @@ def test_slack_watch_iterable_error(
 
     if step == 1:
         if total is None and not sized:
-            # Include white space so that it does not match "item 2–"
+            # Include white space so that it does not match "item 2–" # noqa: RUF003
             assert "item 2 " in dummy_client.sent[-1]["text"]
         else:
             assert f"item 2 of {t}" in dummy_client.sent[-1]["text"]
     else:
         if total is None and not sized:
-            assert "items 1–2" in dummy_client.sent[-1]["text"]
+            assert "items 1–2" in dummy_client.sent[-1]["text"]  # noqa: RUF001
         else:
-            assert "items 1–2" in dummy_client.sent[-1]["text"]
+            assert "items 1–2" in dummy_client.sent[-1]["text"]  # noqa: RUF001

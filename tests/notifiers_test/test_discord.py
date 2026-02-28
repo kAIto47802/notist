@@ -59,7 +59,8 @@ class _OverrideTestCase(Generic[T]):
 
 
 # NOTE: It is sufficient for here to only test the `watch` and `send` methods,
-# as the rest of the methods are inherited from `BaseNotifier` and tested in `SlackNotifier`.
+# as the rest of the methods are inherited from `BaseNotifier` and tested
+# in `SlackNotifier`.
 
 parametrize_label = pytest.mark.parametrize("label", ["label1", None])
 
@@ -179,11 +180,11 @@ def test_discord_with_watch_error(
     discord = DiscordNotifier(
         token="tok", channel=channel.default, disable=cast(bool, disable.default)
     )
-    with pytest.raises(Exception):
-        with discord.watch(
-            label=label, channel=channel.override, disable=disable.override
-        ):
-            raise Exception("This is an error")
+    with (
+        pytest.raises(Exception),
+        discord.watch(label=label, channel=channel.override, disable=disable.override),
+    ):
+        raise Exception("This is an error")
     if disable.expected or channel.expected is None:
         assert dummy_post == []
     else:

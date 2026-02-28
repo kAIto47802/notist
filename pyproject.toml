@@ -49,7 +49,10 @@ dynamic = ["version"]
 check = ["ruff", "mypy", "types-setuptools", "types-requests"]
 test = ["pytest"]
 docs = [
-    "sphinx",
+    # Sphinx 9 introduced many breaking changes, and some extensions such as sphinx-toolbox is not compatible with it yet.
+    # Therefore, we stick to Sphinx 8 for now.
+    # See: https://github.com/sphinx-toolbox/sphinx-toolbox/issues/201
+    "sphinx==8.2.3",
     "sphinx-autodoc-typehints",
     "pydata_sphinx_theme",
     "sphinx-copybutton",
@@ -63,8 +66,20 @@ version = { attr = "notist.__version__" }
 [tool.setuptools.packages.find]
 include = ["notist*"]
 
+[tool.ruff.lint]
+select = ["E","W","F","I", "UP", "N", "SIM", "PERF", "RUF"]
+
 [tool.mypy]
 python_version = "3.11"
-ignore_missing_imports = true
+warn_unused_configs = true
+disallow_untyped_calls = true
 disallow_untyped_defs = true
-exclude = ["^build/"]
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+strict_equality = true
+extra_checks = true
+no_implicit_reexport = true
+ignore_missing_imports = true
+exclude = [".venv", "venv", "^build/"]

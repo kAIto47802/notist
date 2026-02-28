@@ -130,8 +130,8 @@ def test_send(
         assert len(dummy_post) == 0
 
     captured = capsys.readouterr()
-    if "slack" == destination or "slack" in destination:
+    if "slack" in destination:
         assert "SlackNotifier initialized" in captured.out
-    if "discord" == destination or "discord" in destination:
+    if "discord" in destination:
         assert "DiscordNotifier initialized" in captured.out
     assert captured.out.count("msg") == 1
