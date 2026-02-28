@@ -209,42 +209,48 @@ def init(
     Initialize the notifier with default settings.
     This settings can be overridden at each call of :func:`~notist._core.register`,
     :func:`~notist._core.send`, and :func:`~notist._core.watch`.
-    Alternatively, you can skip initialization with this function and provide all settings directly through
-    these functions.
+    Alternatively, you can skip initialization with this function and provide all
+    settings directly through these functions.
 
     Args:
-        send_to: Destination(s) to send notifications to. e.g., "slack", "discord", or ["slack", "discord"].
+        send_to: Destination(s) to send notifications to. e.g., "slack", "discord",
+        or ["slack", "discord"].
         channel:
-            Default channel for notifications. If not provided, it will look for an environment variable
-            named ``{platform}_CHANNEL`` where ``{platform}`` is the notifier's platform name in uppercase
+            Default channel for notifications. If not provided, it will look for an
+            environment variable named ``{platform}_CHANNEL`` where ``{platform}``
+            is the notifier's platform name in uppercase
             (e.g., ``SLACK_CHANNEL`` for Slack).
         mention_to:
-            Default user to mention in notification. If not provided, it will look for an environment variable
-            named ``{platform}_MENTION_TO`` where ``{platform}`` is the notifier's platform name in uppercase
+            Default user to mention in notification. If not provided, it will look for
+            an environment variable named ``{platform}_MENTION_TO`` where ``{platform}``
+            is the notifier's platform name in uppercase
             (e.g., ``SLACK_MENTION_TO`` for Slack).
         mention_level: Minimum log level to trigger a mention.
         mention_if_ends: Whether to mention at the end of the watch.
         callsite_level: Minimum log level to emit the call-site source snippet.
         token:
-            API token or authentication key. If not provided, it will look for an environment variable named
-            ``{platform}_BOT_TOKEN`` where ``{platform}`` is the notifier's platform name in uppercase
+            API token or authentication key. If not provided, it will look for an
+            environment variable named ``{platform}_BOT_TOKEN`` where ``{platform}``
+            is the notifier's platform name in uppercase
             (e.g., ``SLACK_BOT_TOKEN`` for Slack).
         verbose:
             If obj:`True`, log messages to console.
             If set to 1, only logs during initialization.
             If set to 2 or higher, behaves the same as obj:`True`.
         disable:
-            If :obj:`True`, disable sending all notifications. This is useful for parallel runs or testing
-            where you want to avoid sending actual notifications.
+            If :obj:`True`, disable sending all notifications. This is useful for
+            parallel runs or testing where you want to avoid sending actual
+            notifications.
 
     .. note::
-       The channel and token must be set, either via environment variables or as function arguments.
+       The channel and token must be set, either via environment variables or as
+       function arguments.
        If not set, the notification will not be sent, and an error will be logged
        (the original Python script will continue running without interruption).
 
     .. note::
-       The destination (``send_to``) must be set, either in this :func:`~notist._core.init` function
-       or as an argument to subsequent calls.
+       The destination (``send_to``) must be set, either in this
+       :func:`~notist._core.init` function or as an argument to subsequent calls.
 
     Example:
 
