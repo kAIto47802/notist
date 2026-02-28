@@ -49,7 +49,10 @@ dynamic = ["version"]
 check = ["ruff", "mypy", "types-setuptools", "types-requests"]
 test = ["pytest"]
 docs = [
-    "sphinx",
+    # Sphinx 9 introduced many breaking changes, and some extensions such as sphinx-toolbox is not compatible with it yet.
+    # Therefore, we stick to Sphinx 8 for now.
+    # See: https://github.com/sphinx-toolbox/sphinx-toolbox/issues/201
+    "sphinx==8.2.3",
     "sphinx-autodoc-typehints",
     "pydata_sphinx_theme",
     "sphinx-copybutton",
