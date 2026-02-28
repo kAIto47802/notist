@@ -16,7 +16,7 @@ Thank you for considering contributing to this project. Your contributions help 
 - Update the documentation if your changes affect the usage of the library.
    - The documentation is located in the `docs` directory as well as in the docstrings of the code.
    - The documentation is written in [reStructuredText](https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html) format.
-   - You can build the documentation locally. To do this, first install the required dependencies with `pip install '.[docs]'`, then run `make html` in the `docs` directory. The built documentation will be available in the `docs/_build/html` directory.
+   - You can build the documentation locally. To do this, first install the required dependencies with `uv sync --extra docs` (`pip install '.[docs]'` if you're using pip), then run `make html` in the `docs` directory. The built documentation will be available in the `docs/_build/html` directory.
 
 ## Adding a New Notifier
 

@@ -10,9 +10,9 @@ Install the latest release from PyPI or `our GitHub <https://github.com/kAIto478
 
 .. code-block:: bash
 
-   pip install notist
-   # Or from our GitHub:
-   # pip install git+https://github.com/kAIto47802/notist.git
+   uv add notist
+   # If you're using pip:
+   # pip install notist
 
 
 Set Up Your Platform (e.g., Slack or Discord)
