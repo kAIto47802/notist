@@ -4,13 +4,12 @@ import contextlib
 import inspect
 import itertools
 import sys
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from contextlib import AbstractContextManager, ContextDecorator
 from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
-    Iterable,
     Literal,
     TypeVar,
     overload,
@@ -114,7 +113,7 @@ def _allow_multi_dest(fn: Callable[_P, _R]) -> Callable[_P, _R]:
                     new_kwargs["object_id"] = hex(id(iterable))
                 if i:
                     new_kwargs["verbose"] = 1
-                if "combined" in inspect.signature(fn).parameters.keys():
+                if "combined" in inspect.signature(fn).parameters:
                     new_kwargs["combined"] = len(send_to) - i
                 res.append(fn(*args, **new_kwargs))  # type: ignore
             if _are_all_contexts(res):
