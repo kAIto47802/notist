@@ -66,6 +66,7 @@ Configuring Defaults
 ^^^^^^^^^^^^^^^^^^^^
 
 Once initialized with :func:`~notist._core.init`, you can omit basic settings in subsequent calls.
+If :func:`~notist._core.init` is not called explicitly, the required settings must instead be provided in the first subsequent call where they appear.
 
 .. code-block:: python
 
