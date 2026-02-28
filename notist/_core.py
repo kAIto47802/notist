@@ -469,7 +469,6 @@ def _watch_impl(
             else _PhantomContextManagerIterator(iterable)
         )
     assert isinstance(send_to, str)
-    _init_if_needed(send_to, options)
     return _notifiers[send_to]._watch_impl(
         iterable,
         params=params,
@@ -478,6 +477,7 @@ def _watch_impl(
         combined=combined,
         class_name=class_name,
         object_id=object_id,
+        lazy_init_fn=lambda: _init_if_needed(send_to, options),
         **options,
     )
 

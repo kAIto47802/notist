@@ -52,6 +52,7 @@ class Watch(ContextDecorator, AbstractContextManager):
         callsite_context_before: int = 1,
         callsite_context_after: int = 4,
         combined: int = 0,
+        lazy_init_fn: Callable[[], None] | None = None,
     ) -> None:
         self._send = send_fn
         self._params = [params] if isinstance(params, str) else params or []
@@ -68,9 +69,12 @@ class Watch(ContextDecorator, AbstractContextManager):
         self._is_fn = False
         self._filename: str | None = None
         self._lineno: int | None = None
+        self._lazy_init_fn: Callable[[], None] | None = lazy_init_fn
 
     def __enter__(self) -> Self:
         self._start = datetime.now()
+        if self._lazy_init_fn:
+            self._lazy_init_fn()
         if not self._is_fn and self._params and self._send.config.verbose:
             _log.warn(
                 "Parameters can only be captured when used as a decorator "
