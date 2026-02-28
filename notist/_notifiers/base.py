@@ -144,7 +144,8 @@ class _SendOptions:
 
 
 DOC_ADDITIONS_BASE = {
-    "send": lambda cls: f"""
+    "send": lambda cls: (
+        f"""
         Example:
 
             .. code-block:: python
@@ -154,8 +155,10 @@ DOC_ADDITIONS_BASE = {
 
                # You can also send any Python data (it will be stringified)
                {cls._platform.lower()}.send(data)
-        """,
-    "watch": lambda cls: f"""
+        """
+    ),
+    "watch": lambda cls: (
+        f"""
         Example:
 
             Monitor functions:
@@ -203,8 +206,10 @@ DOC_ADDITIONS_BASE = {
                       # If an error occurs inside this context, you'll be notified immediately.
                       ...
                       # Your long-running code here
-        """,
-    "register": lambda cls: f"""
+        """
+    ),
+    "register": lambda cls: (
+        f"""
         Example:
 
             Monitor existing functions from libraries:
@@ -246,7 +251,8 @@ DOC_ADDITIONS_BASE = {
 
                # Now any time you call `trainer.train()`, it will be monitored
                trainer.train()
-        """,
+        """
+    ),
 }
 
 
