@@ -413,11 +413,17 @@ def test_slack_watch_decorator_error(
 
 def test_slack_register_module(
     dummy_client: DummyClient,
+    monkeypatch: MonkeyPatch,
 ) -> None:
     slack = SlackNotifier(token="tok", channel="test-channel")
     slack._client = dummy_client  # type: ignore
 
     import requests
+
+    def _do_nothing(*args: Any, **kwargs: Any) -> Any:
+        return None
+
+    monkeypatch.setattr(requests, "get", _do_nothing)
 
     slack.register(requests, "get")
     requests.get("https://example.com")
