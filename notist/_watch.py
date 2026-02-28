@@ -16,8 +16,8 @@ from notist._log import (
     LevelStr,
     fg256,
 )
-from notist._log import Glyph as _G
-from notist._log import SpecialToken as _S
+from notist._log import Glyph as _G  # noqa: N814
+from notist._log import SpecialToken as _S  # noqa: N814
 from notist._utils import format_timedelta
 
 if TYPE_CHECKING:
@@ -362,7 +362,7 @@ class IterableWatch(AbstractContextManager, Generic[T]):
         return (
             f"item {self._cur_range_start} "
             if self._step == 1
-            else f"items {self._cur_range_start}–{self._cur_range_end} "
+            else f"items {self._cur_range_start}–{self._cur_range_end} "  # noqa RUF001
         )
 
 

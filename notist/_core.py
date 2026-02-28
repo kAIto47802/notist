@@ -595,7 +595,7 @@ def _init_if_needed(
             **{  # type: ignore
                 k: v
                 for k, v in opts.items()
-                if v is not None and v in inspect.signature(init).parameters.keys()
+                if v is not None and v in inspect.signature(init).parameters
             },
         )
     _update_verbose(opts)
