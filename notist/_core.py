@@ -1,3 +1,6 @@
+# ruff: noqa: E501
+# Allow long lines for Sphinx `.. code-block:: python` examples (keep rendered line breaks unchanged).
+
 from __future__ import annotations
 
 import contextlib

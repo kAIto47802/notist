@@ -1,3 +1,7 @@
+# ruff: noqa: E501
+# Allow long lines for Sphinx `.. code-block:: python` examples (keep rendered line breaks unchanged).
+
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -64,11 +68,13 @@ class DiscordNotifier(BaseNotifier):
         if not self._disable and verbose:
             if self._default_channel:
                 _log.info(
-                    f"DiscordNotifier initialized with channel ID: {fg256(33)}{self._default_channel}{RESET}"
+                    "DiscordNotifier initialized with channel ID: "
+                    f"{fg256(33)}{self._default_channel}{RESET}"
                 )
             else:
                 _log.warn(
-                    "No Discord channel ID configured. Need to specify channel each time."
+                    "No Discord channel ID configured. "
+                    "Need to specify channel each time."
                 )
 
     def _do_send(

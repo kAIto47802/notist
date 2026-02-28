@@ -63,7 +63,8 @@ class SlackNotifier(BaseNotifier):
         if not self._disable and verbose:
             if self._default_channel:
                 _log.info(
-                    f"SlackNotifier initialized with default channel: {fg256(33)}{self._default_channel}{RESET}"
+                    "SlackNotifier initialized with default channel: "
+                    f"{fg256(33)}{self._default_channel}{RESET}"
                 )
             else:
                 _log.warn(

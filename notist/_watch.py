@@ -73,7 +73,8 @@ class Watch(ContextDecorator, AbstractContextManager):
         self._start = datetime.now()
         if not self._is_fn and self._params and self._send.config.verbose:
             _log.warn(
-                "Parameters can only be captured when used as a decorator on a function. Ignoring 'params' argument."
+                "Parameters can only be captured when used as a decorator "
+                "on a function. Ignoring 'params' argument."
             )
 
         f = (f0 := inspect.currentframe()) and f0.f_back
@@ -140,12 +141,11 @@ class Watch(ContextDecorator, AbstractContextManager):
                 self._callsite_context_after,
                 message,
             )
-            or None
-        )
+        ) or None
         if self._is_fn:
             assert self._defined_at is not None
-            defined_at = f" {fg256(8)}{_G.RARROWF} Defined at: {fg256(12)}{self._defined_at}{RESET}"
-            called_from = f" {fg256(8)}{_G.RARROWF} Called from: {fg256(12)}{self._called_from}{RESET}"
+            defined_at = f" {fg256(8)}{_G.RARROWF} Defined at: {fg256(12)}{self._defined_at}{RESET}"  # noqa: E501
+            called_from = f" {fg256(8)}{_G.RARROWF} Called from: {fg256(12)}{self._called_from}{RESET}"  # noqa: E501
             params = (self._param_vals or None) and (
                 f"   {fg256(8)}{_G.RARROWF}{_G.RARROWF} With params: "
                 + ", ".join(f"{k}={v!r}" for k, v in self._param_vals.items())
@@ -179,7 +179,8 @@ class Watch(ContextDecorator, AbstractContextManager):
             missing = [p for p in self._params if p not in bound.arguments]
             if missing and self._send.config.verbose:
                 _log.warn(
-                    f"Parameters {missing} not found in function arguments. Skipping capturing their values."
+                    f"Parameters {missing} not found in function arguments. "
+                    "Skipping capturing their values."
                 )
             self._param_vals = {
                 p: bound.arguments[p] for p in self._params if p in bound.arguments
@@ -213,7 +214,10 @@ class IterableWatch(AbstractContextManager, Generic[T]):
         self._callsite_level = callsite_level
         self._callsite_context_before = callsite_context_before
         self._callsite_context_after = callsite_context_after
-        self._iterable_object_str = f"{class_name or iterable.__class__.__name__} object at {object_id or hex(id(iterable))}"
+        self._iterable_object_str = (
+            f"{class_name or iterable.__class__.__name__} object "
+            f"at {object_id or hex(id(iterable))}"
+        )
         self._start: datetime | None = datetime.now()
         self._count: int | None = None
         self._prev_start: datetime | None = None
@@ -318,9 +322,9 @@ class IterableWatch(AbstractContextManager, Generic[T]):
 
     def _details(self, level: LevelStr = "info", message: str | None = None) -> str:
         target = (
-            f" {fg256(45)}{_S.BT_MSG}<{self._iterable_object_str}>{_S.BT_MSG} [label: {self._label}]{RESET}"
+            f" {fg256(45)}{_S.BT_MSG}<{self._iterable_object_str}>{_S.BT_MSG} [label: {self._label}]{RESET}"  # noqa: E501
             if self._label
-            else f" {fg256(45)}{_S.BT_MSG}<{self._iterable_object_str}>{_S.BT_MSG}{RESET}"
+            else f" {fg256(45)}{_S.BT_MSG}<{self._iterable_object_str}>{_S.BT_MSG}{RESET}"  # noqa: E501
         )
         called_from = (
             f" {fg256(8)}{_G.RARROWF} in: {fg256(12)}{self._called_from}{RESET}"
@@ -334,8 +338,7 @@ class IterableWatch(AbstractContextManager, Generic[T]):
                 self._callsite_context_after,
                 message,
             )
-            or None
-        )
+        ) or None
         return "\n".join(filter(None, [target, called_from, called_lines]))
 
     @property
@@ -400,7 +403,7 @@ def _get_called_lines_str(
             ]
             + (
                 [
-                    f"{fg256(45)}{_G.BL}{_G.H}{_G.RARROWP}{RESET} {fg256(197)}{message}{RESET}"
+                    f"{fg256(45)}{_G.BL}{_G.H}{_G.RARROWP}{RESET} {fg256(197)}{message}{RESET}"  # noqa: E501
                 ]
                 if message
                 else []
