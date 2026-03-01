@@ -75,7 +75,7 @@ class Watch(ContextDecorator, AbstractContextManager):
         self._start = datetime.now()
         if self._lazy_init_fn:
             self._lazy_init_fn()
-        if not self._is_fn and self._params and self._send.config.verbose:
+        if not self._is_fn and self._params and self._send.verbose:
             _log.warn(
                 "Parameters can only be captured when used as a decorator "
                 "on a function. Ignoring 'params' argument."
@@ -181,7 +181,7 @@ class Watch(ContextDecorator, AbstractContextManager):
             bound = inspect.signature(fn).bind(*args, **kwargs)
             bound.apply_defaults()
             missing = [p for p in self._params if p not in bound.arguments]
-            if missing and self._send.config.verbose:
+            if missing and self._send.verbose:
                 _log.warn(
                     f"Parameters {missing} not found in function arguments. "
                     "Skipping capturing their values."

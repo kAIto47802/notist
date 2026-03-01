@@ -89,7 +89,7 @@ class _SendConfig:
 @dataclass(frozen=True)
 class _SendFnPartial:
     fn: Callable[[_SendConfig, str, str | None, LevelStr, str], None]
-    config: _SendConfig
+    config: _SendConfig | Callable[[], _SendConfig]
 
     def __call__(
         self,
@@ -98,7 +98,17 @@ class _SendFnPartial:
         level: LevelStr = "info",
         prefix: str = "",
     ) -> None:
-        self.fn(self.config, message, tb, level, prefix)
+        self.fn(
+            self.config() if callable(self.config) else self.config,
+            message,
+            tb,
+            level,
+            prefix,
+        )
+
+    @property
+    def verbose(self) -> bool:
+        return (self.config() if callable(self.config) else self.config).verbose
 
 
 class SendOptions(TypedDict, total=False):
@@ -323,29 +333,42 @@ class BaseNotifier(ABC):
            and an error will be logged
            (the original Python script will continue running without interruption).
         """
-        self._mention_to = mention_to or os.getenv(
+        self._mention_to = mention_to
+        self._token = token
+        self._mention_level = mention_level
+        self._mention_if_ends = mention_if_ends
+        self._default_callsite_level = callsite_level
+        self._default_channel = channel
+        self._disable = disable
+        if disable and verbose:
+            _log.info(
+                f"{self._platform}Notifier is disabled. No messages will be sent."
+            )
+        self._verbose_raw = verbose
+        self._verbose = verbose if isinstance(verbose, bool) else verbose >= 2
+
+    def _lazy_init(self) -> None:
+        """
+        Lazy initialization to load configuration from environment variables if not
+        provided in the constructor.
+        Because `watch()` can run at function definition time when used as a decorator
+        (potentially before environment variables are set),
+        initialization is performed when the decorated function is invoked instead.
+        """
+        self._mention_to = self._mention_to or os.getenv(
             f"{self._platform.upper()}_MENTION_TO"
         )
-        self._token = token or os.getenv(f"{self._platform.upper()}_BOT_TOKEN")
-        if not self._token and verbose:
+        self._token = self._token or os.getenv(f"{self._platform.upper()}_BOT_TOKEN")
+        if not self._token and self._verbose_raw:
             _log.error(
                 f"Missing {self._platform} bot token. "
                 f"Please set the {self._platform.upper()}_BOT_TOKEN "
                 "environment variable or pass it as an argument."
             )
             self._disable = True
-        self._mention_level = mention_level
-        self._mention_if_ends = mention_if_ends
-        self._default_callsite_level = callsite_level
-        self._default_channel = channel or os.getenv(
+        self._default_channel = self._default_channel or os.getenv(
             f"{self._platform.upper()}_CHANNEL"
         )
-        self._disable = disable
-        if disable and verbose:
-            _log.info(
-                f"{self._platform}Notifier is disabled. No messages will be sent."
-            )
-        self._verbose = verbose if isinstance(verbose, bool) else verbose >= 2
 
     def send(
         self,
@@ -368,6 +391,7 @@ class BaseNotifier(ABC):
             verbose: Override the default verbosity setting.
             disable: Override the default disable flag.
         """
+        self._lazy_init()
         self._send(
             _SendConfig(
                 channel=channel or self._default_channel,
@@ -494,11 +518,11 @@ class BaseNotifier(ABC):
         combined: int = 0,
         class_name: str | None = None,
         object_id: int | None = None,
-        lazy_init_fn: Callable[[], None] | None = None,
         **options: Unpack[SendOptions],
     ) -> Watch | IterableWatch[T]:
         opts = _SendOptions(**options)
-        send_config = _SendConfig(
+        # Make sure to access the config values after lazy initialization.
+        send_config_factory: Callable[[], _SendConfig] = lambda: _SendConfig(  # noqa: E731
             channel=opts.channel or self._default_channel,
             mention_to=opts.mention_to or self._mention_to,
             mention_level=opts.mention_level or self._mention_level,
@@ -510,18 +534,18 @@ class BaseNotifier(ABC):
         )
         if iterable is None:
             return Watch(
-                _SendFnPartial(self._send, send_config),
+                _SendFnPartial(self._send, send_config_factory),
                 params,
                 opts.label,
                 opts.callsite_level or self._default_callsite_level,
                 opts.callsite_context_before,
                 opts.callsite_context_after,
                 combined,
-                lazy_init_fn,
+                self._lazy_init,
             )
         else:
-            if lazy_init_fn:
-                lazy_init_fn()
+            self._lazy_init()
+            send_config = send_config_factory()
             if step < 1:
                 step = 1
                 if send_config.verbose:

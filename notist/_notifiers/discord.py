@@ -44,28 +44,9 @@ _DOC_ADDITIONS = {
 class DiscordNotifier(BaseNotifier):
     _platform = "Discord"
 
-    def __init__(
-        self,
-        channel: str | None = None,
-        mention_to: str | None = None,
-        mention_level: LevelStr = "error",
-        mention_if_ends: bool = True,
-        callsite_level: LevelStr = "error",
-        token: str | None = None,
-        verbose: bool = True,
-        disable: bool = False,
-    ) -> None:
-        super().__init__(
-            channel,
-            mention_to,
-            mention_level,
-            mention_if_ends,
-            callsite_level,
-            token,
-            verbose,
-            disable,
-        )
-        if not self._disable and verbose:
+    def _lazy_init(self) -> None:
+        super()._lazy_init()
+        if not self._disable and self._verbose_raw:
             if self._default_channel:
                 _log.info(
                     "DiscordNotifier initialized with channel ID: "
