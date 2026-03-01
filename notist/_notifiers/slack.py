@@ -38,29 +38,10 @@ _DOC_ADDITIONS = {
 class SlackNotifier(BaseNotifier):
     _platform = "Slack"
 
-    def __init__(
-        self,
-        channel: str | None = None,
-        mention_to: str | None = None,
-        mention_level: LevelStr = "error",
-        mention_if_ends: bool = True,
-        callsite_level: LevelStr = "error",
-        token: str | None = None,
-        verbose: bool = True,
-        disable: bool = False,
-    ) -> None:
-        super().__init__(
-            channel,
-            mention_to,
-            mention_level,
-            mention_if_ends,
-            callsite_level,
-            token,
-            verbose,
-            disable,
-        )
+    def _lazy_init(self) -> None:
+        super()._lazy_init()
         self._client = WebClient(token=self._token)
-        if not self._disable and verbose:
+        if not self._disable and self._verbose_raw:
             if self._default_channel:
                 _log.info(
                     "SlackNotifier initialized with default channel: "
