@@ -106,6 +106,10 @@ class _SendFnPartial:
             prefix,
         )
 
+    @property
+    def verbose(self) -> bool:
+        return (self.config() if callable(self.config) else self.config).verbose
+
 
 class SendOptions(TypedDict, total=False):
     """
@@ -518,7 +522,7 @@ class BaseNotifier(ABC):
     ) -> Watch | IterableWatch[T]:
         opts = _SendOptions(**options)
         # Make sure to access the config values after lazy initialization.
-        send_config = lambda: _SendConfig(  # noqa: E731
+        send_config_factory: Callable[[], _SendConfig] = lambda: _SendConfig(  # noqa: E731
             channel=opts.channel or self._default_channel,
             mention_to=opts.mention_to or self._mention_to,
             mention_level=opts.mention_level or self._mention_level,
@@ -530,7 +534,7 @@ class BaseNotifier(ABC):
         )
         if iterable is None:
             return Watch(
-                _SendFnPartial(self._send, send_config),
+                _SendFnPartial(self._send, send_config_factory),
                 params,
                 opts.label,
                 opts.callsite_level or self._default_callsite_level,
@@ -541,7 +545,7 @@ class BaseNotifier(ABC):
             )
         else:
             self._lazy_init()
-            send_config = send_config()
+            send_config = send_config_factory()
             if step < 1:
                 step = 1
                 if send_config.verbose:
