@@ -23,7 +23,7 @@ from notist._utils import format_timedelta
 if TYPE_CHECKING:
     import sys
     from collections.abc import Generator, Iterable
-    from types import TracebackType
+    from types import FrameType, TracebackType
 
     from notist._notifiers.base import _SendFnPartial
 
@@ -71,6 +71,22 @@ class Watch(ContextDecorator, AbstractContextManager):
         self._lineno: int | None = None
         self._lazy_init_fn: Callable[[], None] | None = lazy_init_fn
 
+    def _recreate_cm(self) -> Self:
+        cm = type(self)(
+            self._send,
+            self._params,
+            self._label,
+            self._callsite_level,
+            self._callsite_context_before,
+            self._callsite_context_after,
+            self._combined,
+            self._lazy_init_fn,
+        )
+        cm._is_fn = self._is_fn
+        cm._target = self._target
+        cm._defined_at = self._defined_at
+        return cm
+
     def __enter__(self) -> Self:
         self._start = datetime.now()
         if self._lazy_init_fn:
@@ -81,28 +97,9 @@ class Watch(ContextDecorator, AbstractContextManager):
                 "on a function. Ignoring 'params' argument."
             )
 
-        f = (f0 := inspect.currentframe()) and f0.f_back
-        if self._is_fn:
-            for _ in range(max(1, self._combined) * 2):
-                f = f and f.f_back
-        elif self._combined:
-            f = f and f.f_back
-
-        self._filename = f and f.f_code.co_filename
-        fnname = f and f.f_code.co_name
-        self._lineno = f and f.f_lineno
-        module = f and f.f_globals.get("__name__", "<unknown>")
-
-        module_fname = (
-            f"{_S.BT_ALW}{module}.{fnname}{_S.BT_ALW}"
-            if fnname != "<module>"
-            else f"{_S.BT_ALW}{module}{_S.BT_ALW}"
-        )
-        if self._is_fn:
-            self._called_from = f"{module_fname} @ {self._filename}:{self._lineno}"
-        else:
-            self._called_from = f"{self._filename}:{self._lineno}"
-            self._target = f"code block in {module_fname}"
+        # If it is used as a decorator on async functions, callsite info is already set
+        if self._called_from is None:
+            self._set_callsite_from_frame((f0 := inspect.currentframe()) and f0.f_back)
 
         message = f"Start watching{self._details()}"
         self._send(message)
@@ -128,6 +125,29 @@ class Watch(ContextDecorator, AbstractContextManager):
         else:
             msg = f"End watching{self._details()}\n{et_msg}"
             self._send(msg)
+
+    def _set_callsite_from_frame(self, f: FrameType | None) -> None:
+        if self._is_fn:
+            for _ in range(max(1, self._combined)):
+                f = f and f.f_back
+        elif self._combined:
+            f = f and f.f_back
+
+        self._filename = f and f.f_code.co_filename
+        fnname = f and f.f_code.co_name
+        self._lineno = f and f.f_lineno
+        module = f and f.f_globals.get("__name__", "<unknown>")
+
+        module_fname = (
+            f"{_S.BT_ALW}{module}.{fnname}{_S.BT_ALW}"
+            if fnname != "<module>"
+            else f"{_S.BT_ALW}{module}{_S.BT_ALW}"
+        )
+        if self._is_fn:
+            self._called_from = f"{module_fname} @ {self._filename}:{self._lineno}"
+        else:
+            self._called_from = f"{self._filename}:{self._lineno}"
+            self._target = f"code block in {module_fname}"
 
     def _details(self, level: LevelStr = "info", message: str | None = None) -> str:
         assert self._called_from is not None
@@ -176,22 +196,49 @@ class Watch(ContextDecorator, AbstractContextManager):
         self._target = f"function {_S.BT_ALW}{module}.{qualname}{_S.BT_ALW}"
         self._defined_at = f"{filename}:{lineno}"
 
-        @functools.wraps(fn)
-        def _wrapped(*args: Any, **kwargs: Any) -> Any:
-            bound = inspect.signature(fn).bind(*args, **kwargs)
-            bound.apply_defaults()
-            missing = [p for p in self._params if p not in bound.arguments]
-            if missing and self._send.verbose:
-                _log.warn(
-                    f"Parameters {missing} not found in function arguments. "
-                    "Skipping capturing their values."
-                )
-            self._param_vals = {
-                p: bound.arguments[p] for p in self._params if p in bound.arguments
-            }
-            return super(Watch, self).__call__(fn)(*args, **kwargs)
+        if inspect.iscoroutinefunction(fn):
+
+            @functools.wraps(fn)
+            def _wrapped(*args: Any, **kwargs: Any) -> Any:
+                cm = self._recreate_cm()
+                cm._prepare_param_vals(fn, args, kwargs)
+                # Capture the callsite at coroutine creation time
+                # (i.e., where the user calls the decorated function),
+                # so it doesn't point into asyncio internals
+                # when the coroutine is later executed by the event loop.
+                cm._set_callsite_from_frame(inspect.currentframe())
+
+                async def _runner() -> Any:
+                    with cm:
+                        return await fn(*args, **kwargs)
+
+                return _runner()
+        else:
+
+            @functools.wraps(fn)
+            def _wrapped(*args: Any, **kwargs: Any) -> Any:
+                cm = self._recreate_cm()
+                cm._prepare_param_vals(fn, args, kwargs)
+                # return super(Watch, self).__call__(fn)(*args, **kwargs)
+                with cm:
+                    return fn(*args, **kwargs)
 
         return cast(_F, _wrapped)
+
+    def _prepare_param_vals(
+        self, fn: Callable[..., Any], args: Any, kwargs: Any
+    ) -> None:
+        bound = inspect.signature(fn).bind(*args, **kwargs)
+        bound.apply_defaults()
+        missing = [p for p in self._params if p not in bound.arguments]
+        if missing and self._send.verbose:
+            _log.warn(
+                f"Parameters {missing} not found in function arguments. "
+                "Skipping capturing their values."
+            )
+        self._param_vals = {
+            p: bound.arguments[p] for p in self._params if p in bound.arguments
+        }
 
 
 class IterableWatch(AbstractContextManager, Generic[T]):
