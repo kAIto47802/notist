@@ -398,11 +398,22 @@ def watch(
 
         .. code-block:: python
 
-           @notist.watch()
-           def long_task():
+           # You can also optionally specify params to include in the notification
+           # The values passed to these parameters are also reported
+           @notist.watch(params=["arg1", "arg2"])
+           def long_task(arg1: int, arg2: str, arg3: bool) -> None:
                # This function will be monitored
-               # Your long-running code here
+               # You can receive notifications when it starts, ends, or encounters an error
                ...
+               # Your long-running code here
+
+           # You can also use it to monitor async functions
+           @notist.watch()
+           async def long_task_async() -> None:
+               # This async function will be monitored
+               # You can receive notifications when it starts, ends, or encounters an error
+               ...
+               # Your long-running code here
 
         Use as a context manager to monitor a block of code:
 
@@ -410,21 +421,21 @@ def watch(
 
            with notist.watch():
                # Code inside this block will be monitored
-               # Your long-running code here
+               # You can receive notifications when it starts, ends, or encounters an error
                ...
+               # Your long-running code here
 
         Use to monitor an iterable in a for loop:
 
         .. code-block:: python
 
-           # Monitor progress of processing a long-running for loop
            for i in notist.watch(range(100), step=10):
                # This loop will be monitored, and you'll receive notifications every 10 iterations.
-               # If an error occurs inside this loop, you'll be notified immediately.
                ...
+               # Your long-running code here
 
     .. note::
-       The above example does **not** catch exceptions automatically,
+       The above example for monitoring iterations does **not** catch exceptions automatically,
        since exceptions raised inside the for loop cannot be caught by the iterator in
        Python. If you also want to be notified when an error occurs, wrap your code in
        the monitoring context:
@@ -436,6 +447,7 @@ def watch(
                    # This loop will be monitored, and you'll receive notifications every 10 iterations.
                    # If an error occurs inside this context, you'll be notified immediately.
                    ...
+                   # Your long-running code here
     """
     return _watch_impl(
         iterable,
