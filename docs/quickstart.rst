@@ -99,6 +99,14 @@ You can use :func:`~notist._core.watch` to monitor the execution of your functio
        ...
        # Your long-running code here
 
+   # You can also use it to monitor async functions
+   @notist.watch()
+   async def long_task_async() -> None:
+       # This async function will be monitored
+       # You can receive notifications when it starts, ends, or encounters an error
+       ...
+       # Your long-running code here
+
 **Monitor blocks of code**:
 
 .. code-block:: python

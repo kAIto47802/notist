@@ -68,9 +68,17 @@ import notist
 
 # You can also optionally specify params to include in the notification
 # The values passed to these parameters are also reported
-@notist.watch(params=["arg1", "arg2"])
+@notist.watch(send_to="slack", chennal="my-channel", params=["arg1", "arg2"])
 def long_task(arg1: int, arg2: str, arg3: bool) -> None:
     # This function will be monitored
+    # You can receive notifications when it starts, ends, or encounters an error
+    ...
+    # Your long-running code here
+
+# You can also use it to monitor async functions
+@notist.watch()
+async def long_task_async() -> None:
+    # This async function will be monitored
     # You can receive notifications when it starts, ends, or encounters an error
     ...
     # Your long-running code here

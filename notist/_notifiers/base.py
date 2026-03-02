@@ -189,6 +189,14 @@ DOC_ADDITIONS_BASE = {
                    ...
                    # Your long-running code here
 
+               # You can also use it to monitor async functions
+               @{cls._platform.lower()}.watch()
+               async def long_task_async() -> None:
+                   # This async function will be monitored
+                   # You can receive notifications when it starts, ends, or encounters an error
+                   ...
+                   # Your long-running code here
+
             Monitor methods:
 
             .. code-block:: python
@@ -209,7 +217,7 @@ DOC_ADDITIONS_BASE = {
                     # Your long-running code here
 
         .. note::
-           The above example does **not** catch exceptions automatically,
+           The above example for monitoring iterations does **not** catch exceptions automatically,
            since exceptions raised inside the for loop cannot be caught by the iterator
            in Python. If you also want to be notified when an error occurs,
            wrap your code in the monitoring context:
